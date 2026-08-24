@@ -1,15 +1,146 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NestWorth</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F3F6EF;--surface:#FFFFFF;--ink:#1B3327;--ink-2:#4C5E52;--line:#DCE4D4;--green:#2E7D5B;--green-deep:#215E44;--green-soft:#E4F0E8;--honey:#C99334;--shadow:0 1px 2px rgba(27,51,39,.05),0 12px 34px -12px rgba(27,51,39,.18)}
-*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;padding:28px 20px 56px}.wrap{max-width:620px;margin:0 auto}.disp{font-family:"Fraunces",Georgia,"Times New Roman",serif}.hero{text-align:center;padding:20px 0 8px}.logopanel{display:inline-block;background:#FBF8F0;border-radius:26px;padding:16px 20px 12px;box-shadow:var(--shadow);max-width:400px;width:100%}.logo{width:100%;height:auto;display:block;border-radius:18px}.tag{font-size:clamp(16px,3.4vw,19px);color:var(--ink-2);margin:20px auto 0;max-width:34ch;text-wrap:balance}.cta-wrap{text-align:center;margin:30px 0 8px}.cta{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:#fff;text-decoration:none;font-weight:700;font-size:18px;padding:16px 30px;border-radius:14px;box-shadow:var(--shadow)}.cta-note{font-size:13.5px;color:var(--ink-2);margin-top:12px}.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 24px;margin-top:22px;box-shadow:var(--shadow)}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--green);margin:0 0 4px}h2.disp{font-size:23px;font-weight:600;margin:0 0 16px}.privacy{background:var(--green-soft);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-top:22px}.mini{margin-top:22px;font-size:14.5px;color:var(--ink-2);text-align:center}footer{text-align:center;margin-top:32px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2)}footer a{color:var(--green);text-decoration:none;font-weight:600}
+  :root{
+    --bg:#F3F6EF; --surface:#FFFFFF; --surface-2:#EAF0E4;
+    --ink:#1B3327; --ink-2:#4C5E52; --line:#DCE4D4;
+    --green:#2E7D5B; --green-deep:#215E44; --green-soft:#E4F0E8;
+    --honey:#C99334; --honey-soft:#F3E2BE;
+    --shadow:0 1px 2px rgba(27,51,39,.05),0 12px 34px -12px rgba(27,51,39,.18);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#111A13; --surface:#18221A; --surface-2:#1F2B21;
+      --ink:#EAF1E7; --ink-2:#A7B7AA; --line:#2A372C;
+      --green:#57BC8F; --green-deep:#3E9E74; --green-soft:#1C2C22;
+      --honey:#E4B457; --honey-soft:#3A3020;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 18px 40px -14px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#111A13; --surface:#18221A; --surface-2:#1F2B21;
+    --ink:#EAF1E7; --ink-2:#A7B7AA; --line:#2A372C;
+    --green:#57BC8F; --green-deep:#3E9E74; --green-soft:#1C2C22;
+    --honey:#E4B457; --honey-soft:#3A3020;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 18px 40px -14px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+    padding:28px 20px 56px;
+  }
+  .wrap{max-width:620px;margin:0 auto}
+  .disp{font-family:"Fraunces",Georgia,"Times New Roman",serif}
+
+  /* Hero */
+  .hero{text-align:center;padding:20px 0 8px}
+  .logopanel{display:inline-block;background:#FBF8F0;border-radius:26px;padding:16px 20px 12px;box-shadow:var(--shadow);max-width:400px;width:100%}
+  .logo{width:100%;height:auto;display:block}
+  .tag{margin-top:20px}
+
+  .mark{width:74px;height:74px;margin:0 auto 18px;display:block}
+  .brand{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(38px,9vw,56px);
+    letter-spacing:-.01em;line-height:1;margin:0;color:var(--ink);text-wrap:balance}
+  .brand .nest{color:var(--green)}
+  .tag{font-size:clamp(16px,3.4vw,19px);color:var(--ink-2);margin:16px auto 0;max-width:34ch;text-wrap:balance}
+
+  /* CTA */
+  .cta-wrap{text-align:center;margin:30px 0 8px}
+  .cta{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:#fff;
+    text-decoration:none;font-weight:700;font-size:18px;padding:16px 30px;border-radius:14px;
+    box-shadow:var(--shadow);transition:transform .12s ease, background .2s ease}
+  .cta:hover{background:var(--green-deep);transform:translateY(-1px)}
+  .cta:active{transform:translateY(0)}
+  .cta svg{width:18px;height:18px}
+  .cta-note{font-size:13.5px;color:var(--ink-2);margin-top:12px}
+
+  /* Card */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    padding:26px 24px;margin-top:22px;box-shadow:var(--shadow)}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--green);margin:0 0 4px}
+  h2.disp{font-size:23px;font-weight:600;margin:0 0 16px;letter-spacing:-.01em}
+
+  /* Steps */
+  ol.steps{list-style:none;counter-reset:s;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+  ol.steps li{counter-increment:s;display:flex;gap:15px;align-items:flex-start}
+  ol.steps li::before{content:counter(s);flex:0 0 34px;height:34px;border-radius:50%;
+    background:var(--green-soft);color:var(--green);font-weight:700;font-size:16px;
+    display:flex;align-items:center;justify-content:center;font-family:"Fraunces",serif;margin-top:1px}
+  ol.steps b{color:var(--ink)}
+  ol.steps .sub{color:var(--ink-2);font-size:14.5px}
+
+  /* Privacy */
+  .privacy{background:var(--green-soft);border:1px solid var(--line);border-radius:18px;
+    padding:22px 24px;margin-top:22px;display:flex;gap:15px;align-items:flex-start}
+  .privacy svg{flex:0 0 26px;width:26px;height:26px;color:var(--green);margin-top:2px}
+  .privacy h3{margin:0 0 4px;font-size:17px;font-weight:700;color:var(--ink)}
+  .privacy p{margin:0;color:var(--ink-2);font-size:15px}
+
+  .mini{margin-top:22px;font-size:14.5px;color:var(--ink-2);text-align:center}
+  .mini b{color:var(--ink)}
+
+  footer{text-align:center;margin-top:32px;padding-top:18px;border-top:1px solid var(--line)}
+  footer p{margin:0 0 5px}
+  footer .who{font-size:13px;color:var(--ink-2)}
+  footer .mail{color:var(--green);text-decoration:none;font-weight:600}
+  footer .co{font-size:11.5px;color:var(--ink-2);line-height:1.5;opacity:.9}
+  footer .dot{color:var(--honey)}
+  a.plainlink{color:var(--green);word-break:break-all}
 </style>
-</head>
-<body><div class="wrap"><div class="hero"><div class="logopanel"><img class="logo" src="https://czulmer08.github.io/nestworth-site/NestWorth%20Logo.png?v=4" alt="NestWorth — Plan, Budget, Grow"></div><p class="tag">Your budget, your savings, and your net worth — quietly in your pocket.</p></div><div class="cta-wrap"><a class="cta" href="https://script.google.com/macros/s/AKfycbwWhOc_lDb7uyeuxMvin9R2GnRHQcDg0TbJhiwnNuKJ6-oK-CEorRfosKc6KC35mu70bg/exec" target="_blank" rel="noopener noreferrer">Open NestWorth →</a><div class="cta-note">Free · nothing to install · works right in your browser</div></div><div class="card"><p class="eyebrow">What it is</p><h2 class="disp">A simple money tracker that lives on your phone.</h2><p>Log what you spend in a couple of taps, see where it goes, set budgets you can actually keep, and watch your net worth grow over time — no spreadsheets to wrestle, nothing to download. NestWorth builds you a private space and does the math for you.</p></div><div class="card"><p class="eyebrow">Getting started</p><h2 class="disp">Three taps and you're in.</h2><p><b>1. Tap “Open NestWorth” above.</b> Sign in with your Google account if it asks.</p><p><b>2. Tap “Create my budget.”</b> NestWorth sets up a private budget just for you.</p><p><b>3. Add it to your home screen.</b> On iPhone use Safari’s Share button → Add to Home Screen. On Android use Chrome’s menu → Add to Home screen.</p></div><div class="privacy"><b>Your numbers stay yours.</b><br>NestWorth creates your budget inside your own Google Drive, where only you can see it. Everyone who uses NestWorth gets their own private space.</div><p class="mini"><b>Personal and family?</b> Once you’re in, tap your budget’s name at the top of the app to add a shared household budget and switch between them — everyone still keeps their own private one.</p><p class="mini">Want to snap photos of receipts? It’s optional — in the app, open <b>Settings → Receipt scanning</b> and paste a free key.</p><footer>Questions or feedback? <a href="mailto:czulmer@gmail.com">Dr. Candice Z. Ulmer Holland, Ph.D.</a><br>“Created for you, with you in mind.” · NestWorth, a product of Ulmer Consulting, LLC</footer></div></body></html>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="logopanel">
+      <img class="logo" src="https://czulmer08.github.io/nestworth-site/NestWorth%20Logo.png?v=5" alt="NestWorth — Plan, Budget, Grow. Build the life you love.">
+    </div>
+    <p class="tag">Your budget, your savings, and your net worth — quietly in your pocket.</p>
+  </div>
+
+  <div class="cta-wrap">
+    <a class="cta" href="https://script.google.com/macros/s/AKfycby3LD16rU0GTQN-veUcdMVjK6MxUEQj6s1ls4ZyUMRDs_L-UcIQiIpzRIi_SFLKPCKGeQ/exec" target="_blank" rel="noopener noreferrer">
+      Open NestWorth
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+    <div class="cta-note">Free · nothing to install · works right in your browser</div>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">What it is</p>
+    <h2 class="disp">A simple money tracker that lives on your phone.</h2>
+    <p style="margin:0;color:var(--ink-2)">Log what you spend in a couple of taps, see where it goes, set budgets you can actually keep, and watch your net worth grow over time — no spreadsheets to wrestle, nothing to download. NestWorth builds you a private space and does the math for you.</p>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Getting started</p>
+    <h2 class="disp">Three taps and you're in.</h2>
+    <ol class="steps">
+      <li><div><b>Tap “Open NestWorth” above.</b> <span class="sub">— or open the link someone sent you. Sign in with your Google account if it asks.</span></div></li>
+      <li><div><b>Tap “Create my budget.”</b> <span class="sub">NestWorth sets up a private budget just for you and approves the one permission it needs. Takes a few seconds.</span></div></li>
+      <li><div><b>Add it to your home screen.</b> <span class="sub">On iPhone (Safari): the Share button ▸ Add to Home Screen ▸ Add. On Android (Chrome): menu ⋮ ▸ Add to Home screen. Now it opens in one tap, like a real app.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="privacy">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+    <div>
+      <h3>Your numbers stay yours.</h3>
+      <p>NestWorth creates your budget inside your <b>own</b> Google Drive, where only you can see it. Not the person who shared the app, not anyone else. Everyone who uses NestWorth gets their own private space — nothing is shared or pooled.</p>
+    </div>
+  </div>
+
+  <p class="mini"><b>Personal and family?</b> Once you’re in, open <b>Settings &#9656; Your budgets &#9656; + New budget</b> to create a shared household budget, then tap <b>Share with others</b> to invite your family. A name pill appears at the top to switch between them &mdash; and everyone still keeps their own private one.</p>
+  <p class="mini">Want to snap photos of receipts? It's optional — in the app, open <b>Settings ▸ Receipt scanning</b> and paste a free key. Skip it if you'd rather just type.</p>
+
+  <footer>
+    <p class="who">Questions or feedback? Email <a class="mail" href="mailto:czulmer@gmail.com">Dr. Candice Z. Ulmer Holland, Ph.D.</a></p>
+    <p class="co">&ldquo;Created for you, with you in mind.&rdquo; <span class="dot">·</span> NestWorth, a product of Ulmer Consulting, LLC</p>
+  </footer>
+
+</div>
