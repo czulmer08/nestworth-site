@@ -17,50 +17,56 @@
 <style>
   :root{ --bg:#F3F6EF; --card:#FFFFFF; --ink:#1B3327; --ink2:#4C5E52; --line:#DCE4D4; --green:#2E7D5B; --green-d:#215E44; --soft:#E4F0E8; --gold:#C99334; --bad:#b4462f; --shadow:0 1px 2px rgba(27,51,39,.05),0 12px 30px -14px rgba(27,51,39,.22); }
   @media (prefers-color-scheme:dark){ :root{ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55);} }
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding:0 0 env(safe-area-inset-bottom)}
+  *{box-sizing:border-box} html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
   .disp{font-family:"Fraunces",Georgia,serif}
-  .wrap{max-width:560px;margin:0 auto;padding:20px 16px 40px}
-  /* screens */
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px}
   .screen{display:none} .screen.on{display:block}
-  /* splash / signin */
   .center{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 22px calc(28px + env(safe-area-inset-bottom))}
   .logo{width:96px;height:96px;border-radius:24px;box-shadow:var(--shadow);margin-bottom:18px}
-  .brand{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:38px;margin:0 0 6px;color:var(--ink)}
+  .brand{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:38px;margin:0 0 6px}
   .tag{color:var(--ink2);font-size:15px;margin:0 0 26px;max-width:30ch}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;max-width:340px;padding:15px 18px;border:0;border-radius:14px;background:var(--green);color:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
   .btn:disabled{opacity:.5}
-  .btn.sec{background:transparent;color:var(--green);box-shadow:none;border:1px solid var(--line)}
   .fine{margin-top:16px;font-size:12.5px;color:var(--ink2);max-width:32ch}
   .err{color:var(--bad);font-size:13.5px;margin-top:14px;max-width:36ch}
-  /* header */
-  .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 2px 14px}
-  .top .who{font-size:12.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 12px}
   .top .title{font-family:"Fraunces",serif;font-weight:600;font-size:22px}
+  .top .who{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
   .lnk{color:var(--green);font-size:13px;font-weight:600;background:none;border:0;cursor:pointer;padding:6px}
-  /* cards */
+  .seg{display:flex;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:16px}
+  .seg button{flex:1;padding:9px 0;border:0;background:transparent;color:var(--ink2);font-family:inherit;font-size:14px;font-weight:600;border-radius:9px;cursor:pointer}
+  .seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+  .view{display:none} .view.on{display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 16px;box-shadow:var(--shadow);margin-bottom:16px}
   .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin:0 0 12px}
   .row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
   .row:last-child{border-bottom:0}
-  .row .ri{flex:0 0 34px;color:var(--ink2)}
-  .row label{flex:0 0 84px;font-size:14px;color:var(--ink2)}
+  .row label{flex:0 0 92px;font-size:14px;color:var(--ink2)}
   .row input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-family:inherit;font-size:16px;text-align:right;outline:none}
   .row input::placeholder{color:#9fb0a4}
   .addbtn{width:100%;margin-top:14px;padding:14px;border:0;border-radius:13px;background:var(--green);color:#fff;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer}
   .addbtn:disabled{opacity:.5}
   .msg{font-size:13px;color:var(--ink2);min-height:18px;margin-top:8px;text-align:center}
   .msg.bad{color:var(--bad)}
-  /* entries */
+  .totrow{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
+  .totrow b{font-family:"Fraunces",serif;font-size:20px}
+  .catcard{padding:12px 0;border-bottom:1px solid var(--line)} .catcard:last-child{border-bottom:0}
+  .catrow{display:flex;justify-content:space-between;gap:10px;font-size:15px;margin-bottom:7px}
+  .catrow .cn{font-weight:600} .catrow .cv{color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bar{height:8px;border-radius:6px;background:var(--soft);overflow:hidden}
+  .bar span{display:block;height:100%;border-radius:6px}
+  .crem{font-size:12px;color:var(--ink2);margin-top:5px}
   .elist{margin:0;padding:0;list-style:none}
-  .eitem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line)}
-  .eitem:last-child{border-bottom:0}
-  .eitem .l{min-width:0}
+  .eitem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line)} .eitem:last-child{border-bottom:0}
   .eitem .co{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .eitem .meta{font-size:12.5px;color:var(--ink2)}
   .eitem .amt{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;white-space:nowrap}
-  .empty{color:var(--ink2);font-size:14px;text-align:center;padding:14px 0}
+  .catitem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line)} .catitem:last-child{border-bottom:0}
+  .catitem .cn{font-weight:600;font-size:15px}
+  .catitem .cb{color:var(--ink2);font-size:13px}
+  .rm{color:var(--bad);background:none;border:0;font-size:13px;font-weight:600;cursor:pointer;padding:6px}
+  .empty{color:var(--ink2);font-size:14px;text-align:center;padding:16px 4px}
   .foot{text-align:center;font-size:11px;color:var(--ink2);letter-spacing:.03em;padding:10px 0 2px}
   .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:-3px}
   @keyframes sp{to{transform:rotate(360deg)}}
@@ -68,56 +74,63 @@
 </head>
 <body>
 
-<!-- SPLASH -->
-<div class="screen on" id="splash">
-  <div class="center">
-    <img class="logo" src="apple-touch-icon.png" alt="">
-    <div class="brand disp">NestWorth</div>
-    <div class="tag"><span class="spin"></span>&nbsp; Loading…</div>
+<div class="screen on" id="splash"><div class="center"><img class="logo" src="apple-touch-icon.png" alt=""><div class="brand disp">NestWorth</div><div class="tag"><span class="spin"></span>&nbsp; Loading…</div></div></div>
+
+<div class="screen" id="signinScreen"><div class="center">
+  <img class="logo" src="apple-touch-icon.png" alt=""><div class="brand disp">NestWorth</div>
+  <p class="tag">Your budget, savings, and net worth — quietly in your pocket.</p>
+  <button class="btn" id="signinBtn">Sign in with Google</button>
+  <p class="fine">NestWorth keeps one private budget sheet in <b>your own</b> Google Drive and can only touch that one file.</p>
+  <div class="err" id="signinErr"></div>
+</div></div>
+
+<div class="screen" id="appScreen"><div class="wrap">
+  <div class="top">
+    <div><div class="title disp">NestWorth</div><div class="who" id="who"></div></div>
+    <button class="lnk" id="signout">Sign out</button>
   </div>
-</div>
 
-<!-- SIGN IN -->
-<div class="screen" id="signinScreen">
-  <div class="center">
-    <img class="logo" src="apple-touch-icon.png" alt="">
-    <div class="brand disp">NestWorth</div>
-    <p class="tag">Your budget, savings, and net worth — quietly in your pocket.</p>
-    <button class="btn" id="signinBtn">Sign in with Google</button>
-    <p class="fine">NestWorth creates one private budget sheet in <b>your own</b> Google Drive and can only touch that one file — nothing else in your account.</p>
-    <div class="err" id="signinErr"></div>
+  <div class="seg">
+    <button data-v="month" class="on">This Month</button>
+    <button data-v="add">Add</button>
+    <button data-v="budget">Budget</button>
   </div>
-</div>
 
-<!-- APP -->
-<div class="screen" id="appScreen">
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <div class="title disp">NestWorth</div>
-        <div class="who" id="who"></div>
-      </div>
-      <button class="lnk" id="signout">Sign out</button>
-    </div>
+  <!-- THIS MONTH -->
+  <div class="view on" id="view-month">
+    <div class="card"><div id="mTot"><div class="totrow"><span>This month</span><b><span class="spin"></span></b></div></div></div>
+    <div class="card"><p class="eyebrow" id="mLabel">By category</p><div id="mBody"><div class="empty"><span class="spin"></span></div></div></div>
+  </div>
 
+  <!-- ADD -->
+  <div class="view" id="view-add">
     <div class="card">
       <p class="eyebrow">Add an expense</p>
       <div class="row"><label>Company</label><input id="fCompany" autocomplete="off" placeholder="e.g., Publix"></div>
-      <div class="row"><label>Category</label><input id="fCategory" autocomplete="off" placeholder="e.g., Groceries"></div>
+      <div class="row"><label>Category</label><input id="fCategory" list="catlist" autocomplete="off" placeholder="e.g., Groceries"></div>
+      <datalist id="catlist"></datalist>
       <div class="row"><label>Amount</label><input id="fAmount" inputmode="decimal" placeholder="$0.00"></div>
       <div class="row"><label>Date</label><input id="fDate" type="date"></div>
       <button class="addbtn" id="addBtn">Add entry</button>
       <div class="msg" id="addMsg"></div>
     </div>
-
-    <div class="card">
-      <p class="eyebrow">Recent entries</p>
-      <ul class="elist" id="elist"><li class="empty"><span class="spin"></span></li></ul>
-    </div>
-
-    <div class="foot" id="foot">NestWorth · phase 2a</div>
+    <div class="card"><p class="eyebrow">Recent entries</p><ul class="elist" id="elist"><li class="empty"><span class="spin"></span></li></ul></div>
   </div>
-</div>
+
+  <!-- BUDGET -->
+  <div class="view" id="view-budget">
+    <div class="card">
+      <p class="eyebrow">Add a category</p>
+      <div class="row"><label>Category</label><input id="cName" autocomplete="off" placeholder="e.g., Groceries"></div>
+      <div class="row"><label>Per month</label><input id="cAmt" inputmode="decimal" placeholder="$0.00"></div>
+      <button class="addbtn" id="catAddBtn">Add category</button>
+      <div class="msg" id="catMsg"></div>
+    </div>
+    <div class="card"><p class="eyebrow">Your categories</p><div id="catList"><div class="empty"><span class="spin"></span></div></div></div>
+  </div>
+
+  <div class="foot">NestWorth · phase 2b</div>
+</div></div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
@@ -125,168 +138,206 @@
 var CLIENT_ID = "1048635246954-nj94ab7k529isv8ur8ntncub8sosj8f9.apps.googleusercontent.com";
 var SCOPE = "https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME = "NestWorth Budget";
-var LEDGER = "Account Ledger";
-var HEADERS = ["Year","Month","Date","Payee","Category","Company","Amount","Description","Reimbursed?"];
-
-var accessToken = null, tokenClient = null, sheetId = null, userEmail = "";
+var LEDGER = "Account Ledger", CATS = "Categories";
+var LHEAD = ["Year","Month","Date","Payee","Category","Company","Amount","Description","Reimbursed?"];
+var CHEAD = ["Category","Monthly Budget"];
+var accessToken=null, tokenClient=null, sheetId=null, userEmail="";
+var state = { cats:[], rows:[] };
 
 function $(id){ return document.getElementById(id); }
 function show(id){ ["splash","signinScreen","appScreen"].forEach(function(s){ $(s).classList.toggle("on", s===id); }); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+function money(n){ n=Number(n)||0; return "$"+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 /* ---------- auth ---------- */
-var _res=null, _rej=null;
-function _tokCb(resp){ var res=_res, rej=_rej; _res=_rej=null; if(resp && resp.error){ if(rej)rej(new Error(resp.error)); return; } accessToken=resp.access_token; if(res)res(accessToken); }
-function _tokErr(err){ var rej=_rej; _res=_rej=null; if(rej)rej(new Error((err&&(err.type||err.message))||"auth error")); }
-function getToken(interactive){
-  return new Promise(function(resolve, reject){
-    _res=resolve; _rej=reject;
-    try{ tokenClient.requestAccessToken(interactive ? undefined : { prompt:"none" }); }
-    catch(e){ _res=_rej=null; reject(e); }
-  });
-}
-function withTimeout(p, ms){ return Promise.race([ p, new Promise(function(_,rej){ setTimeout(function(){ rej(new Error("timeout")); }, ms); }) ]); }
+var _res=null,_rej=null;
+function _tokCb(resp){ var r=_res,j=_rej; _res=_rej=null; if(resp&&resp.error){ if(j)j(new Error(resp.error)); return;} accessToken=resp.access_token; if(r)r(accessToken); }
+function _tokErr(err){ var j=_rej; _res=_rej=null; if(j)j(new Error((err&&(err.type||err.message))||"auth error")); }
+function getToken(interactive){ return new Promise(function(res,rej){ _res=res;_rej=rej; try{ tokenClient.requestAccessToken(interactive?undefined:{prompt:"none"}); }catch(e){ _res=_rej=null; rej(e);} }); }
+function withTimeout(p,ms){ return Promise.race([p,new Promise(function(_,rej){ setTimeout(function(){rej(new Error("timeout"));},ms); })]); }
 
-async function api(url, opts){
-  opts = opts || {};
-  opts.headers = Object.assign({ "Authorization": "Bearer " + accessToken }, opts.headers || {});
-  var r = await fetch(url, opts);
-  if(r.status === 401){
-    // token expired — try a silent refresh once, then retry
-    await withTimeout(getToken(false), 3000);
-    opts.headers["Authorization"] = "Bearer " + accessToken;
-    r = await fetch(url, opts);
-  }
-  if(!r.ok){ var t = await r.text(); throw new Error(r.status + " " + t.slice(0,180)); }
-  if(r.status === 204) return {};
+async function api(url,opts){
+  opts=opts||{}; opts.headers=Object.assign({"Authorization":"Bearer "+accessToken},opts.headers||{});
+  var r=await fetch(url,opts);
+  if(r.status===401){ await withTimeout(getToken(false),3000); opts.headers["Authorization"]="Bearer "+accessToken; r=await fetch(url,opts); }
+  if(!r.ok){ var t=await r.text(); throw new Error(r.status+" "+t.slice(0,180)); }
+  if(r.status===204) return {};
   return r.json();
 }
+function vget(range){ return api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+"/values/"+encodeURIComponent(range)); }
+function vput(range,values){ return api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+"/values/"+encodeURIComponent(range)+"?valueInputOption=RAW",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})}); }
+function vappend(range,values){ return api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+"/values/"+encodeURIComponent(range)+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})}); }
+function vclear(range){ return api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+"/values/"+encodeURIComponent(range)+":clear",{method:"POST"}); }
 
-/* ---------- sheet ---------- */
+/* ---------- sheet setup ---------- */
 async function ensureSheet(){
-  var stored = "";
-  try{ stored = localStorage.getItem("nw_sheet_id2") || ""; }catch(e){}
-  if(stored){
-    try{ await api("https://sheets.googleapis.com/v4/spreadsheets/" + stored + "?fields=spreadsheetId"); sheetId = stored; return; }
-    catch(e){ /* stored id no longer valid — fall through */ }
+  var stored=""; try{ stored=localStorage.getItem("nw_sheet_id2")||""; }catch(e){}
+  if(stored){ try{ await api("https://sheets.googleapis.com/v4/spreadsheets/"+stored+"?fields=spreadsheetId"); sheetId=stored; }catch(e){ sheetId=null; } }
+  if(!sheetId){
+    var q=encodeURIComponent("name='"+SHEET_NAME+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+    var found=await api("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)&orderBy=createdTime desc");
+    if(found.files&&found.files.length){ sheetId=found.files[0].id; }
+    else{
+      var made=await api("https://sheets.googleapis.com/v4/spreadsheets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({properties:{title:SHEET_NAME},sheets:[{properties:{title:LEDGER}},{properties:{title:CATS}}]})});
+      sheetId=made.spreadsheetId;
+    }
   }
-  var q = encodeURIComponent("name='" + SHEET_NAME + "' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
-  var found = await api("https://www.googleapis.com/drive/v3/files?q=" + q + "&fields=files(id,name)&orderBy=createdTime");
-  if(found.files && found.files.length){ sheetId = found.files[0].id; }
-  else {
-    var made = await api("https://sheets.googleapis.com/v4/spreadsheets", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ properties:{ title: SHEET_NAME }, sheets:[{ properties:{ title: LEDGER } }] })
-    });
-    sheetId = made.spreadsheetId;
-    var gid = (made.sheets && made.sheets[0] && made.sheets[0].properties && made.sheets[0].properties.sheetId) || 0;
-    await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodeURIComponent(LEDGER + "!A1") + "?valueInputOption=RAW", {
-      method:"PUT", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ values:[ HEADERS ] })
-    });
-    try{
-      await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + ":batchUpdate", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ requests:[
-          { updateSheetProperties:{ properties:{ sheetId: gid, gridProperties:{ frozenRowCount:1 } }, fields:"gridProperties.frozenRowCount" } },
-          { repeatCell:{ range:{ sheetId: gid, startRowIndex:0, endRowIndex:1 }, cell:{ userEnteredFormat:{ textFormat:{ bold:true } } }, fields:"userEnteredFormat.textFormat.bold" } },
-          { repeatCell:{ range:{ sheetId: gid, startColumnIndex:6, endColumnIndex:7, startRowIndex:1 }, cell:{ userEnteredFormat:{ numberFormat:{ type:"CURRENCY", pattern:"$#,##0.00" } } }, fields:"userEnteredFormat.numberFormat" } }
-        ] })
-      });
-    }catch(e){}
-  }
-  try{ localStorage.setItem("nw_sheet_id2", sheetId); }catch(e){}
+  try{ localStorage.setItem("nw_sheet_id2",sheetId); }catch(e){}
+  await ensureTabs();
 }
-
-function money(n){ n = Number(n)||0; return "$" + n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
-
-async function loadEntries(){
-  var list = $("elist");
-  var data = await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodeURIComponent(LEDGER + "!A2:I"));
-  var rows = data.values || [];
-  if(!rows.length){ list.innerHTML = '<li class="empty">No entries yet — add your first one above.</li>'; return; }
-  var out = [];
-  for(var i = rows.length - 1; i >= 0 && out.length < 25; i--){
-    var r = rows[i];
-    var date = r[2]||"", cat = r[4]||"", co = r[5]||"", amt = r[6]||0;
-    out.push('<li class="eitem"><div class="l"><div class="co">' + esc(co||"(no company)") + '</div><div class="meta">' + esc(date) + (cat?(" · " + esc(cat)):"") + '</div></div><div class="amt">' + money(amt) + '</div></li>');
-  }
-  list.innerHTML = out.join("");
+async function ensureTabs(){
+  var meta=await api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+"?fields=sheets.properties(title,sheetId)");
+  var have={}; (meta.sheets||[]).forEach(function(s){ have[s.properties.title]=s.properties.sheetId; });
+  var addReq=[];
+  if(!(LEDGER in have)) addReq.push({addSheet:{properties:{title:LEDGER}}});
+  if(!(CATS in have)) addReq.push({addSheet:{properties:{title:CATS}}});
+  if(addReq.length){ await api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:addReq})}); }
+  // headers + formatting where missing
+  var led=await vget(LEDGER+"!A1:I1"); if(!(led.values&&led.values.length)){ await vput(LEDGER+"!A1",[LHEAD]); await fmtLedger(); }
+  var cat=await vget(CATS+"!A1:B1"); if(!(cat.values&&cat.values.length)){ await vput(CATS+"!A1",[CHEAD]); }
 }
-
-function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
-
-async function addEntry(){
-  var co = $("fCompany").value.trim();
-  var cat = $("fCategory").value.trim();
-  var amtRaw = $("fAmount").value.replace(/[^0-9.\-]/g,"");
-  var amt = parseFloat(amtRaw);
-  var date = $("fDate").value; // yyyy-mm-dd
-  var msg = $("addMsg");
-  msg.className = "msg";
-  if(!amt || amt <= 0){ msg.textContent = "Enter an amount."; msg.className = "msg bad"; return; }
-  if(!date){ msg.textContent = "Pick a date."; msg.className = "msg bad"; return; }
-  var d = new Date(date + "T00:00:00");
-  var year = d.getFullYear(), month = d.getMonth() + 1;
-  var b = $("addBtn"); b.disabled = true; b.textContent = "Adding…";
+async function fmtLedger(){
   try{
-    await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodeURIComponent(LEDGER + "!A:I") + ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ values:[[ year, month, date, "", cat, co, amt, "", "" ]] })
-    });
-    $("fCompany").value = ""; $("fCategory").value = ""; $("fAmount").value = "";
-    msg.textContent = "Added ✓";
-    await loadEntries();
-    setTimeout(function(){ if(msg.textContent === "Added ✓") msg.textContent = ""; }, 1800);
-  }catch(e){
-    msg.textContent = "Could not add: " + (e.message || e); msg.className = "msg bad";
+    var meta=await api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+"?fields=sheets.properties(title,sheetId)");
+    var gid=0; (meta.sheets||[]).forEach(function(s){ if(s.properties.title===LEDGER) gid=s.properties.sheetId; });
+    await api("https://sheets.googleapis.com/v4/spreadsheets/"+sheetId+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[
+      {updateSheetProperties:{properties:{sheetId:gid,gridProperties:{frozenRowCount:1}},fields:"gridProperties.frozenRowCount"}},
+      {repeatCell:{range:{sheetId:gid,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:"userEnteredFormat.textFormat.bold"}},
+      {repeatCell:{range:{sheetId:gid,startColumnIndex:6,endColumnIndex:7,startRowIndex:1},cell:{userEnteredFormat:{numberFormat:{type:"CURRENCY",pattern:"$#,##0.00"}}},fields:"userEnteredFormat.numberFormat"}}
+    ]})});
+  }catch(e){}
+}
+
+/* ---------- data ---------- */
+async function loadAll(){
+  var l=await vget(LEDGER+"!A2:I"); state.rows=l.values||[];
+  var c=await vget(CATS+"!A2:B"); state.cats=(c.values||[]).filter(function(r){return (r[0]||"").toString().trim();}).map(function(r){return {name:(r[0]||"").toString().trim(), budget:Number(r[1])||0};});
+}
+function spentByCat(){
+  var now=new Date(), y=now.getFullYear(), m=now.getMonth()+1, out={}, total=0;
+  state.rows.forEach(function(r){
+    if(Number(r[0])===y && Number(r[1])===m){
+      var cat=(r[4]||"").toString().trim().toLowerCase(); var amt=Number(r[6])||0;
+      out[cat]=(out[cat]||0)+amt; total+=amt;
+    }
+  });
+  out.__total=total; return out;
+}
+
+/* ---------- render ---------- */
+var MONF=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function renderMonth(){
+  var now=new Date(); $("mLabel").textContent = MONF[now.getMonth()]+" "+now.getFullYear();
+  var sp=spentByCat();
+  var cats=state.cats, tb=0, ts=sp.__total||0;
+  cats.forEach(function(c){ tb+=c.budget; });
+  $("mTot").innerHTML='<div class="totrow"><span>Spent this month</span><b>'+money(ts)+(tb>0?(' / '+money(tb)):'')+'</b></div>';
+  var body=$("mBody");
+  if(!cats.length){ body.innerHTML='<div class="empty">No categories yet. Tap <b>Budget</b> above to add some.</div>'; return; }
+  var html="";
+  cats.forEach(function(c){
+    var s=sp[c.name.toLowerCase()]||0;
+    var pct=c.budget>0?Math.min(100,Math.round(s/c.budget*100)):(s>0?100:0);
+    var over=s>c.budget+0.005;
+    html+='<div class="catcard"><div class="catrow"><span class="cn">'+esc(c.name)+'</span><span class="cv">'+money(s)+' / '+money(c.budget)+'</span></div><div class="bar"><span style="width:'+pct+'%;background:'+(over?"var(--bad)":"var(--green)")+'"></span></div><div class="crem">'+(over?("Over by "+money(s-c.budget)):(money(c.budget-s)+" left"))+'</div></div>';
+  });
+  body.innerHTML=html;
+}
+function renderRecent(){
+  var list=$("elist"), rows=state.rows;
+  if(!rows.length){ list.innerHTML='<li class="empty">No entries yet — add your first one.</li>'; return; }
+  var out=[];
+  for(var i=rows.length-1;i>=0 && out.length<25;i--){
+    var r=rows[i]; out.push('<li class="eitem"><div class="l"><div class="co">'+esc(r[5]||"(no company)")+'</div><div class="meta">'+esc(r[2]||"")+((r[4])?(" · "+esc(r[4])):"")+'</div></div><div class="amt">'+money(r[6])+'</div></li>');
   }
-  b.disabled = false; b.textContent = "Add entry";
+  list.innerHTML=out.join("");
+}
+function renderCats(){
+  var el=$("catList"), cats=state.cats, dl=$("catlist");
+  dl.innerHTML=cats.map(function(c){return '<option value="'+esc(c.name)+'">';}).join("");
+  if(!cats.length){ el.innerHTML='<div class="empty">No categories yet. Add one above.</div>'; return; }
+  el.innerHTML=cats.map(function(c){ return '<div class="catitem"><div><div class="cn">'+esc(c.name)+'</div><div class="cb">'+money(c.budget)+' / month</div></div><button class="rm" data-n="'+esc(c.name)+'">Remove</button></div>'; }).join("");
+  Array.prototype.forEach.call(el.querySelectorAll(".rm"),function(b){ b.addEventListener("click",function(){ removeCat(this.getAttribute("data-n")); }); });
+}
+function renderAll(){ renderMonth(); renderRecent(); renderCats(); }
+
+/* ---------- actions ---------- */
+async function addEntry(){
+  var co=$("fCompany").value.trim(), cat=$("fCategory").value.trim();
+  var amt=parseFloat($("fAmount").value.replace(/[^0-9.\-]/g,"")); var date=$("fDate").value;
+  var msg=$("addMsg"); msg.className="msg";
+  if(!amt||amt<=0){ msg.textContent="Enter an amount."; msg.className="msg bad"; return; }
+  if(!date){ msg.textContent="Pick a date."; msg.className="msg bad"; return; }
+  var d=new Date(date+"T00:00:00"), b=$("addBtn"); b.disabled=true; b.textContent="Adding…";
+  try{
+    await vappend(LEDGER+"!A:I",[[ d.getFullYear(), d.getMonth()+1, date, "", cat, co, amt, "", "" ]]);
+    $("fCompany").value=""; $("fCategory").value=""; $("fAmount").value="";
+    msg.textContent="Added ✓";
+    await loadAll(); renderAll();
+    setTimeout(function(){ if(msg.textContent==="Added ✓") msg.textContent=""; },1600);
+  }catch(e){ msg.textContent="Could not add: "+(e.message||e); msg.className="msg bad"; }
+  b.disabled=false; b.textContent="Add entry";
+}
+async function addCat(){
+  var name=$("cName").value.trim(), amt=parseFloat($("cAmt").value.replace(/[^0-9.\-]/g,""))||0;
+  var msg=$("catMsg"); msg.className="msg";
+  if(!name){ msg.textContent="Give the category a name."; msg.className="msg bad"; return; }
+  if(state.cats.some(function(c){return c.name.toLowerCase()===name.toLowerCase();})){ msg.textContent="You already have that category."; msg.className="msg bad"; return; }
+  var b=$("catAddBtn"); b.disabled=true; b.textContent="Adding…";
+  try{
+    await vappend(CATS+"!A:B",[[ name, amt ]]);
+    $("cName").value=""; $("cAmt").value="";
+    msg.textContent="Added ✓";
+    await loadAll(); renderAll();
+    setTimeout(function(){ if(msg.textContent==="Added ✓") msg.textContent=""; },1600);
+  }catch(e){ msg.textContent="Could not add: "+(e.message||e); msg.className="msg bad"; }
+  b.disabled=false; b.textContent="Add category";
+}
+async function removeCat(name){
+  if(!window.confirm("Remove the category \""+name+"\"? Your logged expenses stay; this just removes the budget line.")) return;
+  var keep=state.cats.filter(function(c){ return c.name.toLowerCase()!==name.toLowerCase(); });
+  try{
+    await vclear(CATS+"!A2:B");
+    if(keep.length) await vput(CATS+"!A2",keep.map(function(c){return [c.name,c.budget];}));
+    await loadAll(); renderAll();
+  }catch(e){ $("catMsg").textContent="Could not remove: "+(e.message||e); $("catMsg").className="msg bad"; }
+}
+
+/* ---------- views ---------- */
+function switchView(v){
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"),function(b){ b.classList.toggle("on", b.getAttribute("data-v")===v); });
+  ["month","add","budget"].forEach(function(x){ $("view-"+x).classList.toggle("on", x===v); });
 }
 
 /* ---------- boot ---------- */
 async function enterApp(){
   show("splash");
   try{
-    var about = await api("https://www.googleapis.com/drive/v3/about?fields=user");
-    userEmail = (about.user && about.user.emailAddress) || "";
-    $("who").textContent = userEmail ? ("Signed in as " + userEmail) : "";
+    var about=await api("https://www.googleapis.com/drive/v3/about?fields=user");
+    userEmail=(about.user&&about.user.emailAddress)||""; $("who").textContent=userEmail?("Signed in as "+userEmail):"";
     await ensureSheet();
-    var today = new Date();
-    $("fDate").value = today.getFullYear() + "-" + ("0"+(today.getMonth()+1)).slice(-2) + "-" + ("0"+today.getDate()).slice(-2);
+    var t=new Date(); $("fDate").value=t.getFullYear()+"-"+("0"+(t.getMonth()+1)).slice(-2)+"-"+("0"+t.getDate()).slice(-2);
     show("appScreen");
-    await loadEntries();
-  }catch(e){
-    $("signinErr").textContent = "Something went wrong: " + (e.message || e);
-    show("signinScreen");
-  }
+    await loadAll(); renderAll();
+  }catch(e){ $("signinErr").textContent="Something went wrong: "+(e.message||e); show("signinScreen"); }
 }
-
 function wire(){
-  $("signinBtn").addEventListener("click", async function(){
-    $("signinErr").textContent = "";
-    var b = this; b.disabled = true; b.textContent = "Opening Google…";
-    try{ await getToken(true); await enterApp(); }
-    catch(e){ $("signinErr").textContent = "Sign-in was cancelled or blocked."; }
-    b.disabled = false; b.textContent = "Sign in with Google";
-  });
-  $("addBtn").addEventListener("click", addEntry);
-  $("signout").addEventListener("click", function(){
-    accessToken = null;
-    try{ if(google && google.accounts && google.accounts.oauth2 && window.__tok) google.accounts.oauth2.revoke(window.__tok); }catch(e){}
-    show("signinScreen");
-  });
+  $("signinBtn").addEventListener("click",async function(){ $("signinErr").textContent=""; var b=this; b.disabled=true; b.textContent="Opening Google…"; try{ await getToken(true); await enterApp(); }catch(e){ $("signinErr").textContent="Sign-in was cancelled or blocked."; } b.disabled=false; b.textContent="Sign in with Google"; });
+  $("addBtn").addEventListener("click",addEntry);
+  $("catAddBtn").addEventListener("click",addCat);
+  $("signout").addEventListener("click",function(){ accessToken=null; show("signinScreen"); });
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"),function(b){ b.addEventListener("click",function(){ switchView(this.getAttribute("data-v")); }); });
 }
-
+try{ if(/[?&]reset\b/i.test(location.search)){ localStorage.removeItem("nw_sheet_id2"); } }catch(e){}
 (function poll(){
   if(window.google && google.accounts && google.accounts.oauth2){
-    tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: _tokCb, error_callback: _tokErr });
+    tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:_tokCb,error_callback:_tokErr});
     wire();
-    // Try a silent sign-in so returning users skip the button — but never let it hang the screen.
-    withTimeout(getToken(false), 2500).then(enterApp).catch(function(){ show("signinScreen"); });
+    withTimeout(getToken(false),2500).then(enterApp).catch(function(){ show("signinScreen"); });
     return;
   }
-  if((poll._n = (poll._n||0) + 1) > 80){ show("signinScreen"); var e=$("signinErr"); if(e) e.textContent = "Couldn't load Google sign-in — check your connection and reload."; return; }
-  setTimeout(poll, 120);
+  if((poll._n=(poll._n||0)+1)>80){ show("signinScreen"); var e=$("signinErr"); if(e) e.textContent="Couldn't load Google sign-in — check your connection and reload."; return; }
+  setTimeout(poll,120);
 })();
 </script>
 </body>
