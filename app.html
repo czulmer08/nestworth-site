@@ -169,7 +169,7 @@ async function api(url,opts){
 }
 function ssBase(){return "https://sheets.googleapis.com/v4/spreadsheets/"+sheetId;}
 function vgetU(range){return api(ssBase()+"/values/"+encodeURIComponent(range)+"?valueRenderOption=UNFORMATTED_VALUE");}
-function vappend(range,values){return api(ssBase()+"/values/"+encodeURIComponent(range)+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})});}
+function vappend(range,values){return api(ssBase()+"/values/"+encodeURIComponent(range)+":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})});}
 function vBatchUpdate(data){return api(ssBase()+"/values:batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({valueInputOption:"USER_ENTERED",data:data})});}
 function vBatchClear(ranges){return api(ssBase()+"/values:batchClear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ranges:ranges})});}
 
@@ -186,6 +186,7 @@ async function ensureSheet(){
   try{localStorage.setItem("nw_sheet_id2",sheetId);}catch(e){}
   var url="https://docs.google.com/spreadsheets/d/"+sheetId+"/edit";
   $("openSheet").href=url; if($("openSheet2"))$("openSheet2").href=url;
+  try{await fixLedgerFormat();}catch(e){}
   try{await ensureFolder();}catch(e){}
 }
 function ssBaseFor(id){return "https://sheets.googleapis.com/v4/spreadsheets/"+id;}
@@ -202,6 +203,24 @@ async function createFromTemplate(){
   if(!up.ok)throw new Error("Setup upload failed ("+up.status+"): "+(await up.text()).slice(0,150));
   var made=await up.json();
   return made.id;
+}
+async function fixLedgerFormat(){
+  var key="nw_led3_"+sheetId;
+  try{ if(localStorage.getItem(key))return; }catch(e){}
+  try{
+    var meta=await api(ssBase()+"?fields=sheets.properties(title,sheetId)");
+    var gid=null;(meta.sheets||[]).forEach(function(s){if(s.properties.title===LEDGER)gid=s.properties.sheetId;});
+    if(gid!==null){
+      var INK={red:0.106,green:0.2,blue:0.153};
+      await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[
+        {repeatCell:{range:{sheetId:gid,startRowIndex:1,startColumnIndex:0,endColumnIndex:9},cell:{userEnteredFormat:{backgroundColor:{red:1,green:1,blue:1},textFormat:{bold:false,foregroundColor:INK}}},fields:"userEnteredFormat(backgroundColor,textFormat)"}},
+        {repeatCell:{range:{sheetId:gid,startRowIndex:1,startColumnIndex:0,endColumnIndex:2},cell:{userEnteredFormat:{numberFormat:{type:"NUMBER",pattern:"0"}}},fields:"userEnteredFormat.numberFormat"}},
+        {repeatCell:{range:{sheetId:gid,startRowIndex:1,startColumnIndex:2,endColumnIndex:3},cell:{userEnteredFormat:{numberFormat:{type:"DATE",pattern:"yyyy-mm-dd"}}},fields:"userEnteredFormat.numberFormat"}},
+        {repeatCell:{range:{sheetId:gid,startRowIndex:1,startColumnIndex:6,endColumnIndex:7},cell:{userEnteredFormat:{numberFormat:{type:"CURRENCY",pattern:"$#,##0.00"}}},fields:"userEnteredFormat.numberFormat"}}
+      ]})});
+    }
+    try{localStorage.setItem(key,"1");}catch(e){}
+  }catch(e){}
 }
 async function ensureFolder(){
   var fid="";try{fid=localStorage.getItem("nw_folder_id")||"";}catch(e){}
