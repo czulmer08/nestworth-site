@@ -134,18 +134,17 @@ function $(id){ return document.getElementById(id); }
 function show(id){ ["splash","signinScreen","appScreen"].forEach(function(s){ $(s).classList.toggle("on", s===id); }); }
 
 /* ---------- auth ---------- */
+var _res=null, _rej=null;
+function _tokCb(resp){ var res=_res, rej=_rej; _res=_rej=null; if(resp && resp.error){ if(rej)rej(new Error(resp.error)); return; } accessToken=resp.access_token; if(res)res(accessToken); }
+function _tokErr(err){ var rej=_rej; _res=_rej=null; if(rej)rej(new Error((err&&(err.type||err.message))||"auth error")); }
 function getToken(interactive){
   return new Promise(function(resolve, reject){
-    try{
-      tokenClient.callback = function(resp){
-        if(resp && resp.error){ reject(new Error(resp.error)); return; }
-        accessToken = resp.access_token;
-        resolve(accessToken);
-      };
-      tokenClient.requestAccessToken({ prompt: interactive ? "" : "none" });
-    }catch(e){ reject(e); }
+    _res=resolve; _rej=reject;
+    try{ tokenClient.requestAccessToken(interactive ? undefined : { prompt:"none" }); }
+    catch(e){ _res=_rej=null; reject(e); }
   });
 }
+function withTimeout(p, ms){ return Promise.race([ p, new Promise(function(_,rej){ setTimeout(function(){ rej(new Error("timeout")); }, ms); }) ]); }
 
 async function api(url, opts){
   opts = opts || {};
@@ -153,7 +152,7 @@ async function api(url, opts){
   var r = await fetch(url, opts);
   if(r.status === 401){
     // token expired — try a silent refresh once, then retry
-    await getToken(false);
+    await withTimeout(getToken(false), 3000);
     opts.headers["Authorization"] = "Bearer " + accessToken;
     r = await fetch(url, opts);
   }
@@ -269,12 +268,13 @@ function wire(){
 
 (function poll(){
   if(window.google && google.accounts && google.accounts.oauth2){
-    tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: function(){} });
+    tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: _tokCb, error_callback: _tokErr });
     wire();
-    // try a silent sign-in so returning users skip the button
-    getToken(false).then(enterApp).catch(function(){ show("signinScreen"); });
+    // Try a silent sign-in so returning users skip the button — but never let it hang the screen.
+    withTimeout(getToken(false), 2500).then(enterApp).catch(function(){ show("signinScreen"); });
     return;
   }
+  if((poll._n = (poll._n||0) + 1) > 80){ show("signinScreen"); var e=$("signinErr"); if(e) e.textContent = "Couldn't load Google sign-in — check your connection and reload."; return; }
   setTimeout(poll, 120);
 })();
 </script>
