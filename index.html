@@ -1,4 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NestWorth</title>
+
+<!-- Home-screen icon + install setup -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NestWorth">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2E7D5B">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -72,6 +88,8 @@
   footer .dot{color:var(--honey)}
   a.plainlink{color:var(--green);word-break:break-all}
 </style>
+</head>
+<body>
 <div class="wrap">
   <div class="hero">
     <div class="logopanel">
@@ -114,3 +132,15 @@
     <p class="co">&ldquo;Created for you, with you in mind.&rdquo; <span class="dot">·</span> NestWorth, a product of Ulmer Consulting, LLC</p>
   </footer>
 </div>
+
+<!-- When opened from the Home Screen icon, go straight into the app -->
+<script>
+(function(){
+  var APP = "https://script.google.com/macros/s/AKfycby3LD16rU0GTQN-veUcdMVjK6MxUEQj6s1ls4ZyUMRDs_L-UcIQiIpzRIi_SFLKPCKGeQ/exec";
+  var standalone = (window.navigator.standalone === true) ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  if (standalone) { window.location.replace(APP); }
+})();
+</script>
+</body>
+</html>
