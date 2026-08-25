@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NestWorth</title>
+<script>
+(function(){
+  var APP = "https://script.google.com/macros/s/AKfycbwfBCCvBPeayS4L362sSsB6DVCia50FmYm-b_lMcCMsP6MKukyjVPxNZfwp_Xw5UM0L/exec";
+  var standalone = (window.navigator.standalone === true) ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  if (standalone) {
+    document.documentElement.style.background = "#0f1b14";
+    window.location.replace(APP);
+  }
+})();
+</script>
 
 <!-- Home-screen icon + install setup -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -148,16 +159,8 @@
   </footer>
 </div>
 
-<!-- When opened from the Home Screen icon, go straight into the app -->
 <script>
 (function(){
-  var APP = "https://script.google.com/macros/s/AKfycbwfBCCvBPeayS4L362sSsB6DVCia50FmYm-b_lMcCMsP6MKukyjVPxNZfwp_Xw5UM0L/exec";
-
-  var standalone = (window.navigator.standalone === true) ||
-    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-
-  if (standalone) { window.location.replace(APP); return; }
-
   var card = document.getElementById("installCard");
   if (card) card.style.display = "block";
 
