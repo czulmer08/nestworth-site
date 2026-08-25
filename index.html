@@ -156,10 +156,8 @@
   var standalone = (window.navigator.standalone === true) ||
     (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
 
-  // Launched from the home-screen icon -> go straight into the app.
   if (standalone) { window.location.replace(APP); return; }
 
-  // Otherwise (viewed in a browser): show the "add to home screen" card.
   var card = document.getElementById("installCard");
   if (card) card.style.display = "block";
 
@@ -175,7 +173,6 @@
     if (gen) gen.style.display = "block";
   }
 
-  // Android/desktop Chrome: offer a real one-tap install button.
   var deferred = null;
   window.addEventListener("beforeinstallprompt", function(ev){
     ev.preventDefault();
