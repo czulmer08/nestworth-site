@@ -124,7 +124,7 @@
 "use strict";
 var CLIENT_ID = "1048635246954-nj94ab7k529isv8ur8ntncub8sosj8f9.apps.googleusercontent.com";
 var SCOPE = "https://www.googleapis.com/auth/drive.file";
-var SHEET_NAME = "My Budget";
+var SHEET_NAME = "NestWorth Budget";
 var LEDGER = "Account Ledger";
 var HEADERS = ["Year","Month","Date","Payee","Category","Company","Amount","Description","Reimbursed?"];
 
@@ -164,7 +164,7 @@ async function api(url, opts){
 /* ---------- sheet ---------- */
 async function ensureSheet(){
   var stored = "";
-  try{ stored = localStorage.getItem("nw_sheet_id") || ""; }catch(e){}
+  try{ stored = localStorage.getItem("nw_sheet_id2") || ""; }catch(e){}
   if(stored){
     try{ await api("https://sheets.googleapis.com/v4/spreadsheets/" + stored + "?fields=spreadsheetId"); sheetId = stored; return; }
     catch(e){ /* stored id no longer valid — fall through */ }
@@ -178,12 +178,23 @@ async function ensureSheet(){
       body: JSON.stringify({ properties:{ title: SHEET_NAME }, sheets:[{ properties:{ title: LEDGER } }] })
     });
     sheetId = made.spreadsheetId;
+    var gid = (made.sheets && made.sheets[0] && made.sheets[0].properties && made.sheets[0].properties.sheetId) || 0;
     await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodeURIComponent(LEDGER + "!A1") + "?valueInputOption=RAW", {
       method:"PUT", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ values:[ HEADERS ] })
     });
+    try{
+      await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + ":batchUpdate", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ requests:[
+          { updateSheetProperties:{ properties:{ sheetId: gid, gridProperties:{ frozenRowCount:1 } }, fields:"gridProperties.frozenRowCount" } },
+          { repeatCell:{ range:{ sheetId: gid, startRowIndex:0, endRowIndex:1 }, cell:{ userEnteredFormat:{ textFormat:{ bold:true } } }, fields:"userEnteredFormat.textFormat.bold" } },
+          { repeatCell:{ range:{ sheetId: gid, startColumnIndex:6, endColumnIndex:7, startRowIndex:1 }, cell:{ userEnteredFormat:{ numberFormat:{ type:"CURRENCY", pattern:"$#,##0.00" } } }, fields:"userEnteredFormat.numberFormat" } }
+        ] })
+      });
+    }catch(e){}
   }
-  try{ localStorage.setItem("nw_sheet_id", sheetId); }catch(e){}
+  try{ localStorage.setItem("nw_sheet_id2", sheetId); }catch(e){}
 }
 
 function money(n){ n = Number(n)||0; return "$" + n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
@@ -218,7 +229,7 @@ async function addEntry(){
   var year = d.getFullYear(), month = d.getMonth() + 1;
   var b = $("addBtn"); b.disabled = true; b.textContent = "Adding…";
   try{
-    await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodeURIComponent(LEDGER + "!A:I") + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS", {
+    await api("https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodeURIComponent(LEDGER + "!A:I") + ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS", {
       method:"POST", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ values:[[ year, month, date, "", cat, co, amt, "", "" ]] })
     });
