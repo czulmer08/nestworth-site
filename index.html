@@ -4,17 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NestWorth</title>
-<script>
-(function(){
-  var APP = "https://script.google.com/macros/s/AKfycbwfBCCvBPeayS4L362sSsB6DVCia50FmYm-b_lMcCMsP6MKukyjVPxNZfwp_Xw5UM0L/exec";
-  var standalone = (window.navigator.standalone === true) ||
-    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-  if (standalone) {
-    document.documentElement.style.background = "#0f1b14";
-    window.location.replace(APP);
-  }
-})();
-</script>
 
 <!-- Home-screen icon + install setup -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -98,9 +87,20 @@
   footer .co{font-size:11.5px;color:var(--ink-2);line-height:1.5;opacity:.9}
   footer .dot{color:var(--honey)}
   a.plainlink{color:var(--green);word-break:break-all}
+  @keyframes nwspin{to{transform:rotate(360deg)}}
+  #splash{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center}
+  #splash img{width:92px;height:92px;border-radius:22px;box-shadow:var(--shadow)}
+  #splash .spname{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:27px;color:var(--ink)}
+  #splash .sprow{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px}
+  #splash .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;display:inline-block;animation:nwspin .8s linear infinite}
 </style>
 </head>
 <body>
+<div id="splash">
+  <img src="apple-touch-icon.png" alt="">
+  <div class="spname">NestWorth</div>
+  <div class="sprow"><span class="spin"></span>Opening NestWorth…</div>
+</div>
 <div class="wrap">
   <div class="hero">
     <div class="logopanel">
@@ -159,8 +159,23 @@
   </footer>
 </div>
 
+<!-- When opened from the Home Screen icon, go straight into the app -->
 <script>
 (function(){
+  var APP = "https://script.google.com/macros/s/AKfycbwfBCCvBPeayS4L362sSsB6DVCia50FmYm-b_lMcCMsP6MKukyjVPxNZfwp_Xw5UM0L/exec";
+
+  var standalone = (window.navigator.standalone === true) ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+
+  // Launched from the home-screen icon -> go straight into the app.
+  if (standalone) {
+    var sp = document.getElementById("splash");
+    if (sp) sp.style.display = "flex";
+    setTimeout(function(){ window.location.replace(APP); }, 90);
+    return;
+  }
+
+  // Otherwise (viewed in a browser): show the "add to home screen" card.
   var card = document.getElementById("installCard");
   if (card) card.style.display = "block";
 
@@ -176,6 +191,7 @@
     if (gen) gen.style.display = "block";
   }
 
+  // Android/desktop Chrome: offer a real one-tap install button.
   var deferred = null;
   window.addEventListener("beforeinstallprompt", function(ev){
     ev.preventDefault();
