@@ -893,7 +893,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.34"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.35"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -2716,7 +2716,7 @@ async function ensureImportTab(){
   var meta=await api(ssBase()+"?fields=sheets.properties(title,sheetId)");
   var gid=null;(meta.sheets||[]).forEach(function(s){if(s.properties.title===IMPORT_TAB)gid=s.properties.sheetId;});
   if(gid!==null)return gid;
-  var res=await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{addSheet:{properties:{title:IMPORT_TAB,gridProperties:{rowCount:2000,columnCount:7,frozenRowCount:2}}}}]})});
+  var res=await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{addSheet:{properties:{title:IMPORT_TAB,gridProperties:{rowCount:100000,columnCount:7,frozenRowCount:2}}}}]})});
   var newGid=null;try{newGid=res.replies[0].addSheet.properties.sheetId;}catch(e){}
   await vBatchUpdate([
     {range:"'"+IMPORT_TAB+"'!A1",values:[["Enter past transactions below row 2. Required: Date, Category, Amount. Optional: Company, Description, Payee, Reimbursed. Category should match one of your budget categories. When done, go back to NestWorth and tap “Read them in.” These rows are cleared after importing. Example:  2026-08-01 | Groceries | 82.50 | Publix"]]},
@@ -2737,7 +2737,7 @@ async function readImportTab(){
   var msg=$("impMsg");msg.className="msg";msg.textContent="Reading your Import tab…";
   try{
     await ensureImportTab();
-    var g=await vgetU("'"+IMPORT_TAB+"'!A3:G2000");
+    var g=await vgetU("'"+IMPORT_TAB+"'!A3:G100000"); // read the whole Import tab, not just the first ~2000 rows (large histories were being truncated)
     var rows=g.values||[],txns=[];
     rows.forEach(function(r){
       var cat=(""+((r&&r[1])||"")).trim();if(!cat)return;
@@ -2887,7 +2887,7 @@ async function impDoImport(){
   try{
     var vals=rows.map(function(t){var d=new Date(t.date+"T00:00:00");return [d.getFullYear(),d.getMonth()+1,t.date,t.payee||"",t.category||"",t.company||"",t.amount,t.desc||"",t.reimb||""];});
     for(var i=0;i<vals.length;i+=400){await vappend(LEDGER+"!A:I",vals.slice(i,i+400));committed=Math.min(i+400,vals.length);}
-    if(_impFromTab){try{await vBatchClear(["'"+IMPORT_TAB+"'!A3:G2000"]);}catch(e){}_impFromTab=false;}
+    if(_impFromTab){try{await vBatchClear(["'"+IMPORT_TAB+"'!A3:G100000"]);}catch(e){}_impFromTab=false;}
     closeOv("impOv");await loadAll();renderAll();
     var noBudget=!state.cats.length;
     var sug=suggestFromSpending(),sugI=suggestIncomeFromSpending();
