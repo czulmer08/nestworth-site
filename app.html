@@ -559,7 +559,7 @@ try{
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
-  <div class="foot">NestWorth - Build 2026.08.26.11 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
+  <div class="foot">NestWorth - Build 2026.08.26.12 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -832,7 +832,8 @@ var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
-var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43;
+var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
+var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
 var NW="Net Worth", ASSET_START=4, ASSET_END=23, DEBT_START=27, DEBT_END=36;
 var accessToken=null, tokenClient=null, sheetId=null, userEmail="";
 var state={rows:[],cats:[],cons:[],assets:[],debts:[],goals:[],goalSet:{},carryIn:{},nwHist:[],meta:{cats:{},cons:{},goals:[]}};
@@ -971,12 +972,16 @@ function vbatchGetU(ranges){var q=ranges.map(function(r){return "ranges="+encode
 // Claim a free row in [start,end] of a sheet's column-A list, robust against another device grabbing the same row at
 // the same moment: read FRESH occupancy, write our name, then re-read to confirm we own it (retry if we lost the race).
 // Returns the claimed row number, or 0 if the list is full. Names are compared case-insensitively.
-async function claimRow(sheetName,start,end,name){
-  for(var attempt=0;attempt<3;attempt++){
+async function claimRow(sheetName,start,end,name,which){
+  for(var attempt=0;attempt<5;attempt++){
     var occ={};
     try{var g=await vgetU("'"+sheetName+"'!A"+start+":A"+end);(g.values||[]).forEach(function(r,i){if(r&&(""+(r[0]==null?"":r[0])).trim())occ[start+i]=1;});}catch(e){}
     var row=0;for(var r=start;r<=end;r++){if(!occ[r]){row=r;break;}}
-    if(!row)return 0;
+    if(!row){
+      // Section is full — grow it by GROW_BY rows and try again, so budgets expand on demand.
+      if(which){var grew=await growSummary(sheetName,which);if(grew){end=(which==="cat"?CAT_END:CON_END);continue;}}
+      return 0;
+    }
     await vBatchUpdate([{range:"'"+sheetName+"'!A"+row,values:[[name]]}]);
     try{var v=await vgetU("'"+sheetName+"'!A"+row);var cur=(v.values&&v.values[0]&&v.values[0][0])||"";if((""+cur).trim().toLowerCase()===(""+name).trim().toLowerCase())return row;}
     catch(e){return row;} // can't verify — assume ok rather than spin
@@ -1450,11 +1455,17 @@ async function loadCarryIn(){
     var priorBudget={};
     if(years.length){
       // One batched read for ALL prior-year summary tabs instead of one round-trip per year (matters at 10 years of history).
-      var ranges=years.map(function(y){return "'"+y+" Account Summary'!A"+CAT_START+":AB"+CAT_END;});
+      // Read a generous span and stop at each tab's category TOTAL, so differing/expanded layouts across years are handled.
+      var ranges=years.map(function(y){return "'"+y+" Account Summary'!A"+CAT_START+":AB"+(CAT_START+199);});
       var res=await vbatchGetU(ranges);var vr=res.valueRanges||[];
       for(var yi=0;yi<years.length;yi++){
         var startK=(years[yi]===ay)?(am-1):0; // in the adoption year, only bank budget from the adoption month onward
-        ((vr[yi]&&vr[yi].values)||[]).forEach(function(r){var nm=(""+((r&&r[0])||"")).trim().toLowerCase();if(!nm)return;var sum=0;for(var k=startK;k<12;k++)sum+=Number(r[4+k*2])||0;priorBudget[nm]=(priorBudget[nm]||0)+sum;});
+        var rowsY=(vr[yi]&&vr[yi].values)||[];
+        for(var ri=0;ri<rowsY.length;ri++){
+          var r=rowsY[ri];var nm=(""+((r&&r[0])||"")).trim().toLowerCase();if(!nm)continue;
+          if(nm==="total"||nm==="contributor"||nm.indexOf("contributions")===0||nm.indexOf("balance check")===0)break; // reached totals/income section
+          var sum=0;for(var k=startK;k<12;k++)sum+=Number(r[4+k*2])||0;priorBudget[nm]=(priorBudget[nm]||0)+sum;
+        }
       }
     }
     var all={};for(var a in priorBudget)all[a]=1;for(var b in priorSpent)all[b]=1;
@@ -1500,7 +1511,7 @@ async function doCombine(){
     await loadAll(); // re-sync the ledger first — this rewrites rows by index, so it must act on current data (guards concurrent family edits)
     var sname=summaryName(),data=[],clears=[];
     var pcfg,parRow;
-    if(isNew){pcfg={type:"itemized",items:[]};parRow=await claimRow(sname,CAT_START,CAT_END,targetName);if(!parRow){msg.textContent="No room for a new category — remove one first.";msg.className="msg bad";b.disabled=false;b.textContent="Combine";return;}}
+    if(isNew){pcfg={type:"itemized",items:[]};parRow=await claimRow(sname,CAT_START,CAT_END,targetName,"cat");if(!parRow){msg.textContent="Couldn’t make room for a new category. Try again in a moment.";msg.className="msg bad";b.disabled=false;b.textContent="Combine";return;}}
     else{var par=state.cats.filter(function(c){return c.name.toLowerCase()===targetName.toLowerCase();})[0];pcfg=catCfg(targetName);parRow=par?par.row:0;if(!par||!pcfg||pcfg.type!=="itemized"){msg.textContent="Pick an itemized target.";msg.className="msg bad";b.disabled=false;b.textContent="Combine";return;}}
     pcfg.items=pcfg.items||[];
     picked.forEach(function(nm){
@@ -1738,6 +1749,64 @@ async function removeNW(kind,name){
 }
 
 /* data */
+// Read a summary tab's structure from column A so the category/income row ranges match a sheet the user has
+// expanded — and sections the app grows on the fly. Sets CAT_END, CON_START, CON_END. Falls back to the classic layout.
+async function detectLayout(sname){
+  try{
+    var g=await vgetU("'"+sname+"'!A1:A"+LAYOUT_SCAN);var vals=(g.values||[]);
+    var m=scanMarkers(vals);
+    if(m.total>CAT_START)CAT_END=m.total-1;
+    if(m.contrib>m.total)CON_START=m.contrib+1;
+    if(m.totalCon>CON_START)CON_END=m.totalCon-1;
+  }catch(e){}
+}
+// Locate the TOTAL (category total), Contributor (income header), and TOTAL CONTRIBUTIONS marker rows in a column-A value array.
+function scanMarkers(vals){
+  var total=0,contrib=0,totalCon=0;
+  for(var i=0;i<vals.length;i++){
+    var u=(""+((vals[i]&&vals[i][0])||"")).trim().toUpperCase();if(!u)continue;var rr=i+1;
+    if(u==="TOTAL CONTRIBUTIONS"){if(!totalCon)totalCon=rr;}
+    else if(u==="TOTAL"){if(!total&&rr>CAT_START)total=rr;}
+    else if(u==="CONTRIBUTOR"){if(!contrib)contrib=rr;}
+  }
+  return {total:total,contrib:contrib,totalCon:totalCon};
+}
+async function summarySheetId(sname){
+  try{var meta=await api(ssBase()+"?fields=sheets.properties(title,sheetId)");var id=null;(meta.sheets||[]).forEach(function(s){if(s.properties.title===sname)id=s.properties.sheetId;});return id;}catch(e){return null;}
+}
+// Grow a full section by GROW_BY rows: insert rows just above its total, copy the formula row into them (skipping the
+// name column), then extend the total's SUM ranges. Keeps Contributions/Balance directly under the categories.
+async function growSummary(sname,which){
+  var gid=await summarySheetId(sname);if(gid===null)return false;
+  var g=await vgetU("'"+sname+"'!A1:A"+LAYOUT_SCAN);var m=scanMarkers(g.values||[]);
+  var isCat=(which==="cat");
+  var insBefore=isCat?m.total:m.totalCon;
+  var srcRow=isCat?CAT_START:CON_START;
+  if(!insBefore||!srcRow)return false;
+  try{
+    await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[
+      {insertDimension:{range:{sheetId:gid,dimension:"ROWS",startIndex:insBefore-1,endIndex:insBefore-1+GROW_BY},inheritFromBefore:true}},
+      {copyPaste:{source:{sheetId:gid,startRowIndex:srcRow-1,endRowIndex:srcRow,startColumnIndex:1,endColumnIndex:28},destination:{sheetId:gid,startRowIndex:insBefore-1,endRowIndex:insBefore-1+GROW_BY,startColumnIndex:1,endColumnIndex:28},pasteType:"PASTE_NORMAL"}}
+    ]})});
+  }catch(e){return false;}
+  await detectLayout(sname);
+  var eab=["E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","AA","AB"];
+  var cols=isCat?["B","C"].concat(eab):["B"].concat(eab);
+  var totalRow=isCat?(CAT_END+1):(CON_END+1),s0=isCat?CAT_START:CON_START,s1=isCat?CAT_END:CON_END;
+  var data=cols.map(function(col){return {range:"'"+sname+"'!"+col+totalRow,values:[["=SUM("+col+s0+":"+col+s1+")"]]};});
+  try{await vBatchUpdate(data);}catch(e){}
+  return true;
+}
+// Grow a section (in GROW_BY chunks) until it can hold `needed` rows. Used by the wizard's bulk create.
+async function ensureCapacity(sname,which,needed){
+  var guard=0;
+  while(guard++<60){
+    var start=(which==="cat")?CAT_START:CON_START, end=(which==="cat")?CAT_END:CON_END;
+    if((end-start+1)>=needed)return true;
+    if(!await growSummary(sname,which))return false;
+  }
+  return false;
+}
 async function loadAll(){
   try{var l=await vgetU(LEDGER+"!A2:I");state.rows=l.values||[];state._ledgerOk=true;}
   catch(e){ // don't nuke the whole app if the ledger tab is momentarily unreadable or was renamed — recreate + retry once
@@ -1747,6 +1816,7 @@ async function loadAll(){
   }
   var m=curMonth(), bi=4+(m-1)*2, si=5+(m-1)*2;
   var sname=summaryName();
+  await detectLayout(sname); // adapt row ranges to the sheet's actual (possibly expanded) layout
   var cats=[], cons=[];
   try{
     var s=await vgetU("'"+sname+"'!A"+CAT_START+":AB"+CAT_END);
@@ -2122,7 +2192,14 @@ function wizWireIncome(i){
 async function wizCreate(){
   var msg=$("wizMsg");msg.className="msg";var b=$("wizCreate");b.disabled=true;b.textContent=WZ.editMode?"Saving…":"Building…";
   try{
-    var sname=summaryName(),used={},rowByName={};state.cats.forEach(function(c){used[c.row]=1;rowByName[c.name.toLowerCase()]=c.row;});
+    var sname=summaryName();
+    // Dynamic expansion: make sure both sections are big enough for everything we're about to write (grows in GROW_BY chunks).
+    await detectLayout(sname);
+    var seenC={},needCat=0;WZ.cats.forEach(function(c){var nm=(c.name||"").trim();if(!nm)return;var k=nm.toLowerCase();if(seenC[k])return;seenC[k]=1;var cf=wizCatCfg(c);if(WZ.editMode||annualOf(cf)>0||cf.type==="itemized")needCat++;});
+    var seenI={},needInc=0;WZ.incomes.forEach(function(inc){if(!wizIncCfg(inc))return;var nm=((inc.name||"Me").trim()||"Me").toLowerCase();if(seenI[nm])return;seenI[nm]=1;needInc++;});
+    if(needCat>0)await ensureCapacity(sname,"cat",needCat);
+    if(needInc>0)await ensureCapacity(sname,"con",needInc);
+    var used={},rowByName={};state.cats.forEach(function(c){used[c.row]=1;rowByName[c.name.toLowerCase()]=c.row;});
     var nextRow=function(){for(var r=CAT_START;r<=CAT_END;r++){if(!used[r])return used[r]=1,r;}return 0;};
     var data=[],clears=[],catOverflow=[],incOverflow=[],catNames={},keptCatRows={},renames=[],ledgerRetag=[];
     WZ.cats.forEach(function(c){
@@ -3440,7 +3517,7 @@ async function addDeposit(){
     var res=await vappend(LEDGER+"!A:I",[dvals]);var row=appendedRow(res);
     var newCon=false;
     if(!state.cons.some(function(c){return c.name.toLowerCase()===src.toLowerCase();})){
-      try{ var crow=await claimRow(summaryName(y),CON_START,CON_END,src);if(crow)newCon=true; }catch(e){} // add the source to the DEPOSIT's year, safely against concurrent adds
+      try{ var crow=await claimRow(summaryName(y),CON_START,CON_END,src,"con");if(crow)newCon=true; }catch(e){} // add the source to the DEPOSIT's year, safely against concurrent adds
     }
     $("dSource").value="";$("dAmount").value="";$("dCompany").value="";$("dDesc").value="";
     localRowPush(dvals);
@@ -3491,7 +3568,7 @@ async function addCon(){
   var b=$("conAddBtn");b.disabled=true;b.textContent="Saving…";
   var sname=summaryName();var row;
   if(conEdit){var ec=state.cons.filter(function(x){return x.name.toLowerCase()===conEdit.toLowerCase();})[0];row=ec?ec.row:0;}
-  else{row=await claimRow(sname,CON_START,CON_END,name);if(!row){msg.textContent="This year's contributions list is full (5). Remove one or use the spreadsheet.";msg.className="msg bad";b.disabled=false;b.textContent="Add source";return;}} // claim safely against concurrent adds
+  else{row=await claimRow(sname,CON_START,CON_END,name,"con");if(!row){msg.textContent="Couldn’t add another income source right now. Try again in a moment.";msg.className="msg bad";b.disabled=false;b.textContent="Add source";return;}} // claims safely; grows the section on demand
   try{
     var data=[{range:"'"+sname+"'!A"+row,values:[[name]]}];
     BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+row,values:[[mv[i]]]});});
@@ -3605,7 +3682,7 @@ async function addCat(){
   var sname=summaryName();
   var row;
   if(catEdit){var ec=state.cats.filter(function(x){return x.name.toLowerCase()===catEdit.toLowerCase();})[0];row=ec?ec.row:0;}
-  else{row=await claimRow(sname,CAT_START,CAT_END,name);if(!row){msg.textContent="This year's summary is full (30 categories). Remove one or use the spreadsheet.";msg.className="msg bad";b.disabled=false;b.textContent="Add category";return;}} // claim the row safely against concurrent adds
+  else{row=await claimRow(sname,CAT_START,CAT_END,name,"cat");if(!row){msg.textContent="Couldn’t add another category right now. Try again in a moment.";msg.className="msg bad";b.disabled=false;b.textContent="Add category";return;}} // claims safely; grows the section on demand
   try{
     var data=[{range:"'"+sname+"'!A"+row,values:[[name]]}];
     BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+row,values:[[mv[i]]]});});
