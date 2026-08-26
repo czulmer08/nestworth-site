@@ -840,7 +840,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.18"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.19"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -1076,7 +1076,12 @@ async function ensureSheet(){
   else{
   if(stored){
     sheetId=stored; // trust the stored active budget…
-    try{await api(ssBaseFor(stored)+"?fields=spreadsheetId");}
+    try{
+      // Check via Drive so we also catch a TRASHED file — the Sheets API happily reads a trashed spreadsheet by id, which
+      // would silently strand you on an empty/stale budget. A trashed budget is treated as gone so we fall back to a live one.
+      var dchk=await api("https://www.googleapis.com/drive/v3/files/"+stored+"?fields=trashed");
+      if(dchk&&dchk.trashed===true)sheetId=null;
+    }
     catch(e){var m=(""+(e.message||e));
       // …only give it up (and fall back) if it's genuinely gone or access was revoked — NOT on a transient 5xx/network blip,
       // which must never silently reassign the user to a different budget.
@@ -1091,7 +1096,7 @@ async function ensureSheet(){
     try{
       var tracked=lsGetBudgets(),hidden=lsHidden();
       for(var ti=0;ti<tracked.length;ti++){var tb=tracked[ti];if(!tb||!tb.id||tb.id===stored||hidden.indexOf(tb.id)>=0)continue;
-        try{await api(ssBaseFor(tb.id)+"?fields=spreadsheetId");sheetId=tb.id;break;}catch(_){}}
+        try{var dt=await api("https://www.googleapis.com/drive/v3/files/"+tb.id+"?fields=trashed");if(dt&&dt.trashed===true)continue;sheetId=tb.id;break;}catch(_){}}
     }catch(e){}
   }
   if(!sheetId){
