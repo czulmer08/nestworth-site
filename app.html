@@ -600,6 +600,11 @@ try{
       <button class="addbtn" id="updCheckBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Check for updates</button>
       <div class="msg" id="updCheckMsg"></div>
     </div>
+    <div class="card"><p class="eyebrow">Spreadsheet breakdown</p>
+      <div class="hintline" style="text-align:left;margin-top:0">Show each itemized category's bills as indented lines under it in your Account Summary tab (with their own budget &amp; spent). Kept up to date automatically after you edit bills.</div>
+      <button class="addbtn" id="breakdownBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Build itemized breakdown</button>
+      <div class="msg" id="breakdownMsg"></div>
+    </div>
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
@@ -888,7 +893,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.31"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.34"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -947,6 +952,18 @@ async function manualUpdateCheck(){
   }catch(e){if(msg){msg.textContent="Couldn’t check right now — check your connection and try again.";msg.className="msg bad";}}
   if(btn){btn.disabled=false;btn.textContent="Check for updates";}
 }
+// Manual "Build itemized breakdown" (Settings): write the indented bill rows into the Account Summary now. After this, edits keep it current.
+async function manualBreakdown(){
+  var msg=$("breakdownMsg"),btn=$("breakdownBtn");
+  if(!anyItemized()){if(msg){msg.textContent="No itemized categories yet — make a category of type “Itemized (list bills)” first.";msg.className="msg";}return;}
+  if(msg){msg.textContent="Building…";msg.className="msg";}if(btn){btn.disabled=true;btn.textContent="Building…";}
+  try{
+    var ok=await syncBreakdownAllYears();
+    await loadAll();renderAll();
+    if(msg){msg.textContent=ok?"Done ✓ — open the Account Summary tab to see each bill under its category.":"Couldn’t update the sheet just now — try again in a moment.";msg.className=ok?"msg":"msg bad";}
+  }catch(e){if(msg){msg.textContent="Couldn’t update the sheet: "+((e.message||e)+"").slice(0,80);msg.className="msg bad";}}
+  if(btn){btn.disabled=false;btn.textContent="Build itemized breakdown";}
+}
 // Itemized bills: each {name, amount, cadence, month}; the parent's 12-month budget is their sum.
 // Infer a bill cadence from a 12-month budget array (used when folding a category into an itemized parent).
 function detectCadence(m){
@@ -962,6 +979,10 @@ function detectCadence(m){
 }
 function billMonths(items){var m=[0,0,0,0,0,0,0,0,0,0,0,0];(items||[]).forEach(function(it){var a=Number(it.amount)||0,mo=Number(it.month)||1;if(mo<1)mo=1;if(mo>12)mo=12;var cad=it.cadence;if(cad==="Custom"&&it.months){for(var j=0;j<12;j++)m[j]+=Number(it.months[j])||0;}else if(cad==="AnnualSaveUp"){var per=a/mo;for(var k=0;k<mo;k++)m[k]+=per;}else if(cad==="Annual"){m[mo-1]+=a;}else{for(var q=0;q<12;q++)m[q]+=a;}});for(var z=0;z<12;z++)m[z]=r2(m[z]);return m;}
 function billAnnual(it){return r2(billMonths([it]).reduce(function(s,z){return s+z;},0));}
+// How much has actually been spent on a single itemized bill this budget year — ledger rows tagged with the parent
+// category (col E) AND the bill's name in the Company column (col F), which is how logging/picking a bill tags them.
+function billSpentYr(parent,billName,y){y=y||bYear();var pl=(""+parent).trim().toLowerCase(),bl=(""+billName).trim().toLowerCase();if(!bl)return 0;var s=0;(state.rows||[]).forEach(function(r){if(!r)return;if(Number(r[0])!==y)return;if((""+((r[4])||"")).trim().toLowerCase()!==pl)return;if((""+((r[5])||"")).trim().toLowerCase()!==bl)return;s+=Number(r[6])||0;});return r2(s);}
+function billSpentMonth(parent,billName,y,m){var pl=(""+parent).trim().toLowerCase(),bl=(""+billName).trim().toLowerCase();if(!bl)return 0;var s=0;(state.rows||[]).forEach(function(r){if(!r)return;if(Number(r[0])!==y||Number(r[1])!==m)return;if((""+((r[4])||"")).trim().toLowerCase()!==pl)return;if((""+((r[5])||"")).trim().toLowerCase()!==bl)return;s+=Number(r[6])||0;});return r2(s);}
 function ord(n){n=Number(n)||0;if(!n)return "";var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 function billCadLabel(it){var day=(Number(it.day)||0)?(" · "+ord(it.day)):"";switch(it.cadence){case"Annual":return "annual · pays "+MONTHS[((Number(it.month)||1)-1)]+day;case"AnnualSaveUp":return "annual, split monthly"+day;case"Custom":return "custom";default:return "monthly"+day;}}
 function annualOf(cfg){return r2(monthsFor(cfg).reduce(function(s,z){return s+z;},0));}
@@ -977,6 +998,24 @@ function sizeMoney(el){if(!el)return;var v=(el.value||el.getAttribute("placehold
 function sizeAllMoney(root){var els=(root||document).querySelectorAll("input.money");Array.prototype.forEach.call(els,sizeMoney);}
 function pad2(n){return ("0"+n).slice(-2);}
 function serialToISO(v){if(v==null||v==="")return "";if(typeof v==="number"){var d=new Date(Math.round((v-25569)*86400000));return d.getUTCFullYear()+"-"+pad2(d.getUTCMonth()+1)+"-"+pad2(d.getUTCDate());}var s=(""+v).trim();var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+"-"+m[2]+"-"+m[3];var d2=new Date(s);if(!isNaN(d2.getTime()))return d2.getFullYear()+"-"+pad2(d2.getMonth()+1)+"-"+pad2(d2.getDate());return "";}
+// A month cell can be a number (8), a name ("August"), or an abbreviation ("Aug") if someone types a row by hand in Sheets.
+function monthNum(v){if(v==null||v==="")return 0;var n=Number(v);if(isFinite(n)&&n>=1&&n<=12)return Math.round(n);var s=(""+v).trim().toLowerCase();if(!s)return 0;for(var i=0;i<MONTHS.length;i++){var mn=MONTHS[i].toLowerCase();if(s===mn||mn.slice(0,3)===s.slice(0,3))return i+1;}return 0;}
+// Manually-entered ledger rows often have a blank or non-numeric Year/Month (people fill the Date but not those columns, or
+// type the month's name). The whole app buckets by the numeric Year (A) & Month (B) columns, so normalize each row on load:
+// coerce a month name to its number, and backfill a missing Year/Month from the Date column — in memory only, non-destructive.
+function normLedgerRows(rows){
+  (rows||[]).forEach(function(r){
+    if(!r||!r.length)return;
+    var y=Number(r[0]),hasY=isFinite(y)&&y>=1900&&y<=3000;
+    var mo=monthNum(r[1]);
+    if(hasY&&mo){r[1]=mo;return;}
+    var iso=serialToISO(r[2]);var p=iso?iso.split("-"):null;
+    if(!hasY&&p)r[0]=Number(p[0]);
+    if(!mo&&p&&p.length>=2)mo=Number(p[1]);
+    if(mo)r[1]=mo;
+  });
+  return rows;
+}
 function shortDate(v){var iso=serialToISO(v);if(!iso)return (v==null?"":(""+v));var p=iso.split("-");return MONTHS[Number(p[1])-1]+" "+Number(p[2]);}
 function curYear(){return new Date().getFullYear();}
 function curMonth(){return new Date().getMonth()+1;}
@@ -1697,6 +1736,7 @@ async function doCombine(){
     var mv=billMonths(pcfg.items);BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+parRow,values:[[mv[i]]]});});
     state.meta.cats[targetName.toLowerCase()]=pcfg;
     await vBatchUpdate(data);if(clears.length)await vBatchClear(clears);await writeMeta();
+    await refreshBreakdown();
     closeOv("combineOv");await loadAll();renderAll();
   }catch(e){msg.textContent="Could not combine: "+((e.message||e)+"").slice(0,120);msg.className="msg bad";}
   b.disabled=false;b.textContent="Combine";
@@ -1724,6 +1764,7 @@ async function foldCategory(sourceName,parentName){
   try{
     await vBatchUpdate(data);await vBatchClear(clr);
     state.meta.cats[parentName.toLowerCase()]=pcfg;/* keep source type in meta (other years may still use it) */await writeMeta();
+    await refreshBreakdown();
     await loadAll();renderAll();
   }catch(e){await askInfo("Couldn’t fold",""+(e.message||e));}
 }
@@ -1966,7 +2007,8 @@ async function growSummary(sname,which){
   var eab=["E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","AA","AB"];
   var cols=isCat?["B","C"].concat(eab):["B"].concat(eab);
   var totalRow=isCat?(CAT_END+1):(CON_END+1),s0=isCat?CAT_START:CON_START,s1=isCat?CAT_END:CON_END;
-  var data=cols.map(function(col){return {range:"'"+sname+"'!"+col+totalRow,values:[["=SUM("+col+s0+":"+col+s1+")"]]};});
+  // category totals SUMIF-exclude the indented ↳ breakdown rows (harmless no-op when there are none); contributions use plain SUM
+  var data=cols.map(function(col){var f=isCat?("=SUMIF($A$"+s0+":$A$"+s1+",\"<>↳*\","+col+s0+":"+col+s1+")"):("=SUM("+col+s0+":"+col+s1+")");return {range:"'"+sname+"'!"+col+totalRow,values:[[f]]};});
   try{await vBatchUpdate(data);}catch(e){}
   return true;
 }
@@ -1980,6 +2022,73 @@ async function ensureCapacity(sname,which,needed){
   }
   return false;
 }
+// ---- Itemized breakdown in the Account Summary: an indented "↳ bill" row under each itemized parent ----
+var SPENTCOLS=["F","H","J","L","N","P","R","T","V","X","Z","AB"]; // per-month Spent columns (mirror of BUDCOLS)
+function esc2(s){return (""+s).replace(/"/g,'""');} // escape double-quotes for a formula string literal
+// The template's per-month Spent formula. catRef is a cell ref ($A<row>) for a parent or a quoted literal for a bill;
+// pass a bill Company name to add the second criterion (so a bill row sums only its own charges).
+function catSpentF(catRef,company,m){
+  var f="=SUMIFS('Account Ledger'!$G$1:$G$1048361,'Account Ledger'!$E$1:$E$1048361,"+catRef+",";
+  if(company!=null)f+="'Account Ledger'!$F$1:$F$1048361,\""+esc2(company)+"\",";
+  f+="'Account Ledger'!$C$1:$C$1048361,\">=\"&DATE($B$2,"+m+",1),'Account Ledger'!$C$1:$C$1048361,\"<=\"&EOMONTH(DATE($B$2,"+m+",1),0),'Account Ledger'!$C$1:$C$1048361,\"<=\"&TODAY())";
+  return f;
+}
+// Rewrite one year's category block so each itemized category is followed by indented "↳ bill" rows. Idempotent:
+// existing ↳ rows are dropped and regenerated from meta, parents keep their order and budgeted values. The TOTAL row
+// SUMIF-excludes the ↳ rows so budgets/spend are never double-counted. Returns true on success.
+async function syncBreakdown(sname){
+  sname=sname||summaryName();
+  if(!await detectLayout(sname))return false;
+  var block;try{block=await vgetU("'"+sname+"'!A"+CAT_START+":AB"+CAT_END);}catch(e){return false;}
+  var vals=block.values||[];
+  var parents=[];
+  vals.forEach(function(r){
+    var nm=(""+((r&&r[0])||"")).trim();
+    if(!nm||nm.charAt(0)==="↳")return; // skip blanks + old sub-rows (regenerated below)
+    var b12=[];for(var j=0;j<12;j++)b12.push(Number(r[4+j*2])||0);
+    parents.push({name:nm,bud12:b12});
+  });
+  var rowsOut=[];
+  parents.forEach(function(p){
+    rowsOut.push({name:p.name,bud12:p.bud12,sub:false});
+    var cfg=catCfg(p.name);
+    if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length){
+      cfg.items.forEach(function(it){if(it&&it.name)rowsOut.push({name:"↳ "+it.name,bud12:billMonths([it]),sub:true,parent:p.name,bill:it.name});});
+    }
+  });
+  if(!await ensureCapacity(sname,"cat",rowsOut.length))return false;
+  await detectLayout(sname);
+  var data=[];
+  rowsOut.forEach(function(ro,i){
+    var row=CAT_START+i;
+    data.push({range:"'"+sname+"'!A"+row,values:[[ro.name]]});
+    var catRef=ro.sub?('"'+esc2(ro.parent)+'"'):("$A"+row);
+    for(var j=0;j<12;j++){
+      data.push({range:"'"+sname+"'!"+BUDCOLS[j]+row,values:[[r2(ro.bud12[j]||0)]]});
+      data.push({range:"'"+sname+"'!"+SPENTCOLS[j]+row,values:[[catSpentF(catRef,ro.sub?ro.bill:null,j+1)]]});
+    }
+  });
+  for(var rr=CAT_START+rowsOut.length;rr<=CAT_END;rr++){ // clear any leftover rows below the written block
+    data.push({range:"'"+sname+"'!A"+rr,values:[[""]]});
+    for(var j2=0;j2<12;j2++)data.push({range:"'"+sname+"'!"+BUDCOLS[j2]+rr,values:[[""]]});
+  }
+  var totalRow=CAT_END+1,cols=["B","C"].concat(BUDCOLS).concat(SPENTCOLS);
+  cols.forEach(function(col){data.push({range:"'"+sname+"'!"+col+totalRow,values:[["=SUMIF($A$"+CAT_START+":$A$"+CAT_END+",\"<>↳*\","+col+CAT_START+":"+col+CAT_END+")"]]});});
+  try{await vBatchUpdate(data);}catch(e){return false;}
+  return true;
+}
+// Sync the breakdown on every year tab that exists (itemized budgets are the same config across years).
+async function syncBreakdownAllYears(){
+  try{
+    var meta=await api(ssBase()+"?fields=sheets.properties(title)");
+    var names=(meta.sheets||[]).map(function(s){return s.properties.title;}).filter(function(t){return /^\d{4} Account Summary$/.test(t);});
+    for(var i=0;i<names.length;i++){try{await syncBreakdown(names[i]);}catch(e){}}
+    return true;
+  }catch(e){return false;}
+}
+function anyItemized(){var c=(state.meta&&state.meta.cats)||{};for(var k in c){if(c[k]&&c[k].type==="itemized")return true;}return false;}
+// Keep the spreadsheet's itemized breakdown current after a category/bill change — only does work when itemized categories exist.
+async function refreshBreakdown(){try{if(anyItemized())await syncBreakdownAllYears();}catch(e){}}
 async function loadAll(){
   try{var l=await vgetU(LEDGER+"!A2:I");state.rows=l.values||[];state._ledgerOk=true;}
   catch(e){ // don't nuke the whole app if the ledger tab is momentarily unreadable or was renamed — recreate + retry once
@@ -1987,6 +2096,7 @@ async function loadAll(){
     try{await ensureLedgerTab();var l2=await vgetU(LEDGER+"!A2:I");state.rows=l2.values||[];state._ledgerOk=true;}
     catch(e2){state.rows=state.rows||[];}
   }
+  normLedgerRows(state.rows); // recognize hand-entered rows (month typed as a name, or blank Year/Month) by deriving from the Date
   var m=curMonth(), bi=4+(m-1)*2, si=5+(m-1)*2;
   var sname=summaryName();
   await detectLayout(sname); // adapt row ranges to the sheet's actual (possibly expanded) layout
@@ -1995,7 +2105,7 @@ async function loadAll(){
     var s=await vgetU("'"+sname+"'!A"+CAT_START+":AB"+CAT_END);
     (s.values||[]).forEach(function(r,i){
       var name=(""+((r&&r[0])||"")).trim();
-      if(!name)return;
+      if(!name||name.charAt(0)==="↳")return; // ↳ rows are itemized-bill breakdown lines, not real categories
       var b12=[];for(var mm=0;mm<12;mm++){b12.push(Number(r[4+mm*2])||0);}
       cats.push({name:name,row:CAT_START+i,annual:Number(r[1])||0,remaining:Number(r[2])||0,mbud:Number(r[bi])||0,mspent:Number(r[si])||0,bud12:b12});
     });
@@ -2454,7 +2564,7 @@ async function wizCreate(){
     if(ledgerRetag.length)await vBatchUpdate(ledgerRetag);
     // rename → carry the logged transactions over to the new category name
     if(WZ.editMode&&renames.length){for(var ri=0;ri<renames.length;ri++){try{await retagLedgerName(renames[ri].from,renames[ri].to);}catch(e){}}}
-    await writeMeta();await loadAll();
+    await writeMeta();await refreshBreakdown();await loadAll();
     if(catOverflow.length||incOverflow.length){
       var parts=[];
       if(catOverflow.length)parts.push(catOverflow.length+" categor"+(catOverflow.length===1?"y":"ies")+" ("+esc(catOverflow.join(", "))+")");
@@ -3131,7 +3241,14 @@ function renderMonth(){
     var pct=c.mbud>0?Math.min(100,Math.round(c.mspent/c.mbud*100)):(c.mspent>0?100:0);
     var over=c.mspent>c.mbud+0.005;
     var line=(c.mbud>0)?(over?("Over by "+money(c.mspent-c.mbud)):(money(c.mbud-c.mspent)+" left this month")):("No budget set this month");
-    html+='<div class="catcard"><div class="catrow"><span class="cn">'+esc(c.name)+'</span><span class="cv">'+money(c.mspent)+' / '+money(c.mbud)+'</span></div><div class="bar"><span style="width:'+pct+'%;background:'+(over?"var(--bad)":"var(--green)")+'"></span></div><div class="crem">'+line+' &nbsp;·&nbsp; annual left '+money(c.remaining)+'</div></div>';
+    // itemized categories: break the month down bill-by-bill (spent vs this month's budgeted amount), hiding bills with neither
+    var cfg=catCfg(c.name),billHtml="";
+    if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length){
+      var mo0=curMonth()-1;
+      var rows=cfg.items.map(function(it){var mb=(billMonths([it])[mo0]||0),sp=billSpentMonth(c.name,it.name,curYear(),curMonth());if(mb<=0.005&&sp<=0.005)return "";return '<div class="cc-bill"><span>'+esc(it.name||"bill")+'</span><span>'+money(sp)+(mb>0.005?(' / '+money(mb)):'')+'</span></div>';}).filter(Boolean).join("");
+      if(rows)billHtml='<div class="cc-bills" style="margin-top:8px">'+rows+'</div>';
+    }
+    html+='<div class="catcard"><div class="catrow"><span class="cn">'+esc(c.name)+'</span><span class="cv">'+money(c.mspent)+' / '+money(c.mbud)+'</span></div><div class="bar"><span style="width:'+pct+'%;background:'+(over?"var(--bad)":"var(--green)")+'"></span></div><div class="crem">'+line+' &nbsp;·&nbsp; annual left '+money(c.remaining)+'</div>'+billHtml+'</div>';
   });
   body.innerHTML=html;
   renderInsights();
@@ -3352,7 +3469,11 @@ function renderCats(){
     if(m!=="none"&&bYear()===curYear()){var bal=catBalance(c);stats+='<span class="'+(bal<-0.005?"bneg":"bpos")+'">'+money(bal)+' banked</span>';}
     var bills='';
     if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length){
-      bills='<div class="cc-bills">'+cfg.items.map(function(it){return '<div class="cc-bill"><span>'+esc(it.name||"bill")+' · '+billCadLabel(it)+'</span><span>'+money(billAnnual(it))+'/yr</span></div>';}).join("")+'</div>';
+      bills='<div class="cc-bills">'+cfg.items.map(function(it){
+        var ba=billAnnual(it),sp=billSpentYr(c.name,it.name,bYear());
+        var right=(sp>0.005)?('<span class="'+(sp>ba+0.005?"bneg":"bpos")+'">'+money(sp)+'</span> / '+money(ba)):(money(ba)+'/yr');
+        return '<div class="cc-bill"><span>'+esc(it.name||"bill")+' · '+billCadLabel(it)+'</span><span>'+right+'</span></div>';
+      }).join("")+'</div>';
     }
     // goals linked to this category, shown nested underneath
     var linkedGoals=(state.goals||[]).filter(function(g){return !g.archived&&g.category&&g.category.toLowerCase()===c.name.toLowerCase();});
@@ -4054,6 +4175,7 @@ async function addCat(){
     state.meta.cats[name.toLowerCase()]=cfg;await writeMeta();
     catEdit=null;$("catOvTitle").textContent="Add category";$("catAddBtn").textContent="Add category";
     $("cName").value="";$("cAmt").value="";$("cRoll").value="none";BILLS=[];$("cType").value="monthly";catTypeUI();closeOv("catOv");
+    await refreshBreakdown();
     await loadAll();renderAll();
   }catch(e){msg.textContent="Could not save: "+(e.message||e);msg.className="msg bad";}
   b.disabled=false;b.textContent=catEdit?"Save changes":"Add category";
@@ -4065,7 +4187,7 @@ async function removeCat(name){
   var sname=summaryName();
   var ranges=["'"+sname+"'!A"+c.row];
   BUDCOLS.forEach(function(col){ranges.push("'"+sname+"'!"+col+c.row);});
-  try{await vBatchClear(ranges);await loadAll();renderAll();} // per-year removal: clear this year's row, keep the shared type so other years keep working
+  try{await vBatchClear(ranges);await refreshBreakdown();await loadAll();renderAll();} // per-year removal: clear this year's row, keep the shared type so other years keep working
   catch(e){$("catMsg").textContent="Could not remove: "+(e.message||e);$("catMsg").className="msg bad";}
 }
 
@@ -4104,6 +4226,7 @@ function wire(){
   if($("bldVer"))$("bldVer").textContent=BUILD; // footer version from the single source of truth
   if($("settVer"))$("settVer").textContent=BUILD;
   if($("updCheckBtn"))$("updCheckBtn").addEventListener("click",manualUpdateCheck);
+  if($("breakdownBtn"))$("breakdownBtn").addEventListener("click",manualBreakdown);
   setTimeout(checkForUpdate,6000); // check for a newer deploy shortly after load
   // Proactively renew the ~1-hour Google token while the app is open (silently, where the browser allows it — avoids a
   // mid-session 401 on Android/desktop; on Safari/iOS the silent renew is blocked, so the Reconnect bar handles it instead).
