@@ -893,7 +893,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.35"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.36"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -3881,8 +3881,7 @@ function renderCatTbl(){
     else fb=(yleft>=-0.005?('<span class="pos">'+money(yleft)+'</span> left in '+esc(cat)+' this year (of '+money(c.annual)+')'):('<span class="neg">'+money(-yleft)+'</span> over in '+esc(cat)+' this year'));
   } else { fb=(spent>0?(money(spent)+' spent · no budget set '+when):'No budget set for '+esc(cat)+' '+when); }
   h+='<div class="fbline">'+fb+'</div>';
-  if(rows.length)h+='<ul>'+rows.slice().reverse().slice(0,6).map(function(r){return '<li><span>'+esc(shortDate(r[2])+(r[5]?(" · "+r[5]):""))+'</span><span>'+money(r[6])+'</span></li>';}).join("")+'</ul>';
-  else h+='<div class="none">No entries in '+esc(cat)+' '+when+'.</div>';
+  // (the per-category transaction list lives in the filtered "Recent" card below — no need to duplicate it here)
   el.innerHTML=h;
 }
 function renderDepTbl(){
@@ -3903,8 +3902,7 @@ function renderDepTbl(){
     if(typed>0)h+='<div class="fbline">After this: <b>'+money(proj)+'</b> of '+money(tgt)+(more>0.005?(' · <span class="neg">'+money(more)+' to go</span>'):' · <span class="pos">target met ✓</span>')+'</div>';
     else h+='<div class="fbline">'+(more>0.005?('<b>'+esc(src)+'</b> needs <span class="neg">'+money(more)+' more</span> '+when+' (of '+money(tgt)+')'):('<span class="pos">✓ '+esc(src)+' met the '+money(tgt)+' target '+when+'</span>'))+'</div>';
   }
-  if(rows.length)h+='<ul>'+rows.slice().reverse().slice(0,6).map(function(r){return '<li><span>'+esc(shortDate(r[2]))+'</span><span>'+money(r[6])+'</span></li>';}).join("")+'</ul>';
-  else h+='<div class="none">No deposits from this source '+when+'.</div>';
+  // (per-source deposits are listed in the filtered "Recent" card below — not duplicated here)
   el.innerHTML=h;
 }
 function companyMap(){var cnt={};state.rows.forEach(function(r){var co=(""+((r&&r[5])||"")).trim(),cat=(""+((r&&r[4])||"")).trim();var e=cat.toLowerCase();if(!co||!cat||e==="deposit"||isGoalName(cat))return;var k=co.toLowerCase();cnt[k]=cnt[k]||{};cnt[k][cat]=(cnt[k][cat]||0)+1;});var m={};for(var k in cnt){var best="",bn=-1;for(var c in cnt[k]){if(cnt[k][c]>bn){bn=cnt[k][c];best=c;}}m[k]=best;}return m;}
