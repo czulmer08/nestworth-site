@@ -302,6 +302,11 @@ try{
   .empty{color:var(--ink2);font-size:14px;text-align:center;padding:16px 4px}
   .sheetlink{display:inline-block;margin-top:4px;font-size:12.5px;color:var(--green);font-weight:600;text-decoration:none}
   .foot{text-align:center;font-size:11px;color:var(--ink2);letter-spacing:.03em;padding:10px 0 2px}
+  #updBar{position:fixed;left:0;right:0;bottom:0;z-index:9998;background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14.5px;font-family:inherit}
+  #updBar .updm{flex:1;font-weight:600}
+  #updBar button{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px}
+  #updNow{background:#fff;color:#215E44}
+  #updX{background:transparent;color:#fff;padding:8px 10px;font-size:16px;opacity:.9}
   .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:-3px}
   @keyframes sp{to{transform:rotate(360deg)}}
 </style>
@@ -559,7 +564,7 @@ try{
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
-  <div class="foot">NestWorth - Build 2026.08.26.13 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
+  <div class="foot">NestWorth - Build <span id="bldVer"></span> &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -831,6 +836,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
+var BUILD="2026.08.26.15"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -850,6 +856,30 @@ function monthsFor(cfg){
   if(t==="paycheck"){var checks=Number(cfg.freq)||26;var take=a*checks/12;var mo;if(cfg.mode==="keep"){mo=take-(Number(cfg.keep)||0);}else{var pct=(cfg.pct==null?100:Number(cfg.pct))/100;mo=take*pct;}if(mo<0)mo=0;mo=r2(mo);for(i=0;i<12;i++)out[i]=mo;return out;}
   if(t==="itemized"){return billMonths(cfg.items);}
   for(i=0;i<12;i++)out[i]=r2(a);return out; // monthly
+}
+// ---- Update check: pull the deployed app.html, read its BUILD, and offer a refresh if it's newer than what's running.
+function buildParts(s){var p=(""+s).split(".").map(function(x){return parseInt(x,10)||0;});while(p.length<4)p.push(0);return p;}
+function buildIsNewer(remote,local){var a=buildParts(remote),b=buildParts(local);for(var i=0;i<4;i++){if(a[i]!==b[i])return a[i]>b[i];}return false;}
+var _updDismissed=false,_lastUpdCheck=0;
+async function checkForUpdate(){
+  if(_updDismissed||document.getElementById("updBar"))return;
+  var now=(new Date()).getTime();if(now-_lastUpdCheck<15*60*1000)return;_lastUpdCheck=now; // at most every 15 min
+  try{
+    var base=location.href.split(/[?#]/)[0];
+    var resp=await fetch(base+"?v="+now,{cache:"no-store"}); // cache-buster defeats browser + CDN caching
+    if(!resp.ok)return;
+    var txt=await resp.text();
+    var m=txt.match(/BUILD\s*=\s*"(\d{4}\.\d{2}\.\d{2}(?:\.\d+)?)"/);
+    if(m&&buildIsNewer(m[1],BUILD))showUpdateBar(m[1]);
+  }catch(e){}
+}
+function showUpdateBar(ver){
+  if(document.getElementById("updBar"))return;
+  var bar=document.createElement("div");bar.id="updBar";
+  bar.innerHTML='<span class="updm">A newer version of NestWorth is ready.</span><button id="updNow" type="button">Refresh</button><button id="updX" type="button" aria-label="Dismiss">✕</button>';
+  document.body.appendChild(bar);
+  document.getElementById("updNow").addEventListener("click",function(){var u=location.href.split(/[?#]/)[0]+"?v="+((new Date()).getTime());location.replace(u);});
+  document.getElementById("updX").addEventListener("click",function(){_updDismissed=true;var b=document.getElementById("updBar");if(b)b.remove();});
 }
 // Itemized bills: each {name, amount, cadence, month}; the parent's 12-month budget is their sum.
 // Infer a bill cadence from a 12-month budget array (used when folding a category into an itemized parent).
@@ -2066,17 +2096,21 @@ async function wizApplySuggestions(){
     mode=(await askConfirm({title:"How much history?",msg:"You have spending going back further than last year. Base the suggested budget on your <b>recent</b> spending, or your <b>entire</b> imported history?",ok:"Use my entire history",cancel:"Recent (last year + this year)"}))?"all":"recent";
   }
   var sug=suggestFromSpending(mode);var sugInc=suggestIncomeFromSpending(mode);
-  if(!sug.length&&!sugInc.length){$("wizMsg").textContent="No spending or deposits logged yet to suggest from.";$("wizMsg").className="msg bad";return;}
+  // Income = deposit-derived suggestions + sources pulled straight from an old budget's Contributions section (defined amounts win).
+  var incMap={};
+  sugInc.forEach(function(s){incMap[(""+s.name).toLowerCase()]={name:s.name,amount:s.amount};});
+  (IMP_INCOME||[]).forEach(function(s){var nm=(""+s.name).trim();if(nm)incMap[nm.toLowerCase()]={name:nm,amount:s.monthly};});
+  var mergedInc=Object.keys(incMap).map(function(k){return incMap[k];});
+  if(!sug.length&&!mergedInc.length){$("wizMsg").textContent="No spending, deposits, or income sources found to suggest from.";$("wizMsg").className="msg bad";return;}
   if(!WZ.cats.length)WZ.cats=wizCompileCats();
   var have={};WZ.cats.forEach(function(c){have[c.name.toLowerCase()]=1;});
   var added=0;sug.forEach(function(s){if(!have[s.name.toLowerCase()]){WZ.cats.push({name:s.name,amount:s.amount,roll:"none",suggested:true});added++;}});
-  // Also suggest income sources from imported deposits (grouped by who paid you).
   var addedInc=0;
-  if(sugInc.length){
+  if(mergedInc.length){
     var onlyBlank=(WZ.incomes.length===1&&!(""+(WZ.incomes[0].perCheck||"")).trim()&&!(""+(WZ.incomes[0].monthly||"")).trim()&&!(""+(WZ.incomes[0].annual||"")).trim());
     if(onlyBlank)WZ.incomes=[];
     var haveInc={};WZ.incomes.forEach(function(i){haveInc[(""+(i.name||"")).toLowerCase()]=1;});
-    sugInc.forEach(function(s){if(!haveInc[s.name.toLowerCase()]){WZ.incomes.push({name:s.name,type:"monthly",monthly:String(s.amount),freq:26,perCheck:"",keepMode:"all",pct:100,setaside:"",annual:"",month:curMonth(),suggested:true});addedInc++;}});
+    mergedInc.forEach(function(s){if(!haveInc[s.name.toLowerCase()]){WZ.incomes.push({name:s.name,type:"monthly",monthly:String(s.amount),freq:26,perCheck:"",keepMode:"all",pct:100,setaside:"",annual:"",month:curMonth(),suggested:true});addedInc++;}});
     if(!WZ.incomes.length)WZ.incomes=[blankIncome()];
   }
   var parts=[];
@@ -2109,7 +2143,7 @@ function renderWizard(){
   dots.innerHTML=[1,2,3].map(function(n){return '<span class="wizdot'+(n===WZ.step?" on":(n<WZ.step?" done":""))+'"></span>';}).join("");
   if(WZ.step===1){
     $("wizTitle").textContent="Choose starter packs";
-    var canSuggest=(suggestFromSpending().length>0)||(suggestIncomeFromSpending().length>0);
+    var canSuggest=(suggestFromSpending().length>0)||(suggestIncomeFromSpending().length>0)||(IMP_INCOME&&IMP_INCOME.length>0);
     body.innerHTML='<div class="hintline" style="text-align:left;margin:0 0 10px">Tap the packs that fit. You can edit everything next.</div>'+
       '<div class="packgrid">'+PACKS.map(function(p){return '<button type="button" class="packtile'+(WZ.packs[p.key]?" on":"")+'" data-k="'+p.key+'"><span class="packico">'+p.icon+'</span><span class="packt">'+esc(p.title)+'</span><span class="packd">'+esc(p.desc)+'</span></button>';}).join("")+'</div>'+
       (canSuggest?'<button class="gbtn" id="wizSuggest" style="margin-top:12px;width:100%">✨ Suggest from my spending</button>':'')+
@@ -2131,7 +2165,7 @@ function renderWizard(){
         return '<div class="wzcatrow"><div class="wzcat-top"><input class="wzc-name" data-i="'+i+'" value="'+esc(c.name)+'" autocomplete="off" placeholder="Category">'+amtField+'<button type="button" class="bi-x wzc-x" data-i="'+i+'">✕</button></div>'+(badge?('<div style="margin-top:2px">'+badge+'</div>'):'')+'<div class="wzcat-bot">'+rollSel+'<button type="button" class="wzc-gear" data-i="'+i+'">⚙ Bills &amp; details</button>'+typeLbl+'</div></div>';
       }).join("")+
       '<button type="button" class="wizadd-btn" id="wizAddCat">＋ Add a category</button>'+
-      ((suggestFromSpending().length||suggestIncomeFromSpending().length)?'<button class="gbtn" id="wizSuggest2" style="margin-top:10px;width:100%">✨ Suggest from my spending</button>':'')+
+      ((suggestFromSpending().length||suggestIncomeFromSpending().length||(IMP_INCOME&&IMP_INCOME.length))?'<button class="gbtn" id="wizSuggest2" style="margin-top:10px;width:100%">✨ Suggest from my spending</button>':'')+
       '<div style="display:flex;gap:8px;margin-top:14px"><button class="addbtn ghost" id="wizBack" style="margin-top:0;color:var(--ink2)">Back</button><button class="addbtn" id="wizNext" style="margin-top:0">Next</button></div>';
     Array.prototype.forEach.call(body.querySelectorAll(".wzc-name"),function(x){x.addEventListener("input",function(){WZ.cats[+this.getAttribute("data-i")].name=this.value;});});
     Array.prototype.forEach.call(body.querySelectorAll(".wzc-amt"),function(x){x.addEventListener("input",function(){WZ.cats[+this.getAttribute("data-i")].amount=parseFloat(this.value.replace(/[^0-9.\-]/g,""))||0;});});
@@ -2370,8 +2404,26 @@ async function onNWFile(ev){
 }
 // ---- Import past expenses: paste / statement scan / pull from an old budget sheet ----
 var IMPTX=[];
+var IMP_INCOME=[]; // income sources pulled directly from an old budget's Contributions section (fed to the wizard's suggestions)
 var _impFromTab=false,IMPORT_TAB="Import Transactions";
-function openImport(){IMPTX=[];_impFromTab=false;_impSkipDup=true;_impExisting=null;if($("impMsg")){$("impMsg").textContent="";$("impMsg").className="msg";}if($("impPasteTA"))$("impPasteTA").value="";if($("impRevDup"))$("impRevDup").innerHTML="";if($("impRevCats"))$("impRevCats").innerHTML="";impShow("methods");openOv("impOv");}
+function openImport(){IMPTX=[];IMP_INCOME=[];_impFromTab=false;_impSkipDup=true;_impExisting=null;if($("impMsg")){$("impMsg").textContent="";$("impMsg").className="msg";}if($("impPasteTA"))$("impPasteTA").value="";if($("impRevDup"))$("impRevDup").innerHTML="";if($("impRevCats"))$("impRevCats").innerHTML="";impShow("methods");openOv("impOv");}
+// Read defined income sources (name + effective monthly amount) from an old budget's latest summary Contributions section.
+async function readOldBudgetIncome(id){
+  try{
+    var base=ssBaseFor(id);
+    var meta=await api(base+"?fields=sheets.properties(title)");
+    var years=[];(meta.sheets||[]).forEach(function(s){var m=(""+s.properties.title).match(/^(\d{4}) Account Summary$/);if(m)years.push(+m[1]);});
+    if(!years.length)return [];
+    var sname=Math.max.apply(null,years)+" Account Summary";
+    var ca=await api(base+"/values/"+encodeURIComponent("'"+sname+"'!A1:A400")+"?valueRenderOption=UNFORMATTED_VALUE");
+    var mk=scanMarkers(ca.values||[]);
+    if(!mk.contrib||!mk.totalCon||mk.totalCon-1<mk.contrib+1)return [];
+    var iv=await api(base+"/values/"+encodeURIComponent("'"+sname+"'!A"+(mk.contrib+1)+":AB"+(mk.totalCon-1))+"?valueRenderOption=UNFORMATTED_VALUE");
+    var out=[],seen={};
+    (iv.values||[]).forEach(function(r){var nm=(""+((r&&r[0])||"")).trim();if(!nm)return;var k=nm.toLowerCase();if(seen[k])return;var sum=0;for(var j=0;j<12;j++)sum+=Number(r[4+j*2])||0;if(sum>0.005){seen[k]=1;out.push({name:nm,monthly:r2(sum/12)});}});
+    return out;
+  }catch(e){return [];}
+}
 function impShow(which){["methods","sheet","paste","review"].forEach(function(w){var el=$("imp"+(w==="methods"?"Methods":(w==="sheet"?"SheetWrap":(w==="paste"?"PasteWrap":"ReviewWrap"))));if(el)el.style.display=(w===which)?"block":"none";});}
 function downloadTemplate(){
   var csv="Date,Category,Amount,Company,Description,Payee,Reimbursed\n2026-08-01,Groceries,82.50,Publix,weekly shop,,\n2026-08-02,Gas,41.00,Shell,,,\n2026-08-03,Dining,26.40,Chipotle,,,\n";
@@ -2474,7 +2526,9 @@ function impPullOldSheet(){_impFromTab=false;
         if(isGoalName(cat)||isGoalName(comp))return;
         // Preserve sign so a refund stays a refund (negative) rather than becoming a positive expense.
         txns.push({date:nd,category:impCatMatch(cat),amount:raw<0?-amt:amt,company:comp,desc:(""+((r&&r[7])||"")).trim()});});
-      if(!txns.length){msg.textContent="No expenses or income found in that sheet's Account Ledger tab. If your data is in a different layout, use “Paste transactions” instead.";msg.className="msg bad";return;}
+      // Also pull the old budget's defined income sources straight from its Contributions section (so they suggest even without logged deposits).
+      IMP_INCOME=await readOldBudgetIncome(d.id);
+      if(!txns.length&&!IMP_INCOME.length){msg.textContent="No expenses or income found in that sheet. If your data is in a different layout, use “Paste transactions” instead.";msg.className="msg bad";return;}
       IMPTX=txns;msg.textContent="";renderImpReview();impShow("review");
     }catch(e){var em=(""+(e.message||e));var noTab=/parse range|not found|Unable/i.test(em);msg.textContent=noTab?"That spreadsheet isn't in NestWorth's format (no “Account Ledger” tab). For data in another layout, use “Paste transactions” instead.":("Couldn't read that spreadsheet: "+em.slice(0,120));msg.className="msg bad";}
   }});
@@ -2504,7 +2558,7 @@ function renderImpReview(){
   var willImport=IMPTX.filter(function(t){return !(_impSkipDup&&t._dup);}).length;
   var incN=IMPTX.filter(function(t){return t.isDep&&!(_impSkipDup&&t._dup);}).length;
   var expN=willImport-incN;
-  $("impRevCount").innerHTML="<b>"+expN+"</b> expense"+(expN===1?"":"s")+(incN?(" and <b>"+incN+"</b> income entr"+(incN===1?"y":"ies")):"")+" ready to import"+(IMPTX.length>50?" · showing the first 50 below — the rest import with the categories you set above.":". Fix a category or tap ✕ to skip a row.");
+  $("impRevCount").innerHTML="<b>"+expN+"</b> expense"+(expN===1?"":"s")+(incN?(" and <b>"+incN+"</b> income entr"+(incN===1?"y":"ies")):"")+" ready to import"+(IMPTX.length>50?" · showing the first 50 below — the rest import with the categories you set above.":". Fix a category or tap ✕ to skip a row.")+((IMP_INCOME&&IMP_INCOME.length)?('<span style="display:block;margin-top:5px;color:var(--green);font-weight:600">＋ '+IMP_INCOME.length+' income source'+(IMP_INCOME.length===1?"":"s")+' found in your old budget — we’ll suggest '+(IMP_INCOME.length===1?"it":"them")+' when you build your budget.</span>'):"");
   // Duplicate banner
   if(dupN>0){$("impRevDup").innerHTML='<div class="improw" style="border-color:var(--gold)"><div class="improw-top"><span class="improw-m">⚠️ '+dupN+' row'+(dupN===1?"":"s")+' already in your ledger</span><label class="tog" style="transform:scale(.85)"><input type="checkbox" id="impSkipDup"'+(_impSkipDup?" checked":"")+'><span class="tog-t"></span></label></div><div class="improw-sub">Same date + amount as existing entries (e.g. re-imported or pulled from two sources). Skip them?</div></div>';var sd=$("impSkipDup");if(sd)sd.addEventListener("change",function(){_impSkipDup=this.checked;renderImpReview();});}
   else $("impRevDup").innerHTML="";
@@ -2560,7 +2614,8 @@ async function impDoImport(){
     var sug=suggestFromSpending(),sugI=suggestIncomeFromSpending();
     var eN=rows.filter(function(t){return !t.isDep;}).length,iN=rows.length-eN;
     var impWord=iN?(rows.length+" entr"+(rows.length===1?"y":"ies")):(eN+" expense"+(eN===1?"":"s"));
-    if(noBudget&&(sug.length||sugI.length)&&await askConfirm({title:"Build a budget from this?",msg:"Imported "+impWord+". Want NestWorth to suggest a monthly budget"+(sugI.length?" and income":"")+" from what you've logged?",ok:"Suggest a budget",cancel:"Not now"})){
+    var hasInc=sugI.length||(IMP_INCOME&&IMP_INCOME.length);
+    if(noBudget&&(sug.length||hasInc)&&await askConfirm({title:"Build a budget from this?",msg:"Imported "+impWord+". Want NestWorth to suggest a monthly budget"+(hasInc?" and income":"")+" from what you've logged?",ok:"Suggest a budget",cancel:"Not now"})){
       openWizard(false);wizApplySuggestions();
     } else {
       var m2=$("addMsg");if(m2){m2.textContent="Imported "+impWord+(skipped>0?(" ✓ · skipped "+skipped+" duplicate"+(skipped===1?"":"s")):" ✓");m2.className="msg";setTimeout(function(){if(m2.textContent.indexOf("Imported")===0)m2.textContent="";},4000);}
@@ -3766,11 +3821,14 @@ async function confirmAdoption(){
   else{switchView("settings");setTimeout(function(){var el=$("startMon");if(el&&el.scrollIntoView)try{el.scrollIntoView({block:"center"});}catch(_){}} ,200);}
 }
 function wire(){
+  if($("bldVer"))$("bldVer").textContent=BUILD; // footer version from the single source of truth
+  setTimeout(checkForUpdate,6000); // check for a newer deploy shortly after load
   document.addEventListener("input",function(e){var t=e.target;if(t&&t.classList&&t.classList.contains("money"))sizeMoney(t);},true);
   // On a shared budget, other people's changes only reach us on load — re-sync when the tab regains focus (and never while an editor is open).
   var _lastRefresh=0;
   document.addEventListener("visibilitychange",function(){
     if(document.visibilityState!=="visible")return;
+    checkForUpdate(); // also see if a newer version shipped while the app was backgrounded
     if(!sheetId||!$("appScreen")||!$("appScreen").classList.contains("on"))return;
     var ovOpen=Array.prototype.some.call(document.querySelectorAll(".ov"),function(o){return o.style.display==="flex";});
     if(ovOpen)return;
