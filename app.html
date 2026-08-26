@@ -27,7 +27,7 @@ try{
   @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55);} }
   :root[data-theme="dark"]{ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55); }
   *{box-sizing:border-box} html{-webkit-text-size-adjust:100%}
-  html,body{overscroll-behavior:none} /* stop the whole page from rubber-band scrolling, which would jostle the fixed layout on iOS */
+  html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none} /* body never scrolls; the app is a fixed full-height flex column and only the inner content scrolls, so the tab bar can't drift up on short pages or jostle on iOS */
   :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
   .rtag{display:inline-block;font-size:10px;font-weight:600;color:var(--ink2);background:var(--soft);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   .installtip{margin-top:22px;max-width:340px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left}
@@ -48,9 +48,9 @@ try{
   @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) body[data-view="add"]{background:#111A13} :root:not([data-theme="light"]) body[data-view="month"]{background:#0F1917} :root:not([data-theme="light"]) body[data-view="budget"]{background:#10161F} :root:not([data-theme="light"]) body[data-view="goals"]{background:#191710} :root:not([data-theme="light"]) body[data-view="worth"]{background:#0E1913} :root:not([data-theme="light"]) body[data-view="settings"]{background:#131712} }
   :root[data-theme="dark"] body[data-view="add"]{background:#111A13} :root[data-theme="dark"] body[data-view="month"]{background:#0F1917} :root[data-theme="dark"] body[data-view="budget"]{background:#10161F} :root[data-theme="dark"] body[data-view="goals"]{background:#191710} :root[data-theme="dark"] body[data-view="worth"]{background:#0E1913} :root[data-theme="dark"] body[data-view="settings"]{background:#131712}
   .disp{font-family:"Fraunces",Georgia,serif}
-  .wrap{max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
-  .screen{display:none} .screen.on{display:block}
-  .center{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(28px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom))}
+  .screen{display:none} .screen.on{display:flex;flex-direction:column;position:fixed;inset:0}
+  .wrap{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;width:100%;max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px 24px}
+  .center{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(28px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom))}
   .logo{width:96px;height:96px;border-radius:24px;box-shadow:var(--shadow);margin-bottom:18px}
   .brand{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:38px;margin:0 0 6px}
   .tag{color:var(--ink2);font-size:15px;margin:0 0 26px;max-width:30ch}
@@ -62,7 +62,7 @@ try{
   .top .title{font-family:"Fraunces",serif;font-weight:600;font-size:22px}
   .top .who{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
   .lnk{color:var(--green);font-size:13px;font-weight:600;background:none;border:0;cursor:pointer;padding:6px}
-  .tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding:7px 4px calc(7px + env(safe-area-inset-bottom));z-index:40;box-shadow:0 -4px 18px rgba(27,51,39,.06)}
+  .tabbar{flex:0 0 auto;display:flex;background:var(--card);border-top:1px solid var(--line);padding:7px 4px calc(7px + env(safe-area-inset-bottom));z-index:40;box-shadow:0 -4px 18px rgba(27,51,39,.06)}
   .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;color:var(--ink2);font-family:inherit;font-size:9.5px;font-weight:600;letter-spacing:0;cursor:pointer;padding:3px 0}
   .tabbar button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
   .tabbar button.on{color:var(--green)}
@@ -329,6 +329,11 @@ try{
   .pickgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .picktile{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-family:inherit;font-size:13.5px;font-weight:600;padding:13px 8px;cursor:pointer;text-align:center;line-height:1.22;min-height:58px;display:flex;align-items:center;justify-content:center}
   .picktile:active{background:var(--soft)}
+  .budswrow{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-family:inherit;font-size:15px;font-weight:600;padding:14px 15px;cursor:pointer;margin-bottom:8px}
+  .budswrow:active{background:var(--soft)}
+  .budswrow.on{border-color:var(--green);background:var(--green-soft,var(--soft))}
+  .budswrow .bck{color:var(--green);font-weight:700}
+  .budswrow .bn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .picktile.bill{background:var(--soft);border-color:transparent;font-weight:500;font-size:13px}
   .pickgoal{width:100%;border:1.5px solid var(--gold);border-radius:12px;background:transparent;color:var(--gold);font-family:inherit;font-size:15px;font-weight:700;padding:13px;cursor:pointer;margin:2px 0 4px}
   .pickempty{color:var(--ink2);text-align:center;padding:22px 10px;font-size:14px}
@@ -423,7 +428,7 @@ try{
       </div>
       <div class="msg" id="addMsg"></div>
     </div>
-    <div class="card"><div style="display:flex;align-items:center;justify-content:space-between"><p class="eyebrow" style="margin:0">Recent entries</p><a href="#" id="searchOpen" style="color:var(--green);font-weight:600;font-size:13px">🔍 Search</a></div><ul class="elist" id="elist" style="margin-top:10px"><li class="empty"><span class="spin"></span></li></ul></div>
+    <div class="card"><div style="display:flex;align-items:center;justify-content:space-between"><p class="eyebrow" style="margin:0" id="recentHdr">Recent entries</p><a href="#" id="searchOpen" style="color:var(--green);font-weight:600;font-size:13px">🔍 Search</a></div><ul class="elist" id="elist" style="margin-top:10px"><li class="empty"><span class="spin"></span></li></ul></div>
   </div>
 
   <div class="view" id="view-budget">
@@ -590,6 +595,11 @@ try{
       <button class="addbtn" id="appCopyBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Copy the app link</button>
       <div class="msg" id="appShareMsg"></div>
     </div>
+    <div class="card"><p class="eyebrow">App version</p>
+      <div class="hintline" style="text-align:left;margin-top:0">You’re on <b>Build <span id="settVer"></span></b>. Tap to pull the latest version if one’s been published.</div>
+      <button class="addbtn" id="updCheckBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Check for updates</button>
+      <div class="msg" id="updCheckMsg"></div>
+    </div>
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
@@ -609,6 +619,13 @@ try{
   <div class="ovhdr" style="margin-bottom:2px"><span>Category</span><button class="pickdone" id="catPickDone" type="button">Done</button></div>
   <input id="catPickSearch" class="picksearch" placeholder="Search" autocomplete="off">
   <div id="catPickBody" class="pickbody"></div>
+</div></div>
+
+<div id="budSwitchOv" class="ov" style="display:none;z-index:72"><div class="ovcard pickcard">
+  <div class="ovhdr" style="margin-bottom:2px"><span>Your budgets</span><button class="pickdone" id="budSwitchDone" type="button">Done</button></div>
+  <div class="hintline" style="text-align:left;margin:2px 0 8px">Tap a budget to switch into it.</div>
+  <div id="budSwitchBody" class="pickbody"></div>
+  <button type="button" class="gbtn" id="budSwitchOpen" style="width:100%;margin-top:12px">📂 Open a shared or old budget…</button>
 </div></div>
 
 <div id="editOv" class="ov" style="display:none">
@@ -871,7 +888,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.26"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.31"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -917,6 +934,19 @@ function showUpdateBar(ver){
   document.getElementById("updNow").addEventListener("click",function(){var u=location.href.split(/[?#]/)[0]+"?v="+((new Date()).getTime());location.replace(u);});
   document.getElementById("updX").addEventListener("click",function(){_updDismissed=true;var b=document.getElementById("updBar");if(b)b.remove();});
 }
+// Manual "Check for updates" (Settings): force-fetch the deployed app, and reload if it's newer — otherwise say you're current.
+async function manualUpdateCheck(){
+  var msg=$("updCheckMsg"),btn=$("updCheckBtn");if(msg){msg.textContent="Checking…";msg.className="msg";}if(btn){btn.disabled=true;btn.textContent="Checking…";}
+  try{
+    var now=(new Date()).getTime();
+    var resp=await fetch(location.href.split(/[?#]/)[0]+"?v="+now,{cache:"no-store"});
+    if(!resp.ok)throw new Error("http "+resp.status);
+    var txt=await resp.text();var m=txt.match(/BUILD\s*=\s*"(\d{4}\.\d{2}\.\d{2}(?:\.\d+)?)"/);
+    if(m&&buildIsNewer(m[1],BUILD)){if(msg){msg.textContent="New version found — updating…";msg.className="msg";}setTimeout(function(){location.replace(location.href.split(/[?#]/)[0]+"?v="+((new Date()).getTime()));},400);return;}
+    if(msg){msg.textContent="You’re on the latest version ✓";msg.className="msg";}
+  }catch(e){if(msg){msg.textContent="Couldn’t check right now — check your connection and try again.";msg.className="msg bad";}}
+  if(btn){btn.disabled=false;btn.textContent="Check for updates";}
+}
 // Itemized bills: each {name, amount, cadence, month}; the parent's 12-month budget is their sum.
 // Infer a bill cadence from a 12-month budget array (used when folding a category into an itemized parent).
 function detectCadence(m){
@@ -957,7 +987,12 @@ function summaryName(y){return (y||bYear())+" Account Summary";}
 
 /* auth */
 var _res=null,_rej=null,_tokenInFlight=null;
-function _tokCb(r){var a=_res,b=_rej;_res=_rej=null;if(r&&r.error){if(b)b(new Error(r.error));return;}accessToken=r.access_token;if(a)a(accessToken);}
+function _tokCb(r){var a=_res,b=_rej;_res=_rej=null;if(r&&r.error){if(b)b(new Error(r.error));return;}accessToken=r.access_token;saveTok(r);if(a)a(accessToken);}
+// Keep the current Google token (and when it expires) on the device, so clicking out of the app and back in reuses it
+// instead of forcing the silent renewal that iOS Safari usually blocks. drive.file-scoped + ~1h lifetime, origin-private.
+function saveTok(r){try{if(r&&r.access_token){var exp=(new Date()).getTime()+(((+r.expires_in)||3600)*1000);lsSet("nw_tok",JSON.stringify({t:r.access_token,e:exp}));}}catch(e){}}
+function storedToken(){try{var o=JSON.parse(lsGet("nw_tok")||"null");if(o&&o.t&&o.e&&(o.e-90000)>(new Date()).getTime())return o.t;}catch(e){}return null;}
+function clearTok(){try{localStorage.removeItem("nw_tok");}catch(e){}}
 function _tokErr(e){var b=_rej;_res=_rej=null;if(b)b(new Error((e&&(e.type||e.message))||"auth error"));}
 // Single-flight: concurrent callers share ONE in-flight token request so a second call can't overwrite _res/_rej and steal the first caller's resolution.
 function getToken(i){
@@ -969,7 +1004,7 @@ function getToken(i){
 function withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error("timeout"));},ms);})]);}
 function sessionExpired(){
   try{
-    accessToken=null;
+    accessToken=null;clearTok();
     // If we're already inside the app, offer a one-tap reconnect (keeps you in place) instead of dumping you at sign-in.
     // Google's token lasts ~1h and Safari/iOS blocks the silent renewal, so this otherwise logs people out mid-use.
     if(sheetId&&$("appScreen")&&$("appScreen").classList.contains("on")){showReconnect();return;}
@@ -2064,34 +2099,52 @@ async function logRecur(b){
   finally{logRecur._busy=false;}
 }
 // ---- Receipt scanning (Gemini, key on-device only) ----
-var GKEY="nw_gemini_key",GMODEL="nw_gemini_model";
+var GKEY="nw_gemini_key",GMODEL="nw_gemini_model",GMODELS="nw_gemini_models";
 function lsGet(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
 function geminiFlash(ms){var out=[];(ms||[]).forEach(function(m){var n=(m.name||"").replace("models/","");var gen=m.supportedGenerationMethods||[];if(gen.indexOf("generateContent")<0)return;if(!/flash/i.test(n))return;if(/thinking|vision|tts|audio|live|image|embedding|aqa|learnlm/i.test(n))return;out.push(n);});return out;}
-function geminiPick(list){function sc(n){var s=0;if(/^gemini-flash-latest$/i.test(n))s+=1000;if(/^gemini-\d+(\.\d+)?-flash$/i.test(n))s+=500;if(/lite/i.test(n))s-=200;if(/preview|exp|-\d{3,}$/i.test(n))s-=100;var v=n.match(/gemini-(\d+(?:\.\d+)?)/);if(v)s+=parseFloat(v[1])*10;return s;}var b="",bs=-1e9;(list||[]).forEach(function(n){var s=sc(n);if(s>bs){bs=s;b=n;}});return b;}
-async function pickGeminiModel(key,force){
-  var cached=lsGet(GMODEL);if(cached&&!force)return cached;
+function geminiScore(n){var s=0;if(/^gemini-flash-latest$/i.test(n))s+=1000;if(/^gemini-\d+(\.\d+)?-flash$/i.test(n))s+=500;if(/lite/i.test(n))s-=200;if(/preview|exp|-\d{3,}$/i.test(n))s-=100;var v=n.match(/gemini-(\d+(?:\.\d+)?)/);if(v)s+=parseFloat(v[1])*10;return s;}
+function geminiPick(list){var b="",bs=-1e9;(list||[]).forEach(function(n){var s=geminiScore(n);if(s>bs){bs=s;b=n;}});return b;}
+function geminiRankList(list){return (list||[]).slice().sort(function(a,b){return geminiScore(b)-geminiScore(a);});}
+// The FULL ranked list of usable flash models (best first), cached. Having the whole list lets a scan fall back to a
+// different model when the top one is overloaded (503) — different models have independent load on Google's side.
+async function geminiModels(key,force){
+  if(!force){try{var c=JSON.parse(lsGet(GMODELS)||"null");if(c&&c.length)return c;}catch(e){}}
   var r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+encodeURIComponent(key));
   if(!r.ok)throw new Error("Could not reach Google ("+r.status+"). Check the key.");
-  var j=await r.json();var pick=geminiPick(geminiFlash(j.models||[]));
-  if(!pick)throw new Error("No usable Gemini model for this key.");
-  lsSet(GMODEL,pick);return pick;
+  var j=await r.json();var list=geminiRankList(geminiFlash(j.models||[]));
+  if(!list.length)throw new Error("No usable Gemini model for this key.");
+  try{lsSet(GMODELS,JSON.stringify(list));}catch(e){}lsSet(GMODEL,list[0]);
+  return list;
 }
+async function pickGeminiModel(key,force){var l=await geminiModels(key,force);return l[0];}
 // max/q default to a receipt-friendly size; statements pass a larger max + higher quality so dense rows stay legible to the model.
 function fileToScaledB64(file,max,q){return new Promise(function(res,rej){max=max||1100;q=q||0.72;var img=new Image();var url=URL.createObjectURL(file);img.onload=function(){try{var w=img.width,h=img.height,sc=Math.min(1,max/Math.max(w,h));var cw=Math.round(w*sc),ch=Math.round(h*sc);var cv=document.createElement("canvas");cv.width=cw;cv.height=ch;cv.getContext("2d").drawImage(img,0,0,cw,ch);var durl=cv.toDataURL("image/jpeg",q);URL.revokeObjectURL(url);res(durl.split(",")[1]);}catch(e){rej(e);}};img.onerror=function(){URL.revokeObjectURL(url);rej(new Error("Could not read that image. If it's a HEIC photo from iPhone, try a screenshot or a PDF instead."));};img.src=url;});}
 // One resilient call to Gemini for all scans: retries transient HTTP AND network failures (iOS Safari throws a bare
 // "Load failed" on a dropped/blocked fetch), then surfaces a clear, actionable message instead of the raw error.
 async function geminiScan(key,body,failMsg){
-  var model=await pickGeminiModel(key,false),resp,tries=0;
-  while(true){tries++;
+  var models=await geminiModels(key,false); // ranked flash models, best first
+  var mi=0,model=models[0],resp,netTries=0,refetched=false,pass=0;
+  var wait=function(ms){return new Promise(function(r){setTimeout(r,ms);});};
+  while(true){
     try{resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});}
-    catch(fe){if(tries<3){await new Promise(function(r){setTimeout(r,900*tries);});continue;}throw new Error("Couldn’t reach Google to scan — check your connection and try again. Tip: a clear screenshot usually works better (and uploads faster) than a large PDF.");}
-    if(resp.status===404&&tries===1){var m2=await pickGeminiModel(key,true);if(m2&&m2!==model){model=m2;continue;}}
-    if((resp.status===503||resp.status===429||resp.status===500)&&tries<4){await new Promise(function(r){setTimeout(r,1000*tries);});continue;}
-    break;
+    catch(fe){if(++netTries<3){await wait(900*netTries);continue;}throw new Error("Couldn’t reach Google to scan — check your connection and try again. Tip: a clear screenshot usually works better (and uploads faster) than a large PDF.");}
+    if(resp.ok)break;
+    if(resp.status===404&&!refetched){refetched=true;try{models=await geminiModels(key,true);mi=0;model=models[0];continue;}catch(e){}}
+    if(resp.status===503||resp.status===429||resp.status===500){
+      // this model is overloaded — hop to the next ranked model; when the list is exhausted, back off and sweep again (up to 3 passes)
+      if(mi<models.length-1){mi++;model=models[mi];continue;}
+      if(++pass<3){await wait(1200*pass);mi=0;model=models[0];continue;}
+    }
+    break; // ok, or a non-retryable error (bad key/request), or all fallbacks exhausted
   }
-  if(!resp.ok){var em="";try{em=(await resp.json()).error.message;}catch(e){}throw new Error("Scan failed ("+resp.status+"): "+(""+em).slice(0,140));}
+  if(!resp.ok){
+    var em="";try{em=(await resp.json()).error.message;}catch(e){}
+    if(resp.status===503||resp.status===429||resp.status===500)
+      throw new Error("Google’s scanner is busy right now — I tried every available model and all were overloaded. It’s temporary; give it a minute and tap Scan again.");
+    throw new Error("Scan failed ("+resp.status+"): "+(""+em).slice(0,140));
+  }
   var j=await resp.json(),txt="";try{txt=j.candidates[0].content.parts[0].text;}catch(e){}
   if(!txt)throw new Error(failMsg||"Could not read the file.");
   return txt;
@@ -2795,6 +2848,29 @@ async function renderBudgets(){
   Array.prototype.forEach.call(el.querySelectorAll(".budrm"),function(b){b.addEventListener("click",function(){var id=this.getAttribute("data-id"),n=this.getAttribute("data-n");askConfirm({title:"Remove &lsquo;"+n+"&rsquo;?",msg:"This takes it off your list here. The spreadsheet itself stays in your Google Drive — nothing is deleted.",ok:"Remove from list"}).then(function(ok){if(ok){budgetUntrack(id);renderBudgets();}});});});
   Array.prototype.forEach.call(el.querySelectorAll(".budrename"),function(b){b.addEventListener("click",function(){var id=this.getAttribute("data-id"),n=this.getAttribute("data-n");askText({title:"Rename budget",label:"Name",value:n}).then(function(v){if(v){budgetRename(id,v).then(function(){renderBudgets();if($("budPill"))$("budPill").textContent=v;budgetName=v;});}});});});
 }
+// Quick budget switcher — opened by tapping the budget name pill at the top (no trip to Settings).
+async function openBudgetSwitcher(){
+  var ov=$("budSwitchOv");if(!ov)return;
+  paintBudSwitch(null);           // instant, from the locally-tracked list
+  ov.style.display="flex";
+  try{var files=await discoverBudgets();if($("budSwitchOv").style.display!=="none")paintBudSwitch(files);}catch(e){} // refresh from Drive so a just-added/renamed budget shows
+}
+function paintBudSwitch(files){
+  var body=$("budSwitchBody");if(!body)return;
+  var hid=lsHidden(),byId={};
+  (files||[]).forEach(function(b){byId[b.id]=b;});
+  lsGetBudgets().forEach(function(b){if(!byId[b.id])byId[b.id]=b;});
+  if(sheetId&&!byId[sheetId])byId[sheetId]={id:sheetId,name:budgetName||"This budget"};
+  var list=Object.keys(byId).map(function(k){return byId[k];}).filter(function(b){return b.id===sheetId||hid.indexOf(b.id)<0;});
+  body.innerHTML=list.map(function(b){var cur=(b.id===sheetId);
+    return '<button type="button" class="budswrow'+(cur?' on':'')+'" data-id="'+esc(b.id)+'"><span class="bn">'+esc(b.name)+'</span>'+(cur?'<span class="bck">✓ current</span>':'')+'</button>';
+  }).join("")||'<div class="empty">Just this one so far.</div>';
+  Array.prototype.forEach.call(body.querySelectorAll(".budswrow"),function(el){el.addEventListener("click",function(){
+    var id=this.getAttribute("data-id");
+    if(id===sheetId){$("budSwitchOv").style.display="none";return;}
+    askConfirm({title:"Switch budget?",msg:"The app will reload into that budget.",ok:"Switch"}).then(function(ok){if(ok)budgetSwitch(id);});
+  });});
+}
 // Share a blank copy of THIS budget (categories & budgets kept, transactions/goals/history cleared) as a "make a copy" link.
 async function shareStarterCopy(){
   var msg=$("budShareMsg");msg.className="msg";msg.textContent="Making a starter copy…";
@@ -2829,7 +2905,7 @@ function renderSettings(){
   if($("payeeNew"))$("payeeNew").value="";renderPayees();
   renderBudgets();
 }
-function updateBudPill(){var p=$("budPill");if(!p)return;var h=lsHidden();var vis=lsGetBudgets().filter(function(b){return h.indexOf(b.id)<0;});var many=vis.length>1;p.style.display=many?"inline-block":"none";p.textContent=budgetName||"";}
+function updateBudPill(){var p=$("budPill");if(!p)return;p.style.display=budgetName?"inline-block":"none";p.textContent=budgetName||"";}
 async function keyTest(){
   var key=lsGet(GKEY).trim();var msg=$("keyMsg");msg.className="msg";
   if(!key){msg.textContent="Save a key first.";msg.className="msg bad";return;}
@@ -2915,7 +2991,7 @@ function topCats(){var cnt={};state.rows.forEach(function(r){var c=(""+((r&&r[4]
 function incomeThisMonth(){var y=curYear(),m=curMonth(),t=0;state.rows.forEach(function(r){if((""+((r&&r[4])||"")).trim().toLowerCase()==="deposit"&&Number(r[0])===y&&Number(r[1])===m)t+=Number(r[6])||0;});return t;}
 // The Category field is a tap-to-open picker (search + Frequent chips + All grid + bills grouped under each itemized category).
 function fillCatSelect(){updateCatBtn();} // called by renderAll — just refresh the button label to the current selection
-function setCategory(name){if($("fCategory"))$("fCategory").value=name||"";updateCatBtn();try{renderCatTbl();}catch(e){}}
+function setCategory(name){if($("fCategory"))$("fCategory").value=name||"";updateCatBtn();try{renderCatTbl();}catch(e){}try{renderRecent();}catch(e){}}
 function updateCatBtn(){var btn=$("fCatBtn");if(!btn)return;var v=(($("fCategory")&&$("fCategory").value)||"").trim();if(v){btn.textContent=v;btn.classList.remove("placeholder");}else{btn.textContent="Choose a category…";btn.classList.add("placeholder");}}
 function openCatPicker(){if($("catPickSearch"))$("catPickSearch").value="";renderCatPicker("");openOv("catPickOv");setTimeout(function(){try{$("catPickSearch").focus();}catch(e){}},80);}
 function renderCatPicker(q){
@@ -3134,10 +3210,29 @@ function openCatTrend(name){
   h+='<div class="crem" style="margin-top:10px">Peak was <b>'+MONTHS[series[peakI].m-1]+' '+series[peakI].y+'</b> ('+money(pv)+').</div>';
   $("monOvBody").innerHTML=h;openOv("monOv");
 }
+// The bottom list mirrors what you're logging: on Expense it filters to the chosen category, on Deposit to the chosen source
+// (all-time history, not just this month). With nothing chosen it shows everything recent, as before.
 function renderRecent(){
-  var list=$("elist"),rows=state.rows;if(!rows.length){list.innerHTML='<li class="empty">No entries yet. Add your first one below.</li>';return;}
-  var out=[];for(var i=rows.length-1;i>=0&&out.length<25;i--){var r=rows[i];var _re4=(""+((r&&r[4])||"")).trim().toLowerCase();if(isGoalName(_re4)||(_re4!=="deposit"&&isGoalName((r&&r[5])||"")))continue;out.push('<li class="eitem" data-idx="'+i+'"><div class="l"><div class="co">'+esc((r&&r[5])||(r&&r[3])||"(no company)")+'</div><div class="meta">'+esc(shortDate(r&&r[2]))+((r&&r[4])?(" · "+esc(r[4])):"")+reimbTag(r)+'</div></div><div class="amt">'+money(r&&r[6])+'</div></li>');}
-  list.innerHTML=out.join("")||'<li class="empty">No entries yet. Add your first one below.</li>';
+  var list=$("elist"),rows=state.rows,hdr=$("recentHdr");
+  var depMode=$("depFields")&&$("depFields").style.display!=="none";
+  var fCat=depMode?"":((($("fCategory")&&$("fCategory").value)||"").trim());if(fCat==="__budget__")fCat="";
+  var fSrc=depMode?((($("dSource")&&$("dSource").value)||"").trim()):"";if(fSrc==="__budget__")fSrc="";
+  if(hdr)hdr.textContent=(!depMode&&fCat)?("Recent · "+fCat):(depMode&&fSrc)?("Recent · "+fSrc):"Recent entries";
+  if(!rows.length){list.innerHTML='<li class="empty">No entries yet. Add your first one below.</li>';return;}
+  var out=[];
+  for(var i=rows.length-1;i>=0&&out.length<25;i--){
+    var r=rows[i];var _re4=(""+((r&&r[4])||"")).trim().toLowerCase();
+    if(isGoalName(_re4)||(_re4!=="deposit"&&isGoalName((r&&r[5])||"")))continue;
+    if(depMode){
+      if(_re4!=="deposit")continue;
+      if(fSrc&&(""+((r&&r[3])||"")).trim().toLowerCase()!==fSrc.toLowerCase())continue;
+    }else if(fCat){
+      if(_re4!==fCat.toLowerCase())continue;
+    }
+    out.push('<li class="eitem" data-idx="'+i+'"><div class="l"><div class="co">'+esc((r&&r[5])||(r&&r[3])||"(no company)")+'</div><div class="meta">'+esc(shortDate(r&&r[2]))+((r&&r[4])?(" · "+esc(r[4])):"")+reimbTag(r)+'</div></div><div class="amt">'+money(r&&r[6])+'</div></li>');
+  }
+  var em=(!depMode&&fCat)?('No entries in '+esc(fCat)+' yet.'):(depMode&&fSrc)?('No deposits from '+esc(fSrc)+' yet.'):(depMode?'No deposits yet.':'No entries yet. Add your first one below.');
+  list.innerHTML=out.join("")||'<li class="empty">'+em+'</li>';
   Array.prototype.forEach.call(list.querySelectorAll(".eitem"),function(li){li.addEventListener("click",function(){openEdit(Number(this.getAttribute("data-idx")));});});
 }
 function fillMonthSel(id){var s=$(id);if(!s)return;var h="";for(var i=0;i<12;i++){h+='<option value="'+(i+1)+'"'+((i+1)===curMonth()?" selected":"")+'>'+MONTHS[i]+'</option>';}s.innerHTML=h;}
@@ -3979,7 +4074,7 @@ function switchView(v){
   if(v!=="budget"&&budYear!==null){budYear=null;loadAll().then(function(){renderAll();});}
   Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});["month","add","budget","goals","worth","settings"].forEach(function(x){$("view-"+x).classList.toggle("on",x===v);});try{document.body.setAttribute("data-view",v);}catch(e){}if(v==="settings")renderSettings();try{var _w=document.querySelector(".wrap");if(_w)_w.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function applyCreditUI(){var on=$("fCredit")&&$("fCredit").checked;if($("fCreditHint"))$("fCreditHint").style.display=on?"block":"none";if($("addBtn"))$("addBtn").textContent=on?"Add credit":"Add expense";}
-function setMode(m){Array.prototype.forEach.call($("addMode").querySelectorAll("button"),function(b){b.classList.toggle("on",b.getAttribute("data-m")===m);});$("expFields").style.display=(m==="deposit")?"none":"block";$("depFields").style.display=(m==="deposit")?"block":"none";$("addMsg").textContent="";$("addMsg").className="msg";}
+function setMode(m){Array.prototype.forEach.call($("addMode").querySelectorAll("button"),function(b){b.classList.toggle("on",b.getAttribute("data-m")===m);});$("expFields").style.display=(m==="deposit")?"none":"block";$("depFields").style.display=(m==="deposit")?"block":"none";$("addMsg").textContent="";$("addMsg").className="msg";try{renderRecent();}catch(e){}}
 
 async function enterApp(){
   show("splash");$("splashMsg").textContent="Loading…";
@@ -4007,10 +4102,19 @@ async function confirmAdoption(){
 }
 function wire(){
   if($("bldVer"))$("bldVer").textContent=BUILD; // footer version from the single source of truth
+  if($("settVer"))$("settVer").textContent=BUILD;
+  if($("updCheckBtn"))$("updCheckBtn").addEventListener("click",manualUpdateCheck);
   setTimeout(checkForUpdate,6000); // check for a newer deploy shortly after load
   // Proactively renew the ~1-hour Google token while the app is open (silently, where the browser allows it — avoids a
   // mid-session 401 on Android/desktop; on Safari/iOS the silent renew is blocked, so the Reconnect bar handles it instead).
   try{setInterval(function(){if(sheetId&&document.visibilityState==="visible"&&$("appScreen")&&$("appScreen").classList.contains("on"))getToken(false).catch(function(){});},45*60*1000);}catch(e){}
+  // When you switch back INTO the app, top up the token if it's expired or expiring soon — gets ahead of a mid-use 401.
+  try{document.addEventListener("visibilitychange",function(){try{
+    if(document.visibilityState!=="visible")return;
+    if(!(sheetId&&$("appScreen")&&$("appScreen").classList.contains("on")))return;
+    var o=null;try{o=JSON.parse(lsGet("nw_tok")||"null");}catch(_){}
+    if(!o||!o.e||(o.e-(new Date()).getTime())<10*60*1000)getToken(false).catch(function(){});
+  }catch(e){}});}catch(e){}
   document.addEventListener("input",function(e){var t=e.target;if(t&&t.classList&&t.classList.contains("money"))sizeMoney(t);},true);
   // On a shared budget, other people's changes only reach us on load — re-sync when the tab regains focus (and never while an editor is open).
   var _lastRefresh=0;
@@ -4040,8 +4144,8 @@ function wire(){
   $("recurOpen").addEventListener("click",function(ev){ev.preventDefault();openOv("recurOv",renderRecur);});
   $("scanBtn").addEventListener("click",function(){if(!lsGet(GKEY).trim()){$("addMsg").textContent="Add a free Gemini key in Settings first.";$("addMsg").className="msg bad";switchView("settings");return;}$("receiptFile").click();});
   $("receiptFile").addEventListener("change",onReceiptFile);
-  $("keySave").addEventListener("click",function(){var k=$("geminiKey").value.trim();var msg=$("keyMsg");msg.className="msg";if(!k){msg.textContent="Paste a key first.";msg.className="msg bad";return;}lsSet(GKEY,k);lsDel(GMODEL);state.meta.gkey=k;msg.textContent="Saved ✓";renderSettings();try{writeMeta();}catch(e){}});
-  $("keyClear").addEventListener("click",function(){lsDel(GKEY);lsDel(GMODEL);state.meta.gkey="";$("keyMsg").textContent="Key cleared.";$("keyMsg").className="msg";renderSettings();try{writeMeta();}catch(e){}});
+  $("keySave").addEventListener("click",function(){var k=$("geminiKey").value.trim();var msg=$("keyMsg");msg.className="msg";if(!k){msg.textContent="Paste a key first.";msg.className="msg bad";return;}lsSet(GKEY,k);lsDel(GMODEL);lsDel(GMODELS);state.meta.gkey=k;msg.textContent="Saved ✓";renderSettings();try{writeMeta();}catch(e){}});
+  $("keyClear").addEventListener("click",function(){lsDel(GKEY);lsDel(GMODEL);lsDel(GMODELS);state.meta.gkey="";$("keyMsg").textContent="Key cleared.";$("keyMsg").className="msg";renderSettings();try{writeMeta();}catch(e){}});
   $("keyTest").addEventListener("click",keyTest);
   Array.prototype.forEach.call(document.querySelectorAll("[data-rem]"),function(cb){cb.addEventListener("change",function(){setRemPref(this.getAttribute("data-rem"),this.checked);renderReminders();});});
   if($("prefPayee"))$("prefPayee").addEventListener("change",function(){setFormPref("payee",this.checked);applyFormPrefs();});
@@ -4095,7 +4199,10 @@ function wire(){
   $("budJoinBtn").addEventListener("click",function(){var url=joinLink();var msg=$("budShareMsg");msg.className="msg";try{navigator.clipboard.writeText(url);msg.innerHTML="App invite link copied ✓ &nbsp; <span style=\"color:var(--ink2);word-break:break-all\">"+esc(url)+"</span>";}catch(e){msg.innerHTML="Send them this link: <span style=\"word-break:break-all\">"+esc(url)+"</span>";}});
   $("budShareBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";budgetShareLink(sheetId).then(function(url){try{navigator.clipboard.writeText(url);$("budShareMsg").textContent="Raw spreadsheet link (Editor) copied ✓ — this opens the sheet itself, not the app.";}catch(e){$("budShareMsg").textContent=url;}$("budShareMsg").className="msg";}).catch(function(e){$("budShareMsg").textContent="Could not create link: "+(e.message||e);$("budShareMsg").className="msg bad";}).then(function(){b.disabled=false;b.textContent="Get the raw spreadsheet link";});});
   if($("starterCopyBtn"))$("starterCopyBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";shareStarterCopy().then(function(){b.disabled=false;b.textContent="Share a blank starter copy (my categories, no data)";});});
-  if($("budPill"))$("budPill").addEventListener("click",function(){switchView("settings");});
+  if($("budPill"))$("budPill").addEventListener("click",openBudgetSwitcher);
+  if($("budSwitchDone"))$("budSwitchDone").addEventListener("click",function(){$("budSwitchOv").style.display="none";});
+  if($("budSwitchOv"))$("budSwitchOv").addEventListener("click",function(e){if(e.target===this)this.style.display="none";});
+  if($("budSwitchOpen"))$("budSwitchOpen").addEventListener("click",function(){$("budSwitchOv").style.display="none";openBudgetPicker();});
   $("budOpenBtn").addEventListener("click",openBudgetPicker);
   $("csvBtn").addEventListener("click",exportCsv);$("tidyBtn").addEventListener("click",tidyCompanies);
   $("payeeAddBtn").addEventListener("click",function(){var n=$("payeeNew").value.trim();if(n){addPayee(n);$("payeeNew").value="";}});
@@ -4141,7 +4248,7 @@ function wire(){
   if($("catPickSearch"))$("catPickSearch").addEventListener("input",function(){renderCatPicker(this.value);});
   if($("catPickDone"))$("catPickDone").addEventListener("click",function(){closeOv("catPickOv");});
   if($("catPickOv"))$("catPickOv").addEventListener("click",function(ev){if(ev.target===this)closeOv("catPickOv");});
-  $("dSource").addEventListener("change",function(){if(this.value==="__budget__"){this.selectedIndex=0;switchView("budget");return;}renderDepTbl();});
+  $("dSource").addEventListener("change",function(){if(this.value==="__budget__"){this.selectedIndex=0;switchView("budget");return;}renderDepTbl();try{renderRecent();}catch(e){}});
   $("fAmount").addEventListener("input",debounce(renderCatTbl,160));
   $("fDate").addEventListener("change",renderCatTbl);
   $("fCompany").addEventListener("input",debounce(function(){var v=($("fCompany").value||"").trim().toLowerCase();var cat=companyMap()[v];if(cat&&!$("fCategory").value&&state.cats.some(function(c){return c.name.toLowerCase()===cat.toLowerCase();})){setCategory(cat);}},200));
@@ -4151,8 +4258,8 @@ function wire(){
     // Revoke + fully clear so a different Google account on this device can't inherit the previous account's budget list/ids.
     try{if(window.google&&google.accounts&&google.accounts.oauth2&&accessToken)google.accounts.oauth2.revoke(accessToken,function(){});}catch(e){}
     try{if(window.google&&google.accounts&&google.accounts.id&&google.accounts.id.disableAutoSelect)google.accounts.id.disableAutoSelect();}catch(e){}
-    accessToken=null;sheetId=null;budgetName="";
-    try{["nw_active","nw_sheet_id2","nw_budgets","nw_hidden","nw_folder_id"].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
+    accessToken=null;sheetId=null;budgetName="";clearTok();
+    try{["nw_active","nw_sheet_id2","nw_budgets","nw_hidden","nw_folder_id","nw_tok"].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
     try{state.rows=[];state.cats=[];state.cons=[];state.goals=[];state.meta={cats:{},cons:{},goals:[],startCash:0,startYM:0,payees:["Me"],nwUpdated:""};}catch(e){}
     var el=$("signinErr");if(el)el.textContent="";
     show("signinScreen");
@@ -4164,7 +4271,15 @@ try{if(/[?&]reset\b/i.test(location.search)){localStorage.removeItem("nw_sheet_i
 (function poll(){
   if(window.google&&google.accounts&&google.accounts.oauth2){
     tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:_tokCb,error_callback:_tokErr});
-    wire();withTimeout(getToken(false),2500).then(enterApp).catch(function(){show("signinScreen");});return;
+    wire();
+    (async function(){
+      // If a still-valid token is on the device, go straight in (no fragile silent renewal), then quietly refresh it in the background.
+      var st=storedToken();
+      if(st){accessToken=st;try{await enterApp();getToken(false).catch(function(){});return;}catch(e){accessToken=null;clearTok();}}
+      try{await withTimeout(getToken(false),2500);await enterApp();}
+      catch(e){show("signinScreen");}
+    })();
+    return;
   }
   if((poll._n=(poll._n||0)+1)>80){show("signinScreen");var e=$("signinErr");if(e)e.textContent="Couldn't load Google sign-in — check your connection and reload.";return;}
   setTimeout(poll,120);
