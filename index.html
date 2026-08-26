@@ -116,20 +116,6 @@
     <div class="cta-note">Free · nothing to install · works right in your browser</div>
   </div>
 
-  <div class="card" id="installCard" style="display:none">
-    <p class="eyebrow">Get the app icon</p>
-    <h2 class="disp">Keep NestWorth one tap away.</h2>
-    <p style="margin:0 0 14px;color:var(--ink-2)">Add it to your home screen for the NestWorth icon — this works even if you've already created your budget.</p>
-    <div id="iosHow" style="display:none">
-      <p style="margin:0;color:var(--ink-2)">On iPhone in <b>Safari</b>: tap the <b>Share</b> button
-        <svg viewBox="0 0 24 24" width="17" height="17" style="vertical-align:-3px" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
-        at the bottom of the screen, then <b>Add to Home Screen</b> ▸ <b>Add</b>.</p>
-    </div>
-    <button id="installBtn" class="cta" style="display:none;width:100%;justify-content:center">Add to Home Screen</button>
-    <div id="genHow" style="display:none">
-      <p style="margin:0;color:var(--ink-2)">In your browser menu, choose <b>Add to Home screen</b> (Chrome menu ⋮) or <b>Install</b>.</p>
-    </div>
-  </div>
   <div class="card">
     <p class="eyebrow">What it is</p>
     <h2 class="disp">A simple money tracker that lives on your phone.</h2>
@@ -169,47 +155,15 @@
   var standalone = (window.navigator.standalone === true) ||
     (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
 
-  // Launched from the home-screen icon -> go straight into the app.
+  // Safety net: if this landing page itself was added to the Home Screen, bounce straight into the app.
+  // (We deliberately DON'T prompt "Add to Home Screen" here — the app does that on its own sign-in screen, so the
+  //  installed icon opens NestWorth directly instead of this page.)
   if (standalone) {
     var sp = document.getElementById("splash");
     if (sp) sp.style.display = "flex";
     setTimeout(function(){ window.location.replace(APP); }, 90);
     return;
   }
-
-  // Otherwise (viewed in a browser): show the "add to home screen" card.
-  var card = document.getElementById("installCard");
-  if (card) card.style.display = "block";
-
-  var ua = navigator.userAgent || "";
-  var isIOS = /iPhone|iPad|iPod/i.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-  if (isIOS) {
-    var ios = document.getElementById("iosHow");
-    if (ios) ios.style.display = "block";
-  } else {
-    var gen = document.getElementById("genHow");
-    if (gen) gen.style.display = "block";
-  }
-
-  // Android/desktop Chrome: offer a real one-tap install button.
-  var deferred = null;
-  window.addEventListener("beforeinstallprompt", function(ev){
-    ev.preventDefault();
-    deferred = ev;
-    var b = document.getElementById("installBtn");
-    var gen = document.getElementById("genHow");
-    if (gen) gen.style.display = "none";
-    if (b) b.style.display = "inline-flex";
-  });
-  var btn = document.getElementById("installBtn");
-  if (btn) btn.addEventListener("click", function(){
-    if (deferred) { deferred.prompt(); deferred = null; btn.style.display = "none"; }
-  });
-  window.addEventListener("appinstalled", function(){
-    if (card) card.style.display = "none";
-  });
 })();
 </script>
 </body>
