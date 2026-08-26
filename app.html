@@ -27,7 +27,7 @@ try{
   @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55);} }
   :root[data-theme="dark"]{ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55); }
   *{box-sizing:border-box} html{-webkit-text-size-adjust:100%}
-  html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none} /* body never scrolls; the app is a fixed full-height flex column and only the inner content scrolls, so the tab bar can't drift up on short pages or jostle on iOS */
+  html,body{height:100vh;height:100dvh;margin:0;overflow:hidden;overscroll-behavior:none} /* dynamic-viewport height tracks the VISIBLE area (not the taller layout viewport), so the tab bar sits at the real bottom; body never scrolls — only the inner content does — so this stays put on iOS */
   :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
   .rtag{display:inline-block;font-size:10px;font-weight:600;color:var(--ink2);background:var(--soft);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   .installtip{margin-top:22px;max-width:340px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left}
@@ -48,7 +48,7 @@ try{
   @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) body[data-view="add"]{background:#111A13} :root:not([data-theme="light"]) body[data-view="month"]{background:#0F1917} :root:not([data-theme="light"]) body[data-view="budget"]{background:#10161F} :root:not([data-theme="light"]) body[data-view="goals"]{background:#191710} :root:not([data-theme="light"]) body[data-view="worth"]{background:#0E1913} :root:not([data-theme="light"]) body[data-view="settings"]{background:#131712} }
   :root[data-theme="dark"] body[data-view="add"]{background:#111A13} :root[data-theme="dark"] body[data-view="month"]{background:#0F1917} :root[data-theme="dark"] body[data-view="budget"]{background:#10161F} :root[data-theme="dark"] body[data-view="goals"]{background:#191710} :root[data-theme="dark"] body[data-view="worth"]{background:#0E1913} :root[data-theme="dark"] body[data-view="settings"]{background:#131712}
   .disp{font-family:"Fraunces",Georgia,serif}
-  .screen{display:none} .screen.on{display:flex;flex-direction:column;position:fixed;inset:0}
+  .screen{display:none} .screen.on{display:flex;flex-direction:column;height:100%}
   .wrap{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;width:100%;max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px 24px}
   .center{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(28px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom))}
   .logo{width:96px;height:96px;border-radius:24px;box-shadow:var(--shadow);margin-bottom:18px}
@@ -535,7 +535,10 @@ try{
     </div>
     <div class="card">
       <p class="eyebrow">Data</p>
-      <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%">Remove all goals</button>
+      <button type="button" class="gbtn" id="trimLedgerBtn" style="width:100%">Trim empty ledger rows</button>
+      <div class="hintline" style="text-align:left;margin-top:2px">Tidies your transactions to the top and deletes the leftover empty rows in the spreadsheet, reclaiming space so imports and new tabs don&rsquo;t hit Google&rsquo;s size limit. Safe — no transactions are removed.</div>
+      <div class="msg" id="trimMsg"></div>
+      <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%;margin-top:10px">Remove all goals</button>
       <button type="button" class="gbtn" id="wipeDataBtn" style="width:100%;margin-top:8px;color:var(--bad)">Erase all transactions &amp; history</button>
       <div class="hintline" style="text-align:left">&lsquo;Erase&rsquo; clears your logged transactions, goals, and net-worth history but keeps your categories, budgets, and income set up. This can&rsquo;t be undone.</div>
       <div class="msg" id="wipeMsg"></div>
@@ -893,7 +896,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.36"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.39"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -2716,7 +2719,7 @@ async function ensureImportTab(){
   var meta=await api(ssBase()+"?fields=sheets.properties(title,sheetId)");
   var gid=null;(meta.sheets||[]).forEach(function(s){if(s.properties.title===IMPORT_TAB)gid=s.properties.sheetId;});
   if(gid!==null)return gid;
-  var res=await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{addSheet:{properties:{title:IMPORT_TAB,gridProperties:{rowCount:100000,columnCount:7,frozenRowCount:2}}}}]})});
+  var res=await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{addSheet:{properties:{title:IMPORT_TAB,gridProperties:{rowCount:2000,columnCount:7,frozenRowCount:2}}}}]})});
   var newGid=null;try{newGid=res.replies[0].addSheet.properties.sheetId;}catch(e){}
   await vBatchUpdate([
     {range:"'"+IMPORT_TAB+"'!A1",values:[["Enter past transactions below row 2. Required: Date, Category, Amount. Optional: Company, Description, Payee, Reimbursed. Category should match one of your budget categories. When done, go back to NestWorth and tap “Read them in.” These rows are cleared after importing. Example:  2026-08-01 | Groceries | 82.50 | Publix"]]},
@@ -3945,6 +3948,36 @@ async function compactLedger(){
   }
   await loadAll();renderAll();
 }
+// Compact transactions to the top AND physically delete the leftover empty grid rows, so the spreadsheet stops eating into
+// Google's 10M-cell limit (the old stranded-rows issue padded the ledger out to ~1,048,576 rows). No transactions are lost.
+async function trimLedger(){
+  var rows=state.rows||[],real=[];
+  for(var i=0;i<rows.length;i++){var r=rows[i];var y=Number(r&&r[0]);if(y>=1900&&y<=9999)real.push(r.slice(0,9));}
+  await vBatchClear([LEDGER+"!A2:I"]);
+  for(var s=0;s<real.length;s+=500){var chunk=real.slice(s,s+500);var data=chunk.map(function(row,j){return {range:LEDGER+"!A"+(2+s+j),values:[row]};});await vBatchUpdate(data);}
+  var gid=await ledgerGid(),before=0,after=0;
+  var m=await api(ssBase()+"?fields=sheets(properties(sheetId,gridProperties(rowCount)))");
+  (m.sheets||[]).forEach(function(sh){if(sh.properties.sheetId===gid)before=(sh.properties.gridProperties&&sh.properties.gridProperties.rowCount)||0;});
+  var keep=Math.max(2000, real.length+1001); // header + all transactions + 1000 spare rows for future logging
+  after=before;
+  if(gid!=null && before>keep){
+    await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:gid,dimension:"ROWS",startIndex:keep,endIndex:before}}}]})});
+    after=keep;
+  }
+  await loadAll();renderAll();
+  return {before:before, after:after, rows:real.length};
+}
+async function runTrimLedger(){
+  var btn=$("trimLedgerBtn"),msg=$("trimMsg");
+  if(!await askConfirm({title:"Trim empty rows?",msg:"This tidies your transactions to the top of the sheet and deletes the empty rows below them. Your transactions aren’t touched.",ok:"Trim"}))return;
+  if(btn){btn.disabled=true;btn.textContent="Trimming…";}if(msg){msg.textContent="Working… this can take a moment.";msg.className="msg";}
+  try{
+    var r=await trimLedger();
+    var freed=Math.max(0,r.before-r.after);
+    if(msg){msg.textContent="Done ✓ — kept "+r.rows+" transaction"+(r.rows===1?"":"s")+(freed>0?(", freed "+freed.toLocaleString()+" empty rows."):" (already trimmed).");msg.className="msg";}
+  }catch(e){if(msg){msg.textContent="Couldn’t finish trimming: "+((e.message||e)+"").slice(0,80)+". Your transactions are safe.";msg.className="msg bad";}}
+  if(btn){btn.disabled=false;btn.textContent="Trim empty ledger rows";}
+}
 
 /* actions */
 async function addEntry(){
@@ -4275,6 +4308,7 @@ function wire(){
   if($("startYr"))$("startYr").addEventListener("change",setStartYM);
   if($("wipeGoalsBtn"))$("wipeGoalsBtn").addEventListener("click",wipeGoals);
   if($("wipeDataBtn"))$("wipeDataBtn").addEventListener("click",wipeData);
+  if($("trimLedgerBtn"))$("trimLedgerBtn").addEventListener("click",runTrimLedger);
   applyFormPrefs();
   $("copyLink").addEventListener("click",function(){var url=($("openSheet")&&$("openSheet").href)||"";if(!url)return;try{navigator.clipboard.writeText(url);this.textContent="Copied ✓";}catch(e){this.textContent="Press & hold the ‘open ▸’ link to copy";}var b=this;setTimeout(function(){b.textContent="Copy the sheet link";},1800);});
   $("signout2").addEventListener("click",function(){if($("signout"))$("signout").click();});
