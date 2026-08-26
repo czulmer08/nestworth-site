@@ -559,7 +559,7 @@ try{
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
-  <div class="foot">NestWorth - Build 2026.08.26.12 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
+  <div class="foot">NestWorth - Build 2026.08.26.13 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -2466,13 +2466,15 @@ function impPullOldSheet(){_impFromTab=false;
     try{
       var g=await api(ssBaseFor(d.id)+"/values/"+encodeURIComponent("'"+LEDGER+"'!A2:I")+"?valueRenderOption=UNFORMATTED_VALUE");
       var rows=g.values||[],txns=[];
-      rows.forEach(function(r){var cat=(""+((r&&r[4])||"")).trim(),cl=cat.toLowerCase(),comp=(""+((r&&r[5])||"")).trim();if(!cat||cl==="deposit")return;
+      rows.forEach(function(r){var cat=(""+((r&&r[4])||"")).trim(),cl=cat.toLowerCase(),comp=(""+((r&&r[5])||"")).trim();if(!cat)return;
+        var raw=Number(r[6])||0;var amt=Math.abs(raw);var nd=serialToISO(r[2]);if(!amt||!nd)return;
+        // Bring income in too: a deposit row (its source is in the Payee column) so the wizard can suggest income sources.
+        if(cl==="deposit"){var src=(""+((r&&r[3])||"")).trim();txns.push({date:nd,isDep:true,category:"Deposit",payee:src||"Income",amount:amt,company:"",desc:(""+((r&&r[7])||"")).trim()});return;}
         // Skip goal contributions/withdrawals (they aren't spending) — a goal name can sit in col E OR col F.
         if(isGoalName(cat)||isGoalName(comp))return;
-        var raw=Number(r[6])||0;var amt=Math.abs(raw);var nd=serialToISO(r[2]);if(!amt||!nd)return;
         // Preserve sign so a refund stays a refund (negative) rather than becoming a positive expense.
         txns.push({date:nd,category:impCatMatch(cat),amount:raw<0?-amt:amt,company:comp,desc:(""+((r&&r[7])||"")).trim()});});
-      if(!txns.length){msg.textContent="No expenses found in that sheet's Account Ledger tab. If your data is in a different layout, use “Paste transactions” instead.";msg.className="msg bad";return;}
+      if(!txns.length){msg.textContent="No expenses or income found in that sheet's Account Ledger tab. If your data is in a different layout, use “Paste transactions” instead.";msg.className="msg bad";return;}
       IMPTX=txns;msg.textContent="";renderImpReview();impShow("review");
     }catch(e){var em=(""+(e.message||e));var noTab=/parse range|not found|Unable/i.test(em);msg.textContent=noTab?"That spreadsheet isn't in NestWorth's format (no “Account Ledger” tab). For data in another layout, use “Paste transactions” instead.":("Couldn't read that spreadsheet: "+em.slice(0,120));msg.className="msg bad";}
   }});
@@ -2492,7 +2494,7 @@ function impMarkDuplicates(){
   IMPTX.forEach(function(t){t._dup=!!existing[(t.date||"")+"|"+r2(t.amount||0)];});
 }
 function impCatGroups(){
-  var g={};IMPTX.forEach(function(t){var raw=(t.category||"").trim(),k=raw.toLowerCase();if(!g[k])g[k]={raw:raw,n:0,amt:0};g[k].n++;g[k].amt+=Math.abs(t.amount||0);});
+  var g={};IMPTX.forEach(function(t){if(t.isDep)return;var raw=(t.category||"").trim(),k=raw.toLowerCase();if(!g[k])g[k]={raw:raw,n:0,amt:0};g[k].n++;g[k].amt+=Math.abs(t.amount||0);});
   return Object.keys(g).sort(function(a,b){return g[b].n-g[a].n;}).map(function(k){return g[k];});
 }
 function renderImpReview(){
@@ -2500,7 +2502,9 @@ function renderImpReview(){
   impMarkDuplicates();
   var dupN=IMPTX.filter(function(t){return t._dup;}).length;
   var willImport=IMPTX.filter(function(t){return !(_impSkipDup&&t._dup);}).length;
-  $("impRevCount").innerHTML="<b>"+willImport+"</b> expense"+(willImport===1?"":"s")+" ready to import"+(IMPTX.length>50?" · showing the first 50 below — the rest import with the categories you set above.":". Fix a category or tap ✕ to skip a row.");
+  var incN=IMPTX.filter(function(t){return t.isDep&&!(_impSkipDup&&t._dup);}).length;
+  var expN=willImport-incN;
+  $("impRevCount").innerHTML="<b>"+expN+"</b> expense"+(expN===1?"":"s")+(incN?(" and <b>"+incN+"</b> income entr"+(incN===1?"y":"ies")):"")+" ready to import"+(IMPTX.length>50?" · showing the first 50 below — the rest import with the categories you set above.":". Fix a category or tap ✕ to skip a row.");
   // Duplicate banner
   if(dupN>0){$("impRevDup").innerHTML='<div class="improw" style="border-color:var(--gold)"><div class="improw-top"><span class="improw-m">⚠️ '+dupN+' row'+(dupN===1?"":"s")+' already in your ledger</span><label class="tog" style="transform:scale(.85)"><input type="checkbox" id="impSkipDup"'+(_impSkipDup?" checked":"")+'><span class="tog-t"></span></label></div><div class="improw-sub">Same date + amount as existing entries (e.g. re-imported or pulled from two sources). Skip them?</div></div>';var sd=$("impSkipDup");if(sd)sd.addEventListener("change",function(){_impSkipDup=this.checked;renderImpReview();});}
   else $("impRevDup").innerHTML="";
@@ -2521,6 +2525,9 @@ function renderImpReview(){
   // Per-row list (first 50) for fine edits
   var show=IMPTX.slice(0,50);
   $("impRevList").innerHTML=show.map(function(t,i){
+    if(t.isDep){
+      return '<div class="improw"'+((_impSkipDup&&t._dup)?' style="opacity:.5"':'')+'><div class="improw-top"><span class="improw-m">'+esc(t.payee||"Income")+' <span class="rtag" style="background:var(--soft);color:var(--green)">income</span>'+(t._dup?' <span class="rtag">dup</span>':'')+'</span><span class="improw-a">'+money(t.amount)+'</span><button type="button" class="improw-x" data-i="'+i+'">✕</button></div><div class="improw-sub">'+esc(shortDate(t.date))+' · deposit</div></div>';
+    }
     var inList=cats.some(function(c){return c.toLowerCase()===(t.category||"").toLowerCase();});
     var opts='<option value="">(no category)</option>';
     if(t.category&&!inList)opts+='<option selected>'+esc(t.category)+'</option>';
@@ -2529,7 +2536,7 @@ function renderImpReview(){
   }).join("");
   Array.prototype.forEach.call($("impRevList").querySelectorAll(".improw-cat"),function(s){s.addEventListener("change",function(){var i=+this.getAttribute("data-i");if(IMPTX[i])IMPTX[i].category=this.value;});});
   Array.prototype.forEach.call($("impRevList").querySelectorAll(".improw-x"),function(x){x.addEventListener("click",function(){var i=+this.getAttribute("data-i");if(i>=0)IMPTX.splice(i,1);renderImpReview();});});
-  var go=$("impRevGo");if(go)go.textContent="Add "+willImport+" expense"+(willImport===1?"":"s");
+  var go=$("impRevGo");if(go)go.textContent="Add "+willImport+(incN?" entr"+(willImport===1?"y":"ies"):(" expense"+(willImport===1?"":"s")));
 }
 async function impDoImport(){
   var rows=IMPTX.filter(Boolean).filter(function(t){return t.amount&&Math.abs(t.amount)>0.0001&&t.date&&!(_impSkipDup&&t._dup);});
@@ -2550,11 +2557,13 @@ async function impDoImport(){
     if(_impFromTab){try{await vBatchClear(["'"+IMPORT_TAB+"'!A3:G2000"]);}catch(e){}_impFromTab=false;}
     closeOv("impOv");await loadAll();renderAll();
     var noBudget=!state.cats.length;
-    var sug=suggestFromSpending();
-    if(noBudget&&sug.length&&await askConfirm({title:"Build a budget from this?",msg:"Imported "+rows.length+" expense"+(rows.length===1?"":"s")+". Want NestWorth to suggest a monthly budget from what you've been spending?",ok:"Suggest a budget",cancel:"Not now"})){
+    var sug=suggestFromSpending(),sugI=suggestIncomeFromSpending();
+    var eN=rows.filter(function(t){return !t.isDep;}).length,iN=rows.length-eN;
+    var impWord=iN?(rows.length+" entr"+(rows.length===1?"y":"ies")):(eN+" expense"+(eN===1?"":"s"));
+    if(noBudget&&(sug.length||sugI.length)&&await askConfirm({title:"Build a budget from this?",msg:"Imported "+impWord+". Want NestWorth to suggest a monthly budget"+(sugI.length?" and income":"")+" from what you've logged?",ok:"Suggest a budget",cancel:"Not now"})){
       openWizard(false);wizApplySuggestions();
     } else {
-      var m2=$("addMsg");if(m2){m2.textContent="Imported "+rows.length+" expense"+(rows.length===1?"":"s")+(skipped>0?(" ✓ · skipped "+skipped+" duplicate"+(skipped===1?"":"s")):" ✓");m2.className="msg";setTimeout(function(){if(m2.textContent.indexOf("Imported")===0)m2.textContent="";},4000);}
+      var m2=$("addMsg");if(m2){m2.textContent="Imported "+impWord+(skipped>0?(" ✓ · skipped "+skipped+" duplicate"+(skipped===1?"":"s")):" ✓");m2.className="msg";setTimeout(function(){if(m2.textContent.indexOf("Imported")===0)m2.textContent="";},4000);}
     }
   }catch(e){
     // Remove rows already written so tapping again adds only the remainder instead of duplicating the committed batches.
