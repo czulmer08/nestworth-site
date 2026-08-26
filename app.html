@@ -307,6 +307,10 @@ try{
   #updBar button{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px}
   #updNow{background:#fff;color:#215E44}
   #updX{background:transparent;color:#fff;padding:8px 10px;font-size:16px;opacity:.9}
+  /* Google Picker on mobile / installed PWA: force it to a centered, viewport-sized modal so it never opens off-screen at the top. */
+  .picker-dialog-bg{position:fixed!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:100000!important}
+  .picker-dialog{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;max-width:96vw!important;max-height:88vh!important;overflow:auto!important;z-index:100001!important;border-radius:12px!important}
+  .picker-dialog-content,.picker-dialog iframe{max-width:96vw!important;max-height:82vh!important}
   .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:-3px}
   @keyframes sp{to{transform:rotate(360deg)}}
 </style>
@@ -475,7 +479,7 @@ try{
       <div class="row"><label>Gemini key</label><input id="geminiKey" type="password" autocomplete="off" placeholder="Paste your key"></div>
       <div style="display:flex;gap:8px;margin-top:12px"><button class="addbtn" id="keySave" style="margin-top:0">Save key</button><button class="addbtn ghost" id="keyClear" style="margin-top:0;color:var(--ink2)">Clear</button></div>
       <button class="addbtn" id="keyTest" style="background:transparent;border:1px solid var(--line);color:var(--green)">Test scanning</button>
-      <div class="hintline" style="text-align:left">Get a free key in ~2 min at <a class="sheetlink" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. It's stored only on this device. Then tap 📷 on the Expense screen to scan. Always glance at the total — it reads the final paid amount.</div>
+      <div class="hintline" style="text-align:left">Get a free key in ~2 min at <a class="sheetlink" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. It's saved with this budget (in your own private Google Drive) so it sticks across your devices — on a budget you’ve shared, family members could use it. Then tap 📷 on the Expense screen to scan. Always glance at the total — it reads the final paid amount.</div>
       <div class="msg" id="keyMsg"></div>
     </div>
     <div class="card">
@@ -836,7 +840,7 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.15"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.18"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -1054,6 +1058,15 @@ function firstRunChoice(){
     }
   });
 }
+// Order discovered budgets for auto-opening on a fresh device: your own default-named budget first, then any owned, then shared.
+function orderBudgetsForOpen(found){
+  return (found||[]).slice().sort(function(a,b){
+    var an=(""+((a&&a.name)||"")).toLowerCase()===SHEET_NAME.toLowerCase(),bn=(""+((b&&b.name)||"")).toLowerCase()===SHEET_NAME.toLowerCase();
+    if(an!==bn)return an?-1:1;
+    if(!!(a&&a.owned)!==!!(b&&b.owned))return (a&&a.owned)?-1:1;
+    return 0;
+  });
+}
 async function ensureSheet(){
   var stored="";try{stored=localStorage.getItem("nw_sheet_id2")||"";}catch(e){}
   // A family invite link (?join) routes straight to picking the shared budget — for BRAND-NEW people AND returning users who
@@ -1082,6 +1095,19 @@ async function ensureSheet(){
     }catch(e){}
   }
   if(!sheetId){
+    // No usable saved ID (fresh browser/device or cleared storage). Look inside the NestWorth folder — this finds budgets
+    // by WHERE they live, not by name, so a renamed budget is still recognized, and it resolves shortcuts to shared budgets.
+    try{
+      var found=await discoverBudgets(); // [{id,name,owned}] — your own budgets + resolved shared-budget shortcuts
+      if(found&&found.length){
+        // Pick a sensible active budget: your own primary first (default name, then any owned), else a shared one — and it must be reachable.
+        var ordered=orderBudgetsForOpen(found);
+        for(var fi=0;fi<ordered.length&&!sheetId;fi++){try{await api(ssBaseFor(ordered[fi].id)+"?fields=spreadsheetId");sheetId=ordered[fi].id;}catch(_){}}
+      }
+    }catch(e){}
+  }
+  if(!sheetId){
+    // Last resort: a budget still using the default name and not yet filed in the folder (e.g. created before folders existed).
     var q=encodeURIComponent("name='"+SHEET_NAME+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
     var f=await api("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)&orderBy=createdTime desc");
     if(f.files&&f.files.length){sheetId=f.files[0].id;}
@@ -1199,8 +1225,8 @@ async function discoverBudgets(){
     var f=await api("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name,mimeType,shortcutDetails/targetId)&pageSize=100");
     var out=[];
     (f.files||[]).forEach(function(x){
-      if(x.mimeType==="application/vnd.google-apps.shortcut"){if(x.shortcutDetails&&x.shortcutDetails.targetId)out.push({id:x.shortcutDetails.targetId,name:x.name||"Shared budget"});}
-      else if(x.mimeType==="application/vnd.google-apps.spreadsheet"){out.push({id:x.id,name:x.name});}
+      if(x.mimeType==="application/vnd.google-apps.shortcut"){if(x.shortcutDetails&&x.shortcutDetails.targetId)out.push({id:x.shortcutDetails.targetId,name:x.name||"Shared budget",owned:false});} // shared budget: a shortcut pointing at someone else's file
+      else if(x.mimeType==="application/vnd.google-apps.spreadsheet"){out.push({id:x.id,name:x.name,owned:true});} // your own budget lives in the folder
     });
     out.forEach(function(x){trackBudget(x.id,x.name);});
     return out;
@@ -1240,11 +1266,16 @@ async function openSheetPicker(opts){
     var appId=(""+CLIENT_ID).split("-")[0];
     var view=new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setSelectFolderEnabled(false).setIncludeFolders(false).setMode(google.picker.DocsViewMode.LIST);
     var shared=new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setOwnedByMe(false).setMode(google.picker.DocsViewMode.LIST);
-    var picker=new google.picker.PickerBuilder().addView(view).addView(shared).setOAuthToken(accessToken).setDeveloperKey(key).setAppId(appId).setTitle(opts.title||"Pick a spreadsheet").setCallback(function(data){
+    var origin=location.protocol+"//"+location.host; // REQUIRED for the picker to render inside an installed (standalone) PWA — without it, it silently no-ops on iOS
+    var pb=new google.picker.PickerBuilder().addView(view).addView(shared).setOAuthToken(accessToken).setDeveloperKey(key).setAppId(appId).setOrigin(origin).setTitle(opts.title||"Pick a spreadsheet").setCallback(function(data){
       if(data.action===google.picker.Action.PICKED){var d=data.docs[0];opts.onPick&&opts.onPick(d);}
       else if(data.action===google.picker.Action.CANCEL){if(msg)msg.textContent="";opts.onCancel&&opts.onCancel();}
-    }).build();
+    });
+    try{pb.setSize(Math.min(window.innerWidth||390,1051),Math.min(window.innerHeight||640,650));}catch(_){}
+    var picker=pb.build();
+    try{window.scrollTo(0,0);}catch(_){} // the picker positions relative to the document — anchor at the top so it's not off-screen
     picker.setVisible(true);
+    if(msg)msg.textContent="";
   }catch(e){if(msg){msg.textContent=""+(e.message||e);msg.className="msg bad";}}
 }
 function openBudgetPicker(){
@@ -1381,9 +1412,10 @@ function normMeta(o){o=o||{};
   var payees=Array.isArray(o.payees)?o.payees.filter(function(p){return p!=null&&(""+p).trim();}):[];
   if(!payees.length)payees=["Me"];
   var carry=isObj(o.carry)?o.carry:{}; // per-category "banked before this year" overrides (lowercased name → number)
-  return {cats:cats,cons:cons,goals:goals,carry:carry,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
+  var gkey=(o&&typeof o.gkey==="string")?o.gkey:""; // optional: Gemini receipt-scanning key, saved with the budget so it survives device storage being cleared
+  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],carry:{},startCash:0,startYM:0,payees:["Me"],nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -1423,6 +1455,7 @@ async function writeMeta(){
       carry:_mergeMap(_metaBase.carry||{},state.meta.carry||{},remote.carry||{}),
       goals:_mergeArr(_metaBase.goals,state.meta.goals,remote.goals),
       payees:_mergeArr(_metaBase.payees,state.meta.payees,remote.payees,function(x){return (""+x).toLowerCase();}),
+      gkey:(state.meta.gkey!==_metaBase.gkey)?state.meta.gkey:remote.gkey,
       startCash:(state.meta.startCash!==_metaBase.startCash)?state.meta.startCash:remote.startCash,
       startYM:(state.meta.startYM!==_metaBase.startYM)?state.meta.startYM:remote.startYM,
       nwUpdated:(state.meta.nwUpdated!==_metaBase.nwUpdated)?state.meta.nwUpdated:remote.nwUpdated
@@ -1788,7 +1821,8 @@ async function detectLayout(sname){
     if(m.total>CAT_START)CAT_END=m.total-1;
     if(m.contrib>m.total)CON_START=m.contrib+1;
     if(m.totalCon>CON_START)CON_END=m.totalCon-1;
-  }catch(e){}
+    return true; // the summary tab was readable
+  }catch(e){return false;} // tab missing/unreadable — caller should NOT write with default rows (would misplace data)
 }
 // Locate the TOTAL (category total), Contributor (income header), and TOTAL CONTRIBUTIONS marker rows in a column-A value array.
 function scanMarkers(vals){
@@ -1869,6 +1903,8 @@ async function loadAll(){
   state.cats=cats; state.cons=cons;
   buildIndexes();applyBudgetSpend(); // compute spent / annual-left / deposits client-side from the ledger index
   await readMeta();
+  // If the Gemini key was saved with the budget but this device's copy is gone (iOS cleared storage, or a different browser/app), restore it.
+  try{if(state.meta&&state.meta.gkey&&!lsGet(GKEY).trim())lsSet(GKEY,state.meta.gkey);}catch(e){}
   loadGoals();
   await loadCarryIn();
   await loadNW();
@@ -2227,8 +2263,12 @@ async function wizCreate(){
   var msg=$("wizMsg");msg.className="msg";var b=$("wizCreate");b.disabled=true;b.textContent=WZ.editMode?"Saving…":"Building…";
   try{
     var sname=summaryName();
+    // Guard: if the summary tab can't be read, DON'T write to default rows (that misplaces income/categories). Fail clearly instead.
+    if(!await detectLayout(sname)){
+      msg.innerHTML="Couldn’t open this budget’s “"+esc(sname)+"” tab. The app may be on a different budget than you expect — check <b>Settings ▸ your budgets</b> and switch to the right one, then try again.";
+      msg.className="msg bad";b.disabled=false;b.textContent=WZ.editMode?"Save changes":"Create budget";return;
+    }
     // Dynamic expansion: make sure both sections are big enough for everything we're about to write (grows in GROW_BY chunks).
-    await detectLayout(sname);
     var seenC={},needCat=0;WZ.cats.forEach(function(c){var nm=(c.name||"").trim();if(!nm)return;var k=nm.toLowerCase();if(seenC[k])return;seenC[k]=1;var cf=wizCatCfg(c);if(WZ.editMode||annualOf(cf)>0||cf.type==="itemized")needCat++;});
     var seenI={},needInc=0;WZ.incomes.forEach(function(inc){if(!wizIncCfg(inc))return;var nm=((inc.name||"Me").trim()||"Me").toLowerCase();if(seenI[nm])return;seenI[nm]=1;needInc++;});
     if(needCat>0)await ensureCapacity(sname,"cat",needCat);
@@ -2840,9 +2880,9 @@ async function wipeData(){
   if(!await askConfirm({title:"Are you sure?",msg:"Last check — this really does erase every logged transaction and cannot be undone.",ok:"Yes, erase it all",danger:true,cancel:"Keep my data"}))return;
   var msg=$("wipeMsg");msg.className="msg";msg.textContent="Erasing…";
   try{
-    // clear ledger rows (keep header), net-worth balances, net-worth history, goals, start cash
-    var gid=await ledgerGid();
-    if(gid!=null){try{var lg=await vgetU(LEDGER+"!A:A");var last=(lg.values||[]).length;if(last>1)await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:gid,dimension:"ROWS",startIndex:1,endIndex:last}}}]})});}catch(e){}}
+    // Clear ONLY the ledger's transaction rows — by tab NAME, clearing values (never deleting rows or touching any other tab,
+    // so the budget/category tabs can never be affected). Keeps the header row and the ledger's structure/table intact.
+    try{await vBatchClear([LEDGER+"!A2:I"]);}catch(e){}
     try{await vBatchClear([NW+"!A"+ASSET_START+":B"+ASSET_END,NW+"!A"+DEBT_START+":B"+DEBT_END]);}catch(e){}
     try{await vBatchClear([NWHIST+"!A2:F400"]);}catch(e){}
     state.meta.goals=[];state.meta.nwUpdated="";state.meta.startCash=0;await writeMeta();
@@ -3852,8 +3892,8 @@ function wire(){
   $("recurOpen").addEventListener("click",function(ev){ev.preventDefault();openOv("recurOv",renderRecur);});
   $("scanBtn").addEventListener("click",function(){if(!lsGet(GKEY).trim()){$("addMsg").textContent="Add a free Gemini key in Settings first.";$("addMsg").className="msg bad";switchView("settings");return;}$("receiptFile").click();});
   $("receiptFile").addEventListener("change",onReceiptFile);
-  $("keySave").addEventListener("click",function(){var k=$("geminiKey").value.trim();var msg=$("keyMsg");msg.className="msg";if(!k){msg.textContent="Paste a key first.";msg.className="msg bad";return;}lsSet(GKEY,k);lsDel(GMODEL);msg.textContent="Saved ✓";renderSettings();});
-  $("keyClear").addEventListener("click",function(){lsDel(GKEY);lsDel(GMODEL);$("keyMsg").textContent="Key cleared.";$("keyMsg").className="msg";renderSettings();});
+  $("keySave").addEventListener("click",function(){var k=$("geminiKey").value.trim();var msg=$("keyMsg");msg.className="msg";if(!k){msg.textContent="Paste a key first.";msg.className="msg bad";return;}lsSet(GKEY,k);lsDel(GMODEL);state.meta.gkey=k;msg.textContent="Saved ✓";renderSettings();try{writeMeta();}catch(e){}});
+  $("keyClear").addEventListener("click",function(){lsDel(GKEY);lsDel(GMODEL);state.meta.gkey="";$("keyMsg").textContent="Key cleared.";$("keyMsg").className="msg";renderSettings();try{writeMeta();}catch(e){}});
   $("keyTest").addEventListener("click",keyTest);
   Array.prototype.forEach.call(document.querySelectorAll("[data-rem]"),function(cb){cb.addEventListener("change",function(){setRemPref(this.getAttribute("data-rem"),this.checked);renderReminders();});});
   if($("prefPayee"))$("prefPayee").addEventListener("change",function(){setFormPref("payee",this.checked);applyFormPrefs();});
