@@ -307,6 +307,13 @@ try{
   #updBar button{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px}
   #updNow{background:#fff;color:#215E44}
   #updX{background:transparent;color:#fff;padding:8px 10px;font-size:16px;opacity:.9}
+  #reconnBar{position:fixed;left:0;right:0;bottom:0;z-index:9997;background:#9A6212;color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14.5px;font-family:inherit}
+  #reconnBar .rcm{flex:1;font-weight:600}
+  #reconnNow{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 16px;background:#fff;color:#7a4d0e}
+  #tidyBar{position:fixed;left:0;right:0;bottom:0;z-index:9996;background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14px;font-family:inherit}
+  #tidyBar .rcm{flex:1;font-weight:600}
+  #tidyNow{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px;background:#fff;color:#215E44}
+  #tidyX{background:transparent;border:0;color:#fff;padding:8px 10px;font-size:16px;cursor:pointer;opacity:.9}
   /* Google Picker on mobile / installed PWA: force it to a centered, viewport-sized modal so it never opens off-screen at the top. */
   .picker-dialog-bg{position:fixed!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:100000!important}
   .picker-dialog{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;max-width:96vw!important;max-height:88vh!important;overflow:auto!important;z-index:100001!important;border-radius:12px!important}
@@ -840,10 +847,11 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.19"; // single source of truth for the running version (shown in the footer + used by the update check)
+var BUILD="2026.08.26.21"; // single source of truth for the running version (shown in the footer + used by the update check)
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
+var LEDGER_SCAN=20000; // how far down to look for the true next ledger row (Google trims trailing empties, so a small ledger reads cheaply)
 var NW="Net Worth", ASSET_START=4, ASSET_END=23, DEBT_START=27, DEBT_END=36;
 var accessToken=null, tokenClient=null, sheetId=null, userEmail="";
 var state={rows:[],cats:[],cons:[],assets:[],debts:[],goals:[],goalSet:{},carryIn:{},nwHist:[],meta:{cats:{},cons:{},goals:[]}};
@@ -935,7 +943,32 @@ function getToken(i){
   return _tokenInFlight;
 }
 function withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error("timeout"));},ms);})]);}
-function sessionExpired(){try{accessToken=null;var el=$("signinErr");if(el)el.textContent="Your session expired — please sign in again.";show("signinScreen");}catch(e){}}
+function sessionExpired(){
+  try{
+    accessToken=null;
+    // If we're already inside the app, offer a one-tap reconnect (keeps you in place) instead of dumping you at sign-in.
+    // Google's token lasts ~1h and Safari/iOS blocks the silent renewal, so this otherwise logs people out mid-use.
+    if(sheetId&&$("appScreen")&&$("appScreen").classList.contains("on")){showReconnect();return;}
+    var el=$("signinErr");if(el)el.textContent="Your session expired — please sign in again.";show("signinScreen");
+  }catch(e){}
+}
+function showReconnect(){
+  if(document.getElementById("reconnBar"))return;
+  var bar=document.createElement("div");bar.id="reconnBar";
+  bar.innerHTML='<span class="rcm">Google sign-in timed out — your data is safe.</span><button id="reconnNow" type="button">Reconnect</button>';
+  document.body.appendChild(bar);
+  document.getElementById("reconnNow").addEventListener("click",async function(){
+    var btn=this;btn.disabled=true;btn.textContent="Reconnecting…";
+    try{
+      await getToken(true); // interactive — the tap is the gesture iOS requires, so this succeeds where the silent refresh can't
+      var b=document.getElementById("reconnBar");if(b)b.remove();
+      try{await loadAll();renderAll();}catch(_){}
+    }catch(e){
+      var b2=document.getElementById("reconnBar");if(b2)b2.remove();
+      var el=$("signinErr");if(el)el.textContent="Please sign in again.";show("signinScreen");
+    }
+  });
+}
 // ---- "Add to Home Screen" onboarding: shown on the sign-in screen (where a shared-link user first lands), platform-aware,
 //      dismissible, and hidden once the app is already installed. Android/desktop Chrome get a real one-tap install button.
 var _deferredInstall=null;
@@ -1023,7 +1056,19 @@ async function claimRow(sheetName,start,end,name,which){
   }
   return 0;
 }
-function vappend(range,values){return api(ssBase()+"/values/"+encodeURIComponent(range)+":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})});}
+// Append rows by writing to the first free row FROM THE TOP, not Google's values.append — which, when a tab is a full-sheet
+// native Table, appends after the table and strands rows ~1,000,000 rows down. Falls back to the API append if the scan can't run.
+async function vappend(range,values){
+  var tab=(range.split("!")[0]).replace(/^'|'$/g,"");
+  var start=null;
+  try{var g=await vgetU("'"+tab+"'!A1:A"+LEDGER_SCAN);var n=(g.values||[]).length;if(n<LEDGER_SCAN){start=(n<1?1:n)+1;}}catch(e){}
+  if(start==null){ // read failed, or an unusually huge ledger — use the API append so a write is never lost
+    return api(ssBase()+"/values/"+encodeURIComponent(range)+":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})});
+  }
+  var data=values.map(function(row,i){return {range:"'"+tab+"'!A"+(start+i),values:[row]};});
+  await vBatchUpdate(data);
+  return {updates:{updatedRange:"'"+tab+"'!A"+start+":I"+(start+values.length-1),updatedRows:values.length}};
+}
 function vBatchUpdate(data){return api(ssBase()+"/values:batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({valueInputOption:"USER_ENTERED",data:data})});}
 function vBatchClear(ranges){return api(ssBase()+"/values:batchClear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ranges:ranges})});}
 
@@ -3590,7 +3635,38 @@ function fillPayeeSource(){
   var src=$("dSource");if(src){var cur2=src.value;if(!cons.length){src.innerHTML='<option value="">No income sources yet…</option><option value="__budget__">＋ Add income line in Budget</option>';}else{src.innerHTML=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur2&&cons.indexOf(cur2)>=0)src.value=cur2;}}
   var esrc=$("edSource");if(esrc){var cur3=esrc.value;var h=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur3&&cons.indexOf(cur3)<0)h='<option>'+esc(cur3)+'</option>'+h;esrc.innerHTML=h;if(cur3)esrc.value=cur3;}
 }
-function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();sizeAllMoney();}
+function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();sizeAllMoney();maybeOfferTidy();}
+// One-time-per-load offer to fix a ledger whose rows were stranded near the bottom of the sheet (by Google's append on a Table).
+var _tidyOffered=false;
+function maybeOfferTidy(){
+  if(_tidyOffered||document.getElementById("tidyBar"))return;
+  try{
+    var rows=state.rows||[],real=0;
+    for(var i=0;i<rows.length;i++){var y=Number(rows[i]&&rows[i][0]);if(y>=1900&&y<=9999)real++;}
+    if(real>0&&rows.length>real+200){_tidyOffered=true;showTidyBar();} // ledger spans far more rows than it has transactions → stranded
+  }catch(e){}
+}
+function showTidyBar(){
+  if(document.getElementById("tidyBar"))return;
+  var bar=document.createElement("div");bar.id="tidyBar";
+  bar.innerHTML='<span class="rcm">Your transactions drifted to the bottom of the sheet. Tidy them back to the top?</span><button id="tidyNow" type="button">Tidy up</button><button id="tidyX" type="button" aria-label="Dismiss">✕</button>';
+  document.body.appendChild(bar);
+  document.getElementById("tidyNow").addEventListener("click",async function(){var b=this;b.disabled=true;b.textContent="Tidying…";try{await compactLedger();}catch(e){}var bb=document.getElementById("tidyBar");if(bb)bb.remove();});
+  document.getElementById("tidyX").addEventListener("click",function(){var bb=document.getElementById("tidyBar");if(bb)bb.remove();});
+}
+// Pull the real transactions out of wherever they sit (incl. rows stranded at the bottom), clear the ledger, and rewrite
+// them contiguously from row 2 — then reads and future appends land at the top like they should.
+async function compactLedger(){
+  var real=[];var rows=state.rows||[];
+  for(var i=0;i<rows.length;i++){var r=rows[i];var y=Number(r&&r[0]);if(y>=1900&&y<=9999)real.push(r.slice(0,9));}
+  await vBatchClear([LEDGER+"!A2:I"]); // clear ALL ledger data rows, including the stranded ones far below
+  for(var s=0;s<real.length;s+=500){
+    var chunk=real.slice(s,s+500);
+    var data=chunk.map(function(row,j){return {range:LEDGER+"!A"+(2+s+j),values:[row]};});
+    await vBatchUpdate(data);
+  }
+  await loadAll();renderAll();
+}
 
 /* actions */
 async function addEntry(){
@@ -3868,6 +3944,9 @@ async function confirmAdoption(){
 function wire(){
   if($("bldVer"))$("bldVer").textContent=BUILD; // footer version from the single source of truth
   setTimeout(checkForUpdate,6000); // check for a newer deploy shortly after load
+  // Proactively renew the ~1-hour Google token while the app is open (silently, where the browser allows it — avoids a
+  // mid-session 401 on Android/desktop; on Safari/iOS the silent renew is blocked, so the Reconnect bar handles it instead).
+  try{setInterval(function(){if(sheetId&&document.visibilityState==="visible"&&$("appScreen")&&$("appScreen").classList.contains("on"))getToken(false).catch(function(){});},45*60*1000);}catch(e){}
   document.addEventListener("input",function(e){var t=e.target;if(t&&t.classList&&t.classList.contains("money"))sizeMoney(t);},true);
   // On a shared budget, other people's changes only reach us on load — re-sync when the tab regains focus (and never while an editor is open).
   var _lastRefresh=0;
