@@ -317,6 +317,15 @@ try{
   </div>
 </div></div>
 
+<div class="screen" id="chooseScreen"><div class="center">
+  <img class="logo" src="apple-touch-icon.png" alt=""><div class="brand disp">Welcome</div>
+  <p class="tag" id="chooseTag">How would you like to start?</p>
+  <button class="btn" id="chooseOwn">Start my own budget</button>
+  <button class="btn" id="chooseShared" style="margin-top:12px;background:transparent;color:var(--green);border:1px solid var(--green)">Join a budget shared with me</button>
+  <p class="fine" id="chooseFine">Were you invited to a family or household budget? Choose <b>Join</b> and pick it — you won’t get a separate personal budget. You can always add your own later from Settings.</p>
+  <div class="err" id="chooseErr"></div>
+</div></div>
+
 <div class="screen" id="appScreen"><div class="wrap">
   <div class="top">
     <div><div class="title disp">NestWorth</div><div class="who" id="who"></div><button class="budpill" id="budPill" style="display:none"></button></div>
@@ -505,9 +514,10 @@ try{
       <p class="eyebrow">Share this budget</p>
       <div class="row"><label>Invite by email</label><input id="budEmail" type="email" autocomplete="off" placeholder="name@email.com"></div>
       <button class="addbtn" id="budInviteBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Send invite (Editor)</button>
-      <button class="addbtn" id="budShareBtn">Get a share link</button>
+      <button class="addbtn" id="budJoinBtn">Copy the app invite link</button>
+      <button class="addbtn" id="budShareBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Get the raw spreadsheet link</button>
       <button type="button" class="gbtn" id="starterCopyBtn" style="width:100%;margin-top:8px">Share a blank starter copy (my categories, no data)</button>
-      <div class="hintline" style="text-align:left">People you invite get <b>Editor</b> access so they can add entries. A <b>starter copy</b> hands someone their own new budget with your categories &amp; amounts but none of your transactions.</div>
+      <div class="hintline" style="text-align:left">Two steps to add family: <b>Send invite</b> by email to give them access, then <b>Copy the app invite link</b> and text it to them — it opens NestWorth straight to this budget, with no personal budget of their own unless they want one. A <b>starter copy</b> instead hands someone their own new budget with your categories &amp; amounts but none of your transactions.</div>
       <div class="msg" id="budShareMsg"></div>
     </div>
     <div class="card">
@@ -541,7 +551,7 @@ try{
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
-  <div class="foot">NestWorth - Build 2026.08.26.5 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
+  <div class="foot">NestWorth - Build 2026.08.26.6 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -841,7 +851,7 @@ function typeLabel(cfg){cfg=cfg||{};switch(cfg.type){case"annual":return"Once a 
 
 function $(id){return document.getElementById(id);}
 function debounce(fn,ms){var t=null;return function(){var a=arguments,self=this;if(t)clearTimeout(t);t=setTimeout(function(){t=null;fn.apply(self,a);},ms||160);};}
-function show(id){["splash","signinScreen","appScreen"].forEach(function(s){$(s).classList.toggle("on",s===id);});try{if(id!=="appScreen")document.body.removeAttribute("data-view");}catch(e){}}
+function show(id){["splash","signinScreen","chooseScreen","appScreen"].forEach(function(s){var el=$(s);if(el)el.classList.toggle("on",s===id);});try{if(id!=="appScreen")document.body.removeAttribute("data-view");}catch(e){}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"'`]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;","`":"&#96;"}[c];});}
 function money(n){n=Number(n);if(!isFinite(n))n=0;var neg=n<0;var s="$"+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});return neg?("-"+s):s;}
 function reimbTag(r){return ((""+((r&&r[8])||"")).trim().toLowerCase()==="y")?' <span class="rtag">↩ reimbursed</span>':'';}
@@ -958,8 +968,43 @@ function vBatchUpdate(data){return api(ssBase()+"/values:batchUpdate",{method:"P
 function vBatchClear(ranges){return api(ssBase()+"/values:batchClear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ranges:ranges})});}
 
 /* sheet setup: create from your master template */
+// First launch with no budget of their own: offer a choice instead of silently creating a personal budget, so a person who
+// only wants to contribute to someone else's shared budget can join it directly. Resolves to the sheetId to use.
+function firstRunChoice(){
+  return new Promise(function(resolve){
+    var joinMode=false;try{joinMode=/[?&]join\b/i.test(location.search);}catch(e){}
+    show("chooseScreen");
+    var lock=function(v){if($("chooseOwn"))$("chooseOwn").disabled=v;if($("chooseShared"))$("chooseShared").disabled=v;};
+    lock(false);if($("chooseOwn"))$("chooseOwn").textContent="Start my own budget";if($("chooseErr"))$("chooseErr").textContent="";
+    var doOwn=async function(){
+      lock(true);if($("chooseOwn"))$("chooseOwn").textContent="Setting up…";if($("chooseErr"))$("chooseErr").textContent="";
+      try{show("splash");if($("splashMsg"))$("splashMsg").textContent="Setting up your budget…";var id=await createFromTemplate();resolve(id);}
+      catch(e){show("chooseScreen");if($("chooseErr"))$("chooseErr").textContent="Couldn’t set up: "+((e&&(e.message||e))||"");if($("chooseOwn"))$("chooseOwn").textContent="Start my own budget";lock(false);}
+    };
+    var doShared=function(){
+      if($("chooseErr"))$("chooseErr").textContent="Opening the file picker…";
+      openSheetPicker({title:"Open the budget shared with you",msgEl:$("chooseErr"),
+        onPick:function(d){if($("chooseErr"))$("chooseErr").textContent="Opening "+((d&&d.name)||"budget")+"…";trackBudget(d.id,(d&&d.name)||"Shared budget");resolve(d.id);},
+        onCancel:function(){if($("chooseErr"))$("chooseErr").textContent="";}
+      });
+    };
+    if($("chooseOwn"))$("chooseOwn").onclick=doOwn;
+    if($("chooseShared"))$("chooseShared").onclick=doShared;
+    if(joinMode){ // arrived via a family invite link → jump straight to picking the shared budget
+      try{history.replaceState(null,"",location.pathname);}catch(e){}
+      if($("chooseTag"))$("chooseTag").textContent="Open the budget you were invited to";
+      if($("chooseFine"))$("chooseFine").innerHTML='Pick the shared budget in the file picker. Would you rather have your own? Tap <b>Start my own budget</b>.';
+      doShared();
+    }
+  });
+}
 async function ensureSheet(){
   var stored="";try{stored=localStorage.getItem("nw_sheet_id2")||"";}catch(e){}
+  // A family invite link (?join) routes straight to picking the shared budget — for BRAND-NEW people AND returning users who
+  // already have a budget of their own (they just got added to a household one). firstRunChoice strips ?join so it's one-shot.
+  var joinReq=false;try{joinReq=/[?&]join\b/i.test(location.search);}catch(e){}
+  if(joinReq){sheetId=await firstRunChoice();}
+  else{
   if(stored){
     sheetId=stored; // trust the stored active budget…
     try{await api(ssBaseFor(stored)+"?fields=spreadsheetId");}
@@ -984,8 +1029,10 @@ async function ensureSheet(){
     var q=encodeURIComponent("name='"+SHEET_NAME+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
     var f=await api("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)&orderBy=createdTime desc");
     if(f.files&&f.files.length){sheetId=f.files[0].id;}
-    else{ sheetId=await createFromTemplate(); }
+    else{ sheetId=await firstRunChoice(); } // brand-new person: let them start their own OR join a budget shared with them (no forced personal budget)
   }
+  } // end else (no ?join)
+  if(!sheetId){throw new Error("No budget selected.");} // e.g. picker cancelled with nothing chosen
   setActiveBudget(sheetId);
   try{var dm=await api("https://www.googleapis.com/drive/v3/files/"+sheetId+"?fields=name");budgetName=dm.name||SHEET_NAME;}catch(e){budgetName=SHEET_NAME;}
   trackBudget(sheetId,budgetName);
@@ -1114,6 +1161,8 @@ async function budgetRename(id,name){
   await api("https://www.googleapis.com/drive/v3/files/"+id+"?fields=id",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name})});
   trackBudget(id,name);
 }
+// The link to text an invited family member: opens THIS app straight to the "pick the shared budget" flow (no personal budget).
+function joinLink(){try{return location.href.split(/[?#]/)[0]+"?join";}catch(e){return "";}}
 async function budgetShareLink(id){
   try{await api("https://www.googleapis.com/drive/v3/files/"+id+"/permissions?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:"writer",type:"anyone"})});}catch(e){}
   return "https://docs.google.com/spreadsheets/d/"+id+"/edit";
@@ -3557,8 +3606,9 @@ function wire(){
   if($("combineBtn"))$("combineBtn").addEventListener("click",openCombine);
   if($("combineGo"))$("combineGo").addEventListener("click",doCombine);
   $("budNewBtn").addEventListener("click",function(){var n=$("budNewName").value.trim();var msg=$("budMsg");msg.className="msg";if(!n){msg.textContent="Name the new budget.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Creating…";askConfirm({title:"Create “"+n+"”?",msg:"A new private budget spreadsheet is created and the app reloads into it.",ok:"Create"}).then(function(ok){if(!ok){b.disabled=false;b.textContent="＋ Create budget";return;}budgetCreate(n).catch(function(e){msg.textContent="Could not create: "+(e.message||e);msg.className="msg bad";b.disabled=false;b.textContent="＋ Create budget";});});});
-  $("budInviteBtn").addEventListener("click",function(){var email=$("budEmail").value.trim();var msg=$("budShareMsg");msg.className="msg";if(!email){msg.textContent="Enter an email address.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Sending…";budgetInvite(sheetId,email).then(function(){msg.textContent="Invite sent to "+email+" ✓ (Editor access).";$("budEmail").value="";}).catch(function(e){msg.textContent="Could not invite: "+(e.message||e);msg.className="msg bad";}).then(function(){b.disabled=false;b.textContent="Send invite (Editor)";});});
-  $("budShareBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";budgetShareLink(sheetId).then(function(url){try{navigator.clipboard.writeText(url);$("budShareMsg").textContent="Anyone-with-link (Editor) copied ✓";}catch(e){$("budShareMsg").textContent=url;}$("budShareMsg").className="msg";}).catch(function(e){$("budShareMsg").textContent="Could not create link: "+(e.message||e);$("budShareMsg").className="msg bad";}).then(function(){b.disabled=false;b.textContent="Get a share link";});});
+  $("budInviteBtn").addEventListener("click",function(){var email=$("budEmail").value.trim();var msg=$("budShareMsg");msg.className="msg";if(!email){msg.textContent="Enter an email address.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Sending…";budgetInvite(sheetId,email).then(function(){msg.innerHTML="Invite sent to <b>"+esc(email)+"</b> ✓ Now tap <b>Copy the app invite link</b> and text it to them so they open it in the app.";$("budEmail").value="";}).catch(function(e){msg.textContent="Could not invite: "+(e.message||e);msg.className="msg bad";}).then(function(){b.disabled=false;b.textContent="Send invite (Editor)";});});
+  $("budJoinBtn").addEventListener("click",function(){var url=joinLink();var msg=$("budShareMsg");msg.className="msg";try{navigator.clipboard.writeText(url);msg.innerHTML="App invite link copied ✓ &nbsp; <span style=\"color:var(--ink2);word-break:break-all\">"+esc(url)+"</span>";}catch(e){msg.innerHTML="Send them this link: <span style=\"word-break:break-all\">"+esc(url)+"</span>";}});
+  $("budShareBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";budgetShareLink(sheetId).then(function(url){try{navigator.clipboard.writeText(url);$("budShareMsg").textContent="Raw spreadsheet link (Editor) copied ✓ — this opens the sheet itself, not the app.";}catch(e){$("budShareMsg").textContent=url;}$("budShareMsg").className="msg";}).catch(function(e){$("budShareMsg").textContent="Could not create link: "+(e.message||e);$("budShareMsg").className="msg bad";}).then(function(){b.disabled=false;b.textContent="Get the raw spreadsheet link";});});
   if($("starterCopyBtn"))$("starterCopyBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";shareStarterCopy().then(function(){b.disabled=false;b.textContent="Share a blank starter copy (my categories, no data)";});});
   if($("budPill"))$("budPill").addEventListener("click",function(){switchView("settings");});
   $("budOpenBtn").addEventListener("click",openBudgetPicker);
