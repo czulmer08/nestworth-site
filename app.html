@@ -559,7 +559,7 @@ try{
     <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
   </div>
 
-  <div class="foot">NestWorth - Build 2026.08.26.8 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
+  <div class="foot">NestWorth - Build 2026.08.26.11 &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -718,7 +718,7 @@ try{
 
 <div id="pullOv" class="ov" style="display:none;z-index:72"><div class="ovcard">
   <div class="ovhdr"><span>Pull in categories</span><button class="ovx" data-ov="pullOv" type="button">✕</button></div>
-  <div class="hintline" style="text-align:left;margin:0 0 8px">Tap the categories to add as bills in this list — their monthly amount comes along. Tip: remove a standalone category with ✕ afterward so it isn't budgeted twice.</div>
+  <div class="hintline" style="text-align:left;margin:0 0 8px">Tap the categories to fold into this list. Each becomes a bill, its past entries move here too, and it stops being its own category — so nothing is counted twice.</div>
   <div id="pullList"></div>
   <div class="askbtns"><button class="addbtn ghost" id="pullCancel" type="button" style="margin-top:0;color:var(--ink2)">Cancel</button><button class="addbtn" id="pullAdd" type="button" style="margin-top:0">Add selected</button></div>
 </div></div>
@@ -755,6 +755,8 @@ try{
     <option value="envelope">Stays here (builds up)</option>
     <option value="buffer">Contingency buffer</option>
   </select></div>
+  <div class="row" id="cCarryRow" style="display:none"><span class="ri"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="13" rx="2"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path><path d="M12 12v3"></path></svg></span><label id="cCarryLbl">Banked before this year</label><span class="mfield">$<input id="cCarry" class="money" inputmode="decimal" placeholder="0.00"></span></div>
+  <div class="hintline" id="cCarryHint" style="display:none;text-align:left;margin-top:-2px">What was already set aside for this category before this year. We filled in our estimate — edit it if it’s off, or set it to 0 to start fresh.</div>
   <button class="addbtn" id="catAddBtn" type="button">Add category</button>
   <div class="hintline" id="cHint">Same amount every month.</div>
   <div class="msg" id="catMsg"></div>
@@ -774,6 +776,7 @@ try{
     <option value="26" selected>Every 2 weeks</option>
     <option value="24">Twice a month</option>
     <option value="12">Every month</option>
+    <option value="1">Every year</option>
   </select></div>
   <div class="row" id="conAmtRow"><span class="ri"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span><label id="conAmtLbl">Take-home per check</label><span class="mfield">$<input id="conAmt" class="money" inputmode="decimal" placeholder="0.00"></span></div>
   <div id="conModeWrap"><div class="chips" id="conMode"><button type="button" class="chip on" data-m="pct">Budget a %</button><button type="button" class="chip" data-m="keep">Set aside $/mo</button></div></div>
@@ -1342,9 +1345,10 @@ function normMeta(o){o=o||{};
   var goals=Array.isArray(o.goals)?o.goals.filter(function(g){return g&&typeof g==="object"&&g.name;}):[];
   var payees=Array.isArray(o.payees)?o.payees.filter(function(p){return p!=null&&(""+p).trim();}):[];
   if(!payees.length)payees=["Me"];
-  return {cats:cats,cons:cons,goals:goals,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
+  var carry=isObj(o.carry)?o.carry:{}; // per-category "banked before this year" overrides (lowercased name → number)
+  return {cats:cats,cons:cons,goals:goals,carry:carry,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],startCash:0,startYM:0,payees:["Me"],nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},startCash:0,startYM:0,payees:["Me"],nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -1381,6 +1385,7 @@ async function writeMeta(){
     var merged={
       cats:_mergeMap(_metaBase.cats,state.meta.cats,remote.cats),
       cons:_mergeMap(_metaBase.cons,state.meta.cons,remote.cons),
+      carry:_mergeMap(_metaBase.carry||{},state.meta.carry||{},remote.carry||{}),
       goals:_mergeArr(_metaBase.goals,state.meta.goals,remote.goals),
       payees:_mergeArr(_metaBase.payees,state.meta.payees,remote.payees,function(x){return (""+x).toLowerCase();}),
       startCash:(state.meta.startCash!==_metaBase.startCash)?state.meta.startCash:remote.startCash,
@@ -1428,7 +1433,9 @@ function adoptionYM(){
 }
 // First month to bank in a given year: 13 (=none) before adoption year; the adoption month in that year; January afterward.
 function adoptionFloor(year){var a=adoptionYM();if(!a)return 13;var ay=Math.floor(a/100),am=a%100;if(year<ay)return 13;if(year>ay)return 1;return am;}
-function catBalance(c){var cm=(bYear()===curYear())?curMonth():13,start=adoptionFloor(bYear());var sp=spentByMonth(c.name);var bal=(state.carryIn&&state.carryIn[c.name.toLowerCase()])||0;for(var m=0;m<cm-1;m++){if((m+1)<start)continue;var b=(c.bud12&&c.bud12[m])||0;bal+=(b-sp[m]);}return r2(bal);}
+// Banked before this year: the user's saved override if they've set one, otherwise our computed carry-in.
+function carryInFor(name){var k=(""+name).toLowerCase();var ov=state.meta&&state.meta.carry;if(ov&&Object.prototype.hasOwnProperty.call(ov,k))return Number(ov[k])||0;return (state.carryIn&&state.carryIn[k])||0;}
+function catBalance(c){var cm=(bYear()===curYear())?curMonth():13,start=adoptionFloor(bYear());var sp=spentByMonth(c.name);var bal=carryInFor(c.name);for(var m=0;m<cm-1;m++){if((m+1)<start)continue;var b=(c.bud12&&c.bud12[m])||0;bal+=(b-sp[m]);}return r2(bal);}
 // Prior-year carry-in: leftover (budget − spent) from completed prior years rolls into this year's envelope balance.
 async function loadCarryIn(){
   state.carryIn={};
@@ -1948,6 +1955,28 @@ function suggestFromSpending(mode){
   out.sort(function(a,b){return b.amount-a.amount;});
   return out;
 }
+// Suggest income sources from imported/logged DEPOSITS, grouped by source (the Payee column), averaged over months with data.
+function suggestIncomeFromSpending(mode){
+  var byMonth={},latest=null;
+  state.rows.forEach(function(r){
+    var y=Number(r[0]),m=Number(r[1]);if(!y||m<1||m>12)return;
+    var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(e!=="deposit")return;
+    var src=(""+((r&&r[3])||"")).trim();if(!src||isGoalName(src))return;
+    var amt=Number(r[6])||0;if(amt<=0)return;
+    var key=y*100+m;if(latest===null||key>latest)latest=key;
+    (byMonth[key]=byMonth[key]||{});byMonth[key][src]=(byMonth[key][src]||0)+amt;
+  });
+  if(latest===null)return [];
+  var ly=Math.floor(latest/100);
+  var windowStart=(mode==="all")?0:((ly-1)*100+1);
+  var totals={},inWin=[];
+  Object.keys(byMonth).forEach(function(ks){var k=Number(ks);if(k<windowStart||k>latest)return;inWin.push(k);var mo=byMonth[k];for(var s in mo)totals[s]=(totals[s]||0)+mo[s];});
+  if(!inWin.length)return [];
+  var months=inWin.length;if(months<1)months=1;
+  var out=[];for(var s in totals){if(totals[s]>0.005)out.push({name:s,amount:r2(totals[s]/months)});}
+  out.sort(function(a,b){return b.amount-a.amount;});
+  return out;
+}
 // The recent-window start (YYYYMM) anchored to the latest data month, or null if there's no spending.
 function suggestWindowStart(){
   var latest=null;
@@ -1966,11 +1995,24 @@ async function wizApplySuggestions(){
     // When there's history older than last year + this year, let the user choose the basis.
     mode=(await askConfirm({title:"How much history?",msg:"You have spending going back further than last year. Base the suggested budget on your <b>recent</b> spending, or your <b>entire</b> imported history?",ok:"Use my entire history",cancel:"Recent (last year + this year)"}))?"all":"recent";
   }
-  var sug=suggestFromSpending(mode);if(!sug.length){$("wizMsg").textContent="No spending logged yet to suggest from.";$("wizMsg").className="msg bad";return;}
+  var sug=suggestFromSpending(mode);var sugInc=suggestIncomeFromSpending(mode);
+  if(!sug.length&&!sugInc.length){$("wizMsg").textContent="No spending or deposits logged yet to suggest from.";$("wizMsg").className="msg bad";return;}
   if(!WZ.cats.length)WZ.cats=wizCompileCats();
   var have={};WZ.cats.forEach(function(c){have[c.name.toLowerCase()]=1;});
   var added=0;sug.forEach(function(s){if(!have[s.name.toLowerCase()]){WZ.cats.push({name:s.name,amount:s.amount,roll:"none",suggested:true});added++;}});
-  $("wizMsg").textContent=added?("Suggested from your "+(mode==="all"?"entire":"recent")+" spending — tweak anything below."):"Those categories are already here — amounts left as they were.";$("wizMsg").className="msg";
+  // Also suggest income sources from imported deposits (grouped by who paid you).
+  var addedInc=0;
+  if(sugInc.length){
+    var onlyBlank=(WZ.incomes.length===1&&!(""+(WZ.incomes[0].perCheck||"")).trim()&&!(""+(WZ.incomes[0].monthly||"")).trim()&&!(""+(WZ.incomes[0].annual||"")).trim());
+    if(onlyBlank)WZ.incomes=[];
+    var haveInc={};WZ.incomes.forEach(function(i){haveInc[(""+(i.name||"")).toLowerCase()]=1;});
+    sugInc.forEach(function(s){if(!haveInc[s.name.toLowerCase()]){WZ.incomes.push({name:s.name,type:"monthly",monthly:String(s.amount),freq:26,perCheck:"",keepMode:"all",pct:100,setaside:"",annual:"",month:curMonth(),suggested:true});addedInc++;}});
+    if(!WZ.incomes.length)WZ.incomes=[blankIncome()];
+  }
+  var parts=[];
+  if(added)parts.push(added+" categor"+(added===1?"y":"ies"));
+  if(addedInc)parts.push(addedInc+" income source"+(addedInc===1?"":"s"));
+  $("wizMsg").textContent=parts.length?("Suggested "+parts.join(" and ")+" from your "+(mode==="all"?"entire":"recent")+" history — tweak anything below."+(addedInc?" Check the income step too.":"")):"Those are already here — amounts left as they were.";$("wizMsg").className="msg";
   WZ.step=2;renderWizard();
 }
 function wizCompileCats(){var seen={},out=[];PACKS.forEach(function(p){if(!WZ.packs[p.key])return;p.cats.forEach(function(c){var k=c.name.toLowerCase();if(seen[k])return;seen[k]=1;if(c.itemized)out.push({name:c.name,roll:"none",itemized:c.itemized.map(function(b){return {name:b.name,amount:b.amount,cadence:b.cadence||"Monthly",month:b.month||1,day:b.day||""};})});else out.push({name:c.name,amount:c.amount,roll:"none"});});});return out;}
@@ -1997,7 +2039,7 @@ function renderWizard(){
   dots.innerHTML=[1,2,3].map(function(n){return '<span class="wizdot'+(n===WZ.step?" on":(n<WZ.step?" done":""))+'"></span>';}).join("");
   if(WZ.step===1){
     $("wizTitle").textContent="Choose starter packs";
-    var canSuggest=suggestFromSpending().length>0;
+    var canSuggest=(suggestFromSpending().length>0)||(suggestIncomeFromSpending().length>0);
     body.innerHTML='<div class="hintline" style="text-align:left;margin:0 0 10px">Tap the packs that fit. You can edit everything next.</div>'+
       '<div class="packgrid">'+PACKS.map(function(p){return '<button type="button" class="packtile'+(WZ.packs[p.key]?" on":"")+'" data-k="'+p.key+'"><span class="packico">'+p.icon+'</span><span class="packt">'+esc(p.title)+'</span><span class="packd">'+esc(p.desc)+'</span></button>';}).join("")+'</div>'+
       (canSuggest?'<button class="gbtn" id="wizSuggest" style="margin-top:12px;width:100%">✨ Suggest from my spending</button>':'')+
@@ -2019,7 +2061,7 @@ function renderWizard(){
         return '<div class="wzcatrow"><div class="wzcat-top"><input class="wzc-name" data-i="'+i+'" value="'+esc(c.name)+'" autocomplete="off" placeholder="Category">'+amtField+'<button type="button" class="bi-x wzc-x" data-i="'+i+'">✕</button></div>'+(badge?('<div style="margin-top:2px">'+badge+'</div>'):'')+'<div class="wzcat-bot">'+rollSel+'<button type="button" class="wzc-gear" data-i="'+i+'">⚙ Bills &amp; details</button>'+typeLbl+'</div></div>';
       }).join("")+
       '<button type="button" class="wizadd-btn" id="wizAddCat">＋ Add a category</button>'+
-      (suggestFromSpending().length?'<button class="gbtn" id="wizSuggest2" style="margin-top:10px;width:100%">✨ Suggest from my spending</button>':'')+
+      ((suggestFromSpending().length||suggestIncomeFromSpending().length)?'<button class="gbtn" id="wizSuggest2" style="margin-top:10px;width:100%">✨ Suggest from my spending</button>':'')+
       '<div style="display:flex;gap:8px;margin-top:14px"><button class="addbtn ghost" id="wizBack" style="margin-top:0;color:var(--ink2)">Back</button><button class="addbtn" id="wizNext" style="margin-top:0">Next</button></div>';
     Array.prototype.forEach.call(body.querySelectorAll(".wzc-name"),function(x){x.addEventListener("input",function(){WZ.cats[+this.getAttribute("data-i")].name=this.value;});});
     Array.prototype.forEach.call(body.querySelectorAll(".wzc-amt"),function(x){x.addEventListener("input",function(){WZ.cats[+this.getAttribute("data-i")].amount=parseFloat(this.value.replace(/[^0-9.\-]/g,""))||0;});});
@@ -2044,9 +2086,9 @@ function renderWizard(){
   sizeAllMoney($("wizBody"));
 }
 function wizIncomeCard(inc,i){
-  var freqOpts='<option value="52"'+(inc.freq==52?" selected":"")+'>Every week</option><option value="26"'+(inc.freq==26?" selected":"")+'>Every 2 weeks</option><option value="24"'+(inc.freq==24?" selected":"")+'>Twice a month</option><option value="12"'+(inc.freq==12?" selected":"")+'>Monthly</option>';
+  var freqOpts='<option value="52"'+(inc.freq==52?" selected":"")+'>Every week</option><option value="26"'+(inc.freq==26?" selected":"")+'>Every 2 weeks</option><option value="24"'+(inc.freq==24?" selected":"")+'>Twice a month</option><option value="12"'+(inc.freq==12?" selected":"")+'>Monthly</option><option value="1"'+(inc.freq==1?" selected":"")+'>Every year</option>';
   var h='<div class="wzinc"><div class="wzcat-top"><input class="wzi-name" data-i="'+i+'" placeholder="Source name" value="'+esc(inc.name||"")+'" style="flex:1;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-family:inherit;font-size:14px;padding:8px 10px">'+(WZ.incomes.length>1?'<button type="button" class="bi-x wzi-x" data-i="'+i+'">✕</button>':'')+'</div>'+
-    '<div class="seg2 wzi-seg" data-i="'+i+'" style="margin-top:8px"><button data-t="paycheck" class="'+(inc.type==="paycheck"?"on":"")+'">Paycheck</button><button data-t="monthly" class="'+(inc.type==="monthly"?"on":"")+'">Monthly</button><button data-t="onetime" class="'+(inc.type==="onetime"?"on":"")+'">Once a year</button></div>';
+    '<div class="seg2 wzi-seg" data-i="'+i+'" style="margin-top:8px"><button data-t="paycheck" class="'+(inc.type==="paycheck"?"on":"")+'">Paycheck</button><button data-t="monthly" class="'+(inc.type==="monthly"?"on":"")+'">Monthly</button><button data-t="onetime" class="'+(inc.type==="onetime"?"on":"")+'">One-time</button></div>';
   if(inc.type==="paycheck"){
     h+='<div class="row"><label>How often</label><select class="wzi-freq" data-i="'+i+'">'+freqOpts+'</select></div>'+
        '<div class="row"><label>Per check</label><span class="mfield">$<input class="wzi-check money" data-i="'+i+'" inputmode="decimal" placeholder="0.00" value="'+esc(inc.perCheck)+'"></span></div>'+
@@ -2056,7 +2098,7 @@ function wizIncomeCard(inc,i){
   } else if(inc.type==="onetime"){
     h+='<div class="row"><label>Amount</label><span class="mfield">$<input class="wzi-annual money" data-i="'+i+'" inputmode="decimal" placeholder="0.00" value="'+esc(inc.annual)+'"></span></div>'+
        '<div class="row"><label>Which month</label><select class="wzi-month" data-i="'+i+'">'+monthOpts(inc.month||curMonth())+'</select></div>'+
-       '<div class="hintline" style="text-align:left;margin:2px 0 0">Lands once, in the month you pick — good for a bonus, tax refund, or a yearly gift.</div>';
+       '<div class="hintline" style="text-align:left;margin:2px 0 0">Lands once, in the month you pick — for a tax refund or a windfall you don’t expect to repeat. For a salary paid yearly, use <b>Paycheck ▸ Every year</b> instead so it spreads across the year.</div>';
   } else {
     h+='<div class="row"><label>Monthly take-home</label><span class="mfield">$<input class="wzi-monthly money" data-i="'+i+'" inputmode="decimal" placeholder="0.00" value="'+esc(inc.monthly)+'"></span></div>';
   }
@@ -2082,7 +2124,7 @@ async function wizCreate(){
   try{
     var sname=summaryName(),used={},rowByName={};state.cats.forEach(function(c){used[c.row]=1;rowByName[c.name.toLowerCase()]=c.row;});
     var nextRow=function(){for(var r=CAT_START;r<=CAT_END;r++){if(!used[r])return used[r]=1,r;}return 0;};
-    var data=[],clears=[],catOverflow=[],incOverflow=[],catNames={},keptCatRows={},renames=[];
+    var data=[],clears=[],catOverflow=[],incOverflow=[],catNames={},keptCatRows={},renames=[],ledgerRetag=[];
     WZ.cats.forEach(function(c){
       var nm=(c.name||"").trim();if(!nm)return;
       var cfg=wizCatCfg(c);
@@ -2093,6 +2135,8 @@ async function wizCreate(){
       var existRow=rowByName[key];
       var row=existRow||nextRow();if(!row){catOverflow.push(nm);return;}
       keptCatRows[row]=1;
+      // categories pulled into this itemized one: move their ledger entries under the final parent name
+      if(c._absorb&&c._absorb.length)c._absorb.forEach(function(s){Array.prototype.push.apply(ledgerRetag,absorbRetagData(s,nm));});
       var mv=monthsFor(cfg);
       data.push({range:"'"+sname+"'!A"+row,values:[[nm]]});
       BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+row,values:[[mv[i]]]});});
@@ -2121,6 +2165,7 @@ async function wizCreate(){
     if(!data.length&&!clears.length){msg.textContent=WZ.editMode?"Nothing to save.":"Nothing to create — pick some packs or use Suggest.";msg.className="msg bad";b.disabled=false;b.textContent=WZ.editMode?"Save changes":"Create budget";return;}
     if(clears.length)await vBatchClear(clears);
     if(data.length)await vBatchUpdate(data);
+    if(ledgerRetag.length)await vBatchUpdate(ledgerRetag);
     // rename → carry the logged transactions over to the new category name
     if(WZ.editMode&&renames.length){for(var ri=0;ri<renames.length;ri++){try{await retagLedgerName(renames[ri].from,renames[ri].to);}catch(e){}}}
     await writeMeta();await loadAll();
@@ -2821,6 +2866,13 @@ function catTypeUI(){
   if(t==="split")buildCover();
   if(t==="custom"&&!$("cm0"))buildMGrid("cGrid","cm");
   if(item){if(!BILLS.length)BILLS=[{name:"",amount:"",cadence:"Monthly",month:1,day:""}];renderBills();}
+  carryFieldUI();
+}
+// The "Banked before this year" field only applies to an existing category whose leftover rolls over (envelope/buffer).
+function carryFieldUI(){
+  var show=(catEdit&&catWizIdx<0&&bYear()===curYear()&&(($("cRoll").value==="envelope")||($("cRoll").value==="buffer")));
+  if($("cCarryRow"))$("cCarryRow").style.display=show?"flex":"none";
+  if($("cCarryHint"))$("cCarryHint").style.display=show?"block":"none";
 }
 var BILLS=[];
 function monthOpts(sel){sel=Number(sel)||1;var h="";for(var i=1;i<=12;i++)h+='<option value="'+i+'"'+(i===sel?" selected":"")+'>'+MONTHS[i-1]+'</option>';return h;}
@@ -2868,8 +2920,9 @@ function pullAddSelected(){
     if(!b.checked||b.disabled)return;
     var nm=b.getAttribute("data-n")||"",a=parseFloat(b.getAttribute("data-a"))||0;
     var blankFirst=(BILLS.length===1&&!BILLS[0].name&&(BILLS[0].amount===""||BILLS[0].amount==null)&&!(BILLS[0].months&&BILLS[0].months.length));
-    if(blankFirst)BILLS[0]={name:nm,amount:a,cadence:"Monthly",month:1,day:"",months:[]};
-    else BILLS.push({name:nm,amount:a,cadence:"Monthly",month:1,day:"",months:[]});
+    // _from marks a bill pulled from an existing category, so on save we move that category's ledger entries here and drop it as a standalone category.
+    if(blankFirst)BILLS[0]={name:nm,amount:a,cadence:"Monthly",month:1,day:"",months:[],_from:nm};
+    else BILLS.push({name:nm,amount:a,cadence:"Monthly",month:1,day:"",months:[],_from:nm});
     added++;
   });
   closeOv("pullOv");
@@ -2886,7 +2939,7 @@ function conTypeUI(){
   $("conMonthRow").style.display=(t==="onetime")?"flex":"none";
   $("conCustom").style.display=(t==="custom")?"block":"none";
   $("conAmtLbl").textContent=(t==="paycheck")?"Take-home per check":(t==="onetime")?"Amount":"Amount per month";
-  var fw={52:"weekly",26:"every 2 weeks",24:"twice a month",12:"monthly"}[Number($("conFreq").value)]||"";
+  var fw={52:"weekly",26:"every 2 weeks",24:"twice a month",12:"monthly",1:"yearly"}[Number($("conFreq").value)]||"";
   var hints={paycheck:"Enter one paycheck; the app averages it across the year ("+fw+").",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
   $("conHint").textContent=hints[t]||"";
   if(t==="custom"&&!$("nm0"))buildMGrid("conGrid","nm");
@@ -3194,6 +3247,20 @@ async function retagLedgerName(oldName,newName){
   state.rows.forEach(function(r,idx){var row=idx+2;if((""+((r&&r[4])||"")).trim().toLowerCase()===ol)data.push({range:LEDGER+"!E"+row,values:[[newName]]});if((""+((r&&r[5])||"")).trim().toLowerCase()===ol)data.push({range:LEDGER+"!F"+row,values:[[newName]]});});
   if(data.length)await vBatchUpdate(data);
   return data.length;
+}
+// Ledger writes to fold a category's entries into an itemized parent: set the entry's category (col E) to the
+// parent, and stamp the old name into the bill/company column (col F) when it's empty, so the entry stays
+// identifiable as that bill. Mirrors foldCategory. Returns the batch-update data (does not send it).
+function absorbRetagData(source,parent){
+  var sl=(""+source).toLowerCase(),data=[];
+  state.rows.forEach(function(r,idx){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(e===sl){var row=idx+2;data.push({range:LEDGER+"!E"+row,values:[[parent]]});if(!(""+((r&&r[5])||"")).trim())data.push({range:LEDGER+"!F"+row,values:[[source]]});}});
+  return data;
+}
+// Source category names pulled into the itemized list this editing session (from BILLS._from), excluding the parent itself.
+function pulledSources(parentName){
+  var pl=(""+parentName).toLowerCase(),seen={},out=[];
+  (BILLS||[]).forEach(function(b){if(b&&b._from){var s=(""+b._from).trim();var k=s.toLowerCase();if(!s||k===pl||seen[k])return;seen[k]=1;out.push(s);}});
+  return out;
 }
 async function removeGoal(name){
   if(!await askConfirm({title:"Remove goal "+name+"?",msg:"Money you already moved in stays logged in your spreadsheet — this just stops tracking it as a goal.",ok:"Remove",danger:true}))return;
@@ -3506,7 +3573,10 @@ function openCatEdit(name){
   catEdit=name;
   $("catOvTitle").textContent="Edit category";$("catAddBtn").textContent="Save changes";$("catMsg").textContent="";$("catMsg").className="msg";$("cLYBtn").style.display="none";
   prefillCatForm(name,cfg);
-  openOv("catOv");
+  // Prefill "Banked before this year" with the saved override, or our computed estimate, for the current year only.
+  var carryShown=(bYear()===curYear());
+  $("cCarry").value=carryShown?String(r2(carryInFor(name))):"";
+  openOv("catOv",carryFieldUI);
 }
 async function addCat(){
   var name=$("cName").value.trim();var msg=$("catMsg");msg.className="msg";
@@ -3515,10 +3585,13 @@ async function addCat(){
   if(catWizIdx>=0){
     var dcfg=readCatCfg();
     if(annualOf(dcfg)<=0&&dcfg.type!=="itemized"){msg.textContent="Enter an amount for this category.";msg.className="msg bad";return;}
+    var absorbW=(dcfg.type==="itemized")?pulledSources(name):[];
     var it=WZ.cats[catWizIdx];if(it){it.name=name;it.roll=(dcfg.roll==="envelope"||dcfg.roll==="buffer")?dcfg.roll:"none";
-      if(dcfg.type==="monthly"){it.amount=Number(dcfg.amount)||0;delete it.cfg;delete it.itemized;}
-      else{it.cfg=dcfg;it.itemized=(dcfg.type==="itemized"?(dcfg.items||[]):null);}}
+      if(dcfg.type==="monthly"){it.amount=Number(dcfg.amount)||0;delete it.cfg;delete it.itemized;delete it._absorb;}
+      else{it.cfg=dcfg;it.itemized=(dcfg.type==="itemized"?(dcfg.items||[]):null);if(absorbW.length)it._absorb=absorbW;else delete it._absorb;}}
     var wi=catWizIdx;catWizIdx=-1;
+    // the pulled-in categories now live as bills inside this itemized category — drop them as standalone rows
+    if(absorbW.length){var dropW={};absorbW.forEach(function(s){dropW[s.toLowerCase()]=1;});WZ.cats=WZ.cats.filter(function(c,idx){return idx===wi||!dropW[(""+(c.name||"")).toLowerCase()];});}
     $("cName").value="";$("cAmt").value="";$("cRoll").value="none";BILLS=[];$("cType").value="monthly";catTypeUI();
     closeOv("catOv");renderWizard();return;
   }
@@ -3527,6 +3600,7 @@ async function addCat(){
   if((!catEdit||isRename)&&state.cats.some(function(c){return c.name.toLowerCase()===name.toLowerCase();})){msg.textContent="You already have that category.";msg.className="msg bad";return;}
   var cfg=readCatCfg();var mv=monthsFor(cfg);
   if(annualOf(cfg)<=0){msg.textContent="Enter an amount for this category.";msg.className="msg bad";return;}
+  var absorbL=(cfg.type==="itemized")?pulledSources(name):[];
   var b=$("catAddBtn");b.disabled=true;b.textContent="Saving…";
   var sname=summaryName();
   var row;
@@ -3535,8 +3609,27 @@ async function addCat(){
   try{
     var data=[{range:"'"+sname+"'!A"+row,values:[[name]]}];
     BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+row,values:[[mv[i]]]});});
+    // fold pulled-in categories: move their ledger entries under this category, then drop them as standalone rows
+    var foldClears=[];
+    absorbL.forEach(function(s){
+      var srcC=state.cats.filter(function(x){return x.name.toLowerCase()===s.toLowerCase();})[0];
+      if(!srcC||srcC.row===row)return;
+      Array.prototype.push.apply(data,absorbRetagData(s,name));
+      foldClears.push("'"+sname+"'!A"+srcC.row);BUDCOLS.forEach(function(col){foldClears.push("'"+sname+"'!"+col+srcC.row);});
+      delete state.meta.cats[s.toLowerCase()];
+    });
     await vBatchUpdate(data);
+    if(foldClears.length)await vBatchClear(foldClears);
     if(catEdit&&isRename){delete state.meta.cats[catEdit.toLowerCase()];await retagLedgerName(catEdit,name);}
+    // Persist the "Banked before this year" override for a rollover category (edit mode, current year only).
+    if(!state.meta.carry)state.meta.carry={};
+    if(catEdit&&isRename)delete state.meta.carry[catEdit.toLowerCase()];
+    absorbL.forEach(function(s){delete state.meta.carry[s.toLowerCase()];});
+    if(catEdit&&bYear()===curYear()&&(cfg.roll==="envelope"||cfg.roll==="buffer")){
+      var cv=(""+($("cCarry").value||"")).trim();
+      if(cv==="")delete state.meta.carry[name.toLowerCase()];
+      else state.meta.carry[name.toLowerCase()]=r2(parseFloat(cv.replace(/[^0-9.\-]/g,""))||0);
+    }else{delete state.meta.carry[name.toLowerCase()];}
     state.meta.cats[name.toLowerCase()]=cfg;await writeMeta();
     catEdit=null;$("catOvTitle").textContent="Add category";$("catAddBtn").textContent="Add category";
     $("cName").value="";$("cAmt").value="";$("cRoll").value="none";BILLS=[];$("cType").value="monthly";catTypeUI();closeOv("catOv");
@@ -3632,7 +3725,8 @@ function wire(){
   $("conAddBtn").addEventListener("click",addCon);
   $("goalAddBtn").addEventListener("click",addGoal);
   if($("gtxOk"))$("gtxOk").addEventListener("click",gtxSubmit);
-  $("catAddOpen").addEventListener("click",function(){catEdit=null;$("catOvTitle").textContent="Add category";$("catAddBtn").textContent="Add category";$("catMsg").textContent="";$("cName").value="";$("cAmt").value="";$("cRoll").value="none";BILLS=[];$("cType").value="monthly";$("cLYBtn").style.display="none";openOv("catOv",catTypeUI);});
+  $("catAddOpen").addEventListener("click",function(){catEdit=null;$("catOvTitle").textContent="Add category";$("catAddBtn").textContent="Add category";$("catMsg").textContent="";$("cName").value="";$("cAmt").value="";$("cRoll").value="none";$("cCarry").value="";BILLS=[];$("cType").value="monthly";$("cLYBtn").style.display="none";openOv("catOv",catTypeUI);});
+  if($("cRoll"))$("cRoll").addEventListener("change",carryFieldUI);
   $("conAddOpen").addEventListener("click",function(){conEdit=null;$("conOvTitle").textContent="Add income line";$("conAddBtn").textContent="Add source";$("conMsg").textContent="";$("conName").value="";$("conAmt").value="";$("conType").value="paycheck";conPayMode="pct";openOv("conOv",conTypeUI);});
   $("gResidual").addEventListener("change",function(){$("gResPctRow").style.display=this.checked?"flex":"none";});
   $("goalAddOpen").addEventListener("click",function(){gEdit=null;$("goalOvTitle").textContent="Add goal";$("goalAddBtn").textContent="Add goal";$("goalMsg").textContent="";$("gName").value="";$("gTarget").value="";$("gDate").value="";$("gMonthly").value="";$("gNote").value="";$("gLocked").checked=false;$("gHistory").innerHTML="";fillGoalAccount("");fillGoalCategory("");fillGoalDebt("");$("gResidual").checked=false;$("gResidualPct").value="";$("gStart").value="";$("gResPctRow").style.display="none";$("gMonthly").placeholder="auto from target + date";openOv("goalOv",goalAutoHint);});
@@ -3683,7 +3777,7 @@ function wire(){
   Array.prototype.forEach.call(document.querySelectorAll("#stModeSeg button"),function(b){b.addEventListener("click",function(){state._stMode=this.getAttribute("data-sm");renderStress();renderFeas();});});
   $("stStart").addEventListener("input",function(){var v=parseFloat(this.value.replace(/[^0-9.\-]/g,""))||0;state.meta.startCash=v;renderStress();clearTimeout(window._stT);window._stT=setTimeout(function(){writeMeta();},800);});
   Array.prototype.forEach.call(document.querySelectorAll("#themeSeg button"),function(b){b.addEventListener("click",function(){applyTheme(this.getAttribute("data-th"));Array.prototype.forEach.call(document.querySelectorAll("#themeSeg button"),function(x){x.classList.toggle("on",x===b);});});});
-  ["fAmount","dAmount","cAmt","gTarget"].forEach(function(id){var el=$(id);if(el)el.addEventListener("blur",function(){fmtAmtBlur(this);});});
+  ["fAmount","dAmount","cAmt","gTarget","cCarry"].forEach(function(id){var el=$(id);if(el)el.addEventListener("blur",function(){fmtAmtBlur(this);});});
   $("nwUpdateOpen").addEventListener("click",openNWUpdate);
   $("nwApply").addEventListener("click",applyNW);
   if($("reconSave"))$("reconSave").addEventListener("click",saveReconcile);
