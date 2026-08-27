@@ -311,10 +311,16 @@ try{
   #reconnBar{position:fixed;left:0;right:0;bottom:0;z-index:9997;background:#9A6212;color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14.5px;font-family:inherit}
   #reconnBar .rcm{flex:1;font-weight:600}
   #reconnNow{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 16px;background:#fff;color:#7a4d0e}
-  #tidyBar{position:fixed;left:0;right:0;bottom:0;z-index:9996;background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14px;font-family:inherit}
-  #tidyBar .rcm{flex:1;font-weight:600}
-  #tidyNow{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px;background:#fff;color:#215E44}
-  #tidyX{background:transparent;border:0;color:#fff;padding:8px 10px;font-size:16px;cursor:pointer;opacity:.9}
+  #tidyBar,#pullInBar{position:fixed;left:0;right:0;bottom:0;z-index:9996;background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14px;font-family:inherit}
+  #tidyBar .rcm,#pullInBar .rcm{flex:1;font-weight:600}
+  #tidyNow,#pullNow{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px;background:#fff;color:#215E44}
+  #tidyX,#pullX{background:transparent;border:0;color:#fff;padding:8px 10px;font-size:16px;cursor:pointer;opacity:.9}
+  .pin-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+  .pin-row .pin-chk{width:20px;height:20px;flex:0 0 auto;accent-color:var(--green)}
+  .pin-row .pin-name{flex:1;font-weight:600;color:var(--ink);cursor:pointer;word-break:break-word}
+  .pin-sugg{flex:0 0 auto;border:1px solid var(--line);background:var(--soft);color:var(--ink2);border-radius:999px;padding:5px 11px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .pin-sugg.on{background:var(--green);border-color:var(--green);color:#fff}
+  .pin-nohist{flex:0 0 auto;color:var(--ink2);font-size:12px;opacity:.7}
   .pickbtn{flex:1;min-width:0;text-align:left;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-family:inherit;font-size:15px;padding:11px 12px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pickbtn.placeholder{color:#9fb0a4}
   .pickcard{max-height:92vh;display:flex;flex-direction:column;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
@@ -454,6 +460,7 @@ try{
       <button type="button" class="gbtn" id="budLastYearBtn" style="margin-top:8px;width:100%;display:none">📅 Budget from last year&rsquo;s spending</button>
       <button type="button" class="gbtn" id="combineBtn" style="margin-top:8px;width:100%;display:none">⤳ Combine categories into one</button>
       <button type="button" class="gbtn" id="wizEditOpen" style="margin-top:8px;width:100%;display:none">✨ Adjust budget &amp; income in setup</button>
+      <button type="button" class="gbtn" id="budPullBtn" style="margin-top:8px;width:100%;display:none">⤵ Pull logged names into budget</button>
     </div>
     <div class="card" id="contCard"><p class="eyebrow">Contingency &amp; envelopes</p><div id="contBody"><div class="empty">Set a category's leftover to <b>Stays here</b> or <b>Contingency buffer</b> to start banking unspent money.</div></div></div>
     <div class="card">
@@ -612,7 +619,6 @@ try{
   </div>
 
   <div class="foot">NestWorth - Build <span id="bldVer"></span> &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
-  <div class="foot" id="vpDiag" style="font-size:11px;line-height:1.35;opacity:.85;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word"></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -624,6 +630,12 @@ try{
   </nav>
 </div>
 
+<div id="pullInOv" class="ov" style="display:none;z-index:73"><div class="ovcard pickcard">
+  <div class="ovhdr" style="margin-bottom:2px"><span>Pull into budget</span><button class="pickdone" id="pullInClose" type="button">Close</button></div>
+  <div class="hintline" style="text-align:left;margin:0 0 8px">These are names you've logged that aren't in your budget yet. They'll be added unbudgeted — tap a suggestion to use that amount, or set amounts later.</div>
+  <div id="pullInBody" class="pickbody"></div>
+  <button class="addbtn" id="pullInApply" type="button" style="margin-top:10px">Add to budget</button>
+</div></div>
 <div id="catPickOv" class="ov" style="display:none;z-index:71"><div class="ovcard pickcard">
   <div class="ovhdr" style="margin-bottom:2px"><span>Category</span><button class="pickdone" id="catPickDone" type="button">Done</button></div>
   <input id="catPickSearch" class="picksearch" placeholder="Search" autocomplete="off">
@@ -903,6 +915,18 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.11.1 — Aug 27, 2026 · Build 20260827.10
+//     • Parity: typed-in (ad-hoc) categories and income sources now also appear in the Google Sheet's OWN dropdowns, not
+//       just the app — the sheet dropdown source lists include names used in the ledger, refreshed right after you log one.
+//   v0.11.0 — Aug 27, 2026 · Build 20260827.9
+//     • Capture now, organize later: log expenses/deposits with a brand-new typed category or income source WITHOUT a
+//       budget. In the category picker, "➕ Use ‘X’ as a new category"; on the deposit form, "＋ New source…". Typed names
+//       are reusable in the pickers right away.
+//     • Pull into budget: a banner appears when you've logged names that aren't budgeted, AND a "Pull logged names into
+//       budget" button lives on the Budget tab. Review screen adds them unbudgeted ($0); each shows a ~$/mo suggestion
+//       from your history off to the side that you can tap to apply.
+//   v0.10.5 — Aug 27, 2026 · Build 20260827.8
+//     • Removed the temporary viewport diagnostic from the footer (iOS tab-bar gap confirmed fixed by the default status bar)
 //   v0.10.4 — Aug 27, 2026 · Build 20260827.7
 //     • iOS tab-bar gap FIX: switched the status-bar style from black-translucent to default. black-translucent made iOS
 //       shrink the standalone viewport by the top inset but anchor it at the top, leaving a ~59px dead strip at the bottom
@@ -927,8 +951,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.10.4"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.7"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.11.1"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.10"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -2282,7 +2306,7 @@ function adoptSheetItemized(){
 }
 // Recompute everything derivable from the in-memory ledger WITHOUT any network calls — used after a local add/edit/delete
 // so a single transaction doesn't refetch the whole (potentially years-long) ledger. Budgets/NW come from the last full load.
-function refreshLocal(){try{buildIndexes();applyBudgetSpend();loadGoals();renderAll();}catch(e){}}
+function refreshLocal(){try{buildIndexes();applyBudgetSpend();loadGoals();renderAll();}catch(e){}try{syncDropdowns();}catch(e){}} // push any newly-typed category/source into the sheet's own dropdown too (no-op when unchanged)
 // Like refreshLocal, but if the written row is in a PRIOR year, also recompute carry-in (a network read) since a
 // back-dated transaction changes this year's envelope carry-over. Current-year writes stay fully local.
 async function syncAfterWrite(affectedYear){if(affectedYear&&Number(affectedYear)<curYear()){try{await loadAll();renderAll();}catch(e){}}else{refreshLocal();}}
@@ -2325,12 +2349,14 @@ async function ensureLedgerTable(lastRow){
 var _ddSig=null;
 function ddList(){
   var seen={},cats=["Deposit"];seen.deposit=1;
-  (state.cats||[]).forEach(function(c){
-    var nm=(""+c.name).trim();if(nm&&!seen[nm.toLowerCase()]){seen[nm.toLowerCase()]=1;cats.push(nm);}
-    catBills(c.name).forEach(function(b){var bn=(""+b).trim();if(bn&&!seen[bn.toLowerCase()]){seen[bn.toLowerCase()]=1;cats.push(bn);}});
-  });
+  function addCat(nm){nm=(""+nm).trim();if(nm&&!seen[nm.toLowerCase()]){seen[nm.toLowerCase()]=1;cats.push(nm);}}
+  (state.cats||[]).forEach(function(c){addCat(c.name);catBills(c.name).forEach(addCat);});
+  // Also every category already typed into the ledger (ad-hoc, not yet budgeted) so the SHEET's own dropdown matches the app's.
+  try{ledgerCatsUsed().forEach(addCat);}catch(e){}
   var cs={},cons=[];
-  (state.cons||[]).forEach(function(c){var nm=(""+c.name).trim();if(nm&&!cs[nm.toLowerCase()]){cs[nm.toLowerCase()]=1;cons.push(nm);}});
+  function addCon(nm){nm=(""+nm).trim();if(nm&&!cs[nm.toLowerCase()]){cs[nm.toLowerCase()]=1;cons.push(nm);}}
+  (state.cons||[]).forEach(function(c){addCon(c.name);});
+  try{ledgerSourcesUsed().forEach(addCon);}catch(e){} // ad-hoc income sources too
   return {cats:cats,cons:cons};
 }
 async function syncDropdowns(force){
@@ -3329,27 +3355,144 @@ function fillCatSelect(){updateCatBtn();} // called by renderAll — just refres
 function setCategory(name){if($("fCategory"))$("fCategory").value=name||"";updateCatBtn();try{renderCatTbl();}catch(e){}try{renderRecent();}catch(e){}}
 function updateCatBtn(){var btn=$("fCatBtn");if(!btn)return;var v=(($("fCategory")&&$("fCategory").value)||"").trim();if(v){btn.textContent=v;btn.classList.remove("placeholder");}else{btn.textContent="Choose a category…";btn.classList.add("placeholder");}}
 function openCatPicker(){if($("catPickSearch"))$("catPickSearch").value="";renderCatPicker("");openOv("catPickOv");setTimeout(function(){try{$("catPickSearch").focus();}catch(e){}},80);}
+// Distinct expense-category names already used in the ledger (excludes deposits + goals). Lets typed-in categories be
+// reused before they're ever added to a budget — "capture now, organize later".
+function ledgerCatsUsed(){
+  var seen={},out=[];
+  (state.rows||[]).forEach(function(r){
+    var e=(""+((r&&r[4])||"")).trim();if(!e)return;var el=e.toLowerCase();
+    if(el==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;
+    if(!seen[el]){seen[el]=1;out.push(e);}
+  });
+  return out;
+}
+// Distinct deposit-source names already used in the ledger — same "reuse a typed name" idea, for income.
+function ledgerSourcesUsed(){
+  var seen={},out=[];
+  (state.rows||[]).forEach(function(r){
+    if(!r||(""+((r[4])||"")).trim().toLowerCase()!=="deposit")return;
+    var s=(""+((r[3])||"")).trim();if(!s)return;var sl=s.toLowerCase();
+    if(!seen[sl]){seen[sl]=1;out.push(s);}
+  });
+  return out;
+}
+// A suggested monthly amount for a name from what's already in the ledger: total ÷ the number of distinct months it appears.
+function ledgerMonthlySuggest(name,isSource){
+  var nl=(""+name).toLowerCase(),tot=0,mset={};
+  (state.rows||[]).forEach(function(r){
+    if(!r)return;var ok;
+    if(isSource)ok=(""+((r[4])||"")).trim().toLowerCase()==="deposit"&&(""+((r[3])||"")).trim().toLowerCase()===nl;
+    else ok=(""+((r[4])||"")).trim().toLowerCase()===nl;
+    if(!ok)return;
+    tot+=Math.abs(Number(r[6])||0);
+    var y=Number(r[0]),m=Number(r[1]);if(y>=2000&&m>=1&&m<=12)mset[y*100+m]=1;
+  });
+  return r2(tot/(Object.keys(mset).length||1));
+}
+// Everything the ledger has used that ISN'T in the budget yet — the candidates for "pull into budget".
+function ledgerUnbudgeted(){
+  var budCat={};(state.cats||[]).forEach(function(c){budCat[c.name.toLowerCase()]=1;catBills(c.name).forEach(function(b){budCat[(""+b).toLowerCase()]=1;});});
+  var budSrc={};(state.cons||[]).forEach(function(c){budSrc[c.name.toLowerCase()]=1;});
+  return {
+    cats:ledgerCatsUsed().filter(function(n){return !budCat[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,false)};}),
+    sources:ledgerSourcesUsed().filter(function(n){return !budSrc[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,true)};})
+  };
+}
+function pullInCount(){try{var u=ledgerUnbudgeted();return u.cats.length+u.sources.length;}catch(e){return 0;}}
+function pinRow(t,o){
+  var sugg=(o.sugg>0.005)?('<button type="button" class="pin-sugg" data-amt="'+o.sugg+'">~'+money(o.sugg)+'/mo</button>'):'<span class="pin-nohist">—</span>';
+  return '<div class="pin-row"><input type="checkbox" class="pin-chk" data-t="'+t+'" data-n="'+esc(o.name)+'" checked><span class="pin-name">'+esc(o.name)+'</span>'+sugg+'</div>';
+}
+function renderPullIn(){
+  var u=ledgerUnbudgeted(),body=$("pullInBody");if(!body)return;var h="";
+  if(!u.cats.length&&!u.sources.length){h='<div class="pickempty">Nothing to pull in — everything you\'ve logged is already in your budget.</div>';if($("pullInApply"))$("pullInApply").style.display="none";}
+  else{
+    if($("pullInApply"))$("pullInApply").style.display="";
+    if(u.cats.length){h+='<div class="picksec">Categories</div>';u.cats.forEach(function(o){h+=pinRow("cat",o);});}
+    if(u.sources.length){h+='<div class="picksec">Income sources</div>';u.sources.forEach(function(o){h+=pinRow("src",o);});}
+  }
+  body.innerHTML=h;
+  Array.prototype.forEach.call(body.querySelectorAll(".pin-name"),function(nm){nm.addEventListener("click",function(){var chk=this.parentNode.querySelector(".pin-chk");if(chk)chk.checked=!chk.checked;});});
+  Array.prototype.forEach.call(body.querySelectorAll(".pin-sugg"),function(s){s.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();this.classList.toggle("on");});});
+}
+function openPullIn(){renderPullIn();openOv("pullInOv");}
+// Create budget lines for the checked names. Each starts at $0 UNLESS its suggestion chip was tapped (then it uses that monthly).
+async function applyPullIn(){
+  var body=$("pullInBody");if(!body)return;var picks=[];
+  Array.prototype.forEach.call(body.querySelectorAll(".pin-chk"),function(chk){
+    if(!chk.checked)return;
+    var row=chk.parentNode,sb=row&&row.querySelector(".pin-sugg.on");
+    picks.push({t:chk.getAttribute("data-t"),name:chk.getAttribute("data-n"),amt:sb?(Number(sb.getAttribute("data-amt"))||0):0});
+  });
+  if(!picks.length){closeOv("pullInOv");return;}
+  var btn=$("pullInApply");btn.disabled=true;btn.textContent="Adding…";
+  var sname=summaryName();
+  try{
+    await detectLayout(sname);
+    for(var i=0;i<picks.length;i++){
+      var p=picks[i],which=(p.t==="cat")?"cat":"con",map=(p.t==="cat")?state.meta.cats:state.meta.cons;
+      if(map&&map[p.name.toLowerCase()])continue; // already added
+      var already=((p.t==="cat"?state.cats:state.cons)||[]).some(function(x){return x.name.toLowerCase()===p.name.toLowerCase();});
+      if(already)continue;
+      var start=(which==="cat")?CAT_START:CON_START,end=(which==="cat")?CAT_END:CON_END;
+      var row=await claimRow(sname,start,end,p.name,which);if(!row)continue;
+      await detectLayout(sname); // section may have grown
+      var cfg={type:"monthly",amount:p.amt},mv=monthsFor(cfg),data=[{range:"'"+sname+"'!A"+row,values:[[p.name]]}];
+      BUDCOLS.forEach(function(col,j){data.push({range:"'"+sname+"'!"+col+row,values:[[mv[j]]]});});
+      await vBatchUpdate(data);
+      map[p.name.toLowerCase()]=cfg;
+    }
+    await writeMeta();
+    closeOv("pullInOv");
+    await loadAll();renderAll();
+    try{await syncDropdowns(true);}catch(e){}
+  }catch(e){}
+  btn.disabled=false;btn.textContent="Add to budget";
+}
+// Gentle one-time banner offering to pull unbudgeted ledger names into the budget.
+var _pullOffered=false,_pullDismissed=false;
+function maybeOfferPullIn(){
+  if(_pullOffered||_pullDismissed||document.getElementById("pullInBar"))return;
+  if(!$("appScreen")||!$("appScreen").classList.contains("on"))return;
+  try{if(pullInCount()>0){_pullOffered=true;showPullBar();}}catch(e){}
+}
+function showPullBar(){
+  if(document.getElementById("pullInBar"))return;var n=pullInCount();if(!n)return;
+  var bar=document.createElement("div");bar.id="pullInBar";
+  bar.innerHTML='<span class="rcm">'+n+(n===1?' name you\'ve logged isn\'t':' names you\'ve logged aren\'t')+' in your budget yet.</span><button id="pullNow" type="button">Add to budget</button><button id="pullX" type="button" aria-label="Dismiss">✕</button>';
+  document.body.appendChild(bar);try{var _tb=document.getElementById("tabbar");if(_tb)bar.style.bottom=_tb.offsetHeight+"px";}catch(e){}
+  document.getElementById("pullNow").addEventListener("click",function(){var bb=document.getElementById("pullInBar");if(bb)bb.remove();openPullIn();});
+  document.getElementById("pullX").addEventListener("click",function(){_pullDismissed=true;var bb=document.getElementById("pullInBar");if(bb)bb.remove();});
+}
 function renderCatPicker(q){
-  q=(""+(q||"")).trim().toLowerCase();var body=$("catPickBody");if(!body)return;
+  var raw=(""+(q||"")).trim();q=raw.toLowerCase();var body=$("catPickBody");if(!body)return;
   var match=function(s){return !q||(""+s).toLowerCase().indexOf(q)>=0;};
+  // budget categories PLUS any category already typed into the ledger (not yet budgeted) so it's reusable
+  var budgeted={};state.cats.forEach(function(c){budgeted[c.name.toLowerCase()]=1;});
   var names=state.cats.map(function(c){return c.name;});
+  ledgerCatsUsed().forEach(function(n){if(!budgeted[n.toLowerCase()])names.push(n);});
   var h="";var any=false;
   // Shortcut: log this spend as money pulled FROM a savings goal (a goal withdrawal), like the old app.
   var goals=(state.goals||[]).filter(function(g){return g&&g.name;});
   if(goals.length&&!q)h+='<button type="button" class="pickgoal" id="pickGoalBtn">🎯 Take money from a goal ›</button>';
-  if(!names.length){body.innerHTML=h+'<div class="pickempty">No categories yet. <button type="button" class="pickchip" id="pickToBudget" style="margin-top:8px">➕ Set them up in Budget</button></div>';wirePicker();return;}
+  // "use what you typed" — log against a brand-new category name without setting up a budget first
+  var isBill=false;state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.some(function(it){return it.name&&it.name.toLowerCase()===q;}))isBill=true;});
+  var exact=names.some(function(n){return n.toLowerCase()===q;})||isBill||q==="deposit"||goals.some(function(g){return g.name.toLowerCase()===q;});
+  if(raw&&!exact)h+='<button type="button" class="pickchip pick-new" data-n="'+esc(raw)+'" style="width:100%;margin-bottom:10px">➕ Use &ldquo;'+esc(raw)+'&rdquo; as a new category</button>';
+  if(!names.length){body.innerHTML=h+(raw?'':'<div class="pickempty">Type a category name to start — you can build its budget later.</div>');wirePicker();return;}
   var top=topCats().filter(function(n){return names.indexOf(n)>=0&&match(n);});
   if(top.length){any=true;h+='<div class="picksec">Frequent</div><div class="pickchips">';top.forEach(function(n){h+='<button type="button" class="pickchip pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button>';});h+='</div>';}
   var all=names.slice().sort(function(a,b){return a.toLowerCase()<b.toLowerCase()?-1:1;}).filter(match);
   if(all.length){any=true;h+='<div class="picksec">All</div><div class="pickgrid">';all.forEach(function(n){h+='<button type="button" class="picktile pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button>';});h+='</div>';}
   state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items){var bills=cfg.items.filter(function(it){return it.name&&match(it.name);});if(bills.length){any=true;h+='<div class="picksec">'+esc(c.name)+' bills</div><div class="pickgrid">';bills.forEach(function(it){h+='<button type="button" class="picktile bill pick-bill" data-c="'+esc(c.name)+'" data-b="'+esc(it.name)+'">'+esc(it.name)+'</button>';});h+='</div>';}}});
-  if(!any)h+='<div class="pickempty">No matches for “'+esc(q)+'”.</div>';
+  if(!any&&!raw)h+='<div class="pickempty">No categories yet.</div>';
   h+='<div style="height:10px"></div><button type="button" class="pickchip" id="pickToBudget" style="width:100%">➕ Add / manage in Budget</button>';
   body.innerHTML=h;wirePicker();
 }
 function wirePicker(){
   var body=$("catPickBody");if(!body)return;
   Array.prototype.forEach.call(body.querySelectorAll(".pick-cat"),function(b){b.addEventListener("click",function(){setCategory(this.getAttribute("data-n"));closeOv("catPickOv");});});
+  Array.prototype.forEach.call(body.querySelectorAll(".pick-new"),function(b){b.addEventListener("click",function(){setCategory(this.getAttribute("data-n"));closeOv("catPickOv");});});
   Array.prototype.forEach.call(body.querySelectorAll(".pick-bill"),function(b){b.addEventListener("click",function(){var c=this.getAttribute("data-c"),bl=this.getAttribute("data-b");if($("fCompany")&&!$("fCompany").value.trim())$("fCompany").value=bl||"";setCategory(c);closeOv("catPickOv");});});
   var pb=$("pickToBudget");if(pb)pb.addEventListener("click",function(){closeOv("catPickOv");switchView("budget");});
   var gb=$("pickGoalBtn");if(gb)gb.addEventListener("click",renderGoalSubPicker);
@@ -3705,6 +3848,7 @@ function renderCats(){
   var el=$("catList"),cats=state.cats;
   if($("wizCard"))$("wizCard").style.display=cats.length?"none":"block";
   if($("wizEditOpen"))$("wizEditOpen").style.display=cats.length?"block":"none";
+  if($("budPullBtn")){var _pn=pullInCount();$("budPullBtn").style.display=_pn?"block":"none";$("budPullBtn").textContent="⤵ Pull "+_pn+" logged "+(_pn===1?"name":"names")+" into budget";}
   if($("budLastYearBtn"))$("budLastYearBtn").style.display=(cats.length&&hasPriorYearData())?"block":"none";
   if($("combineBtn"))$("combineBtn").style.display=(cats.length>=2)?"block":"none";
   // Hide the analysis/contingency cards until there's something to analyze — keeps the Budget tab clean for new users
@@ -4159,10 +4303,16 @@ function fillCompanyList(){var dl=$("complist2");if(!dl)return;var seen={},out=[
 function fillPayeeSource(){
   var cons=state.cons.map(function(c){return c.name;});
   var pay=$("fPayee");if(pay){var cur=pay.value;var names=((state.meta&&state.meta.payees&&state.meta.payees.length)?state.meta.payees.slice():["Me"]);pay.innerHTML=names.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur&&names.indexOf(cur)>=0)pay.value=cur;}
-  var src=$("dSource");if(src){var cur2=src.value;if(!cons.length){src.innerHTML='<option value="">No income sources yet…</option><option value="__budget__">＋ Add income line in Budget</option>';}else{src.innerHTML=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur2&&cons.indexOf(cur2)>=0)src.value=cur2;}}
+  var src=$("dSource");if(src){var cur2=src.value;
+    // budget income lines PLUS any source already typed into the ledger (not yet budgeted) so it's reusable, then "＋ New source…"
+    var slist=cons.slice();var sseen={};cons.forEach(function(n){sseen[n.toLowerCase()]=1;});
+    ledgerSourcesUsed().forEach(function(n){if(!sseen[n.toLowerCase()]){sseen[n.toLowerCase()]=1;slist.push(n);}});
+    if(cur2&&cur2!=="__new__"&&!sseen[cur2.toLowerCase()])slist.unshift(cur2); // keep a just-typed ad-hoc source selectable
+    var opts=(slist.length?'':'<option value="">Choose or add a source…</option>')+slist.map(function(n){return '<option>'+esc(n)+'</option>';}).join("")+'<option value="__new__">＋ New source…</option>';
+    src.innerHTML=opts;if(cur2&&cur2!=="__new__")src.value=cur2;}
   var esrc=$("edSource");if(esrc){var cur3=esrc.value;var h=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur3&&cons.indexOf(cur3)<0)h='<option>'+esc(cur3)+'</option>'+h;esrc.innerHTML=h;if(cur3)esrc.value=cur3;}
 }
-function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();}
+function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();maybeOfferPullIn();}
 // One-time-per-load offer to fix a ledger whose rows were stranded near the bottom of the sheet (by Google's append on a Table).
 var _tidyOffered=false;
 function maybeOfferTidy(){
@@ -4296,7 +4446,7 @@ async function addEntry(){
 async function addDeposit(){
   var src=$("dSource").value.trim();var company=$("dCompany").value.trim(),ddesc=$("dDesc").value.trim();
   var amt=parseFloat($("dAmount").value.replace(/[^0-9.\-]/g,""));var date=$("dDate").value;var msg=$("addMsg");msg.className="msg";
-  if(!src||src==="__budget__"){msg.textContent="Pick a source. Add income lines on the Budget tab first.";msg.className="msg bad";return;}
+  if(!src||src==="__budget__"||src==="__new__"){msg.textContent="Choose a source, or add a new one.";msg.className="msg bad";return;}
   if(!amt||amt<=0){msg.textContent="Enter an amount.";msg.className="msg bad";return;}
   if(!date){msg.textContent="Pick a date.";msg.className="msg bad";return;}
   var y=+date.slice(0,4),m=+date.slice(5,7);
@@ -4305,13 +4455,12 @@ async function addDeposit(){
   try{
     var dvals=[d.getFullYear(),d.getMonth()+1,date,src,"Deposit",company,amt,ddesc,""];
     var res=await vappend(LEDGER+"!A:I",[dvals]);var row=appendedRow(res);
-    var newCon=false;
-    if(!state.cons.some(function(c){return c.name.toLowerCase()===src.toLowerCase();})){
-      try{ var crow=await claimRow(summaryName(y),CON_START,CON_END,src,"con");if(crow)newCon=true; }catch(e){} // add the source to the DEPOSIT's year, safely against concurrent adds
-    }
+    // A brand-new source is captured to the ledger only — it isn't forced into the budget. It becomes reusable in the source
+    // dropdown right away and can be pulled into the budget later (banner / Budget tab), like a typed-in category.
+    var newCon=!state.cons.some(function(c){return c.name.toLowerCase()===src.toLowerCase();});
     $("dSource").value="";$("dAmount").value="";$("dCompany").value="";$("dDesc").value="";
     localRowPush(dvals);
-    if(newCon){await loadAll();renderAll();}else{refreshLocal();} // a brand-new source needs the summary reloaded; otherwise stay local
+    if(newCon){renderAll();}else{refreshLocal();} // re-render so the new source shows in the picker + the pull-in banner can appear
     // deposit-target progress in the confirmation
     var co2=state.cons.filter(function(x){return x.name.toLowerCase()===src.toLowerCase();})[0];
     var tmsg="Deposit added ✓";
@@ -4549,7 +4698,6 @@ async function confirmAdoption(){
 }
 function wire(){
   if($("bldVer"))$("bldVer").textContent="v"+VERSION+" · "+BUILD;   // footer: SemVer + deployment build
-  try{vpDiag();}catch(e){}
   if($("settVer"))$("settVer").textContent=VERSION;
   if($("settBuild"))$("settBuild").textContent=BUILD;
   if($("updCheckBtn"))$("updCheckBtn").addEventListener("click",manualUpdateCheck);
@@ -4645,6 +4793,10 @@ function wire(){
   if($("yearBackBtn"))$("yearBackBtn").addEventListener("click",function(){setBudYear(curYear());});
   if($("budLastYearBtn"))$("budLastYearBtn").addEventListener("click",budgetAllFromLastYear);
   if($("combineBtn"))$("combineBtn").addEventListener("click",openCombine);
+  if($("budPullBtn"))$("budPullBtn").addEventListener("click",openPullIn);
+  if($("pullInClose"))$("pullInClose").addEventListener("click",function(){closeOv("pullInOv");});
+  if($("pullInApply"))$("pullInApply").addEventListener("click",applyPullIn);
+  if($("pullInOv"))$("pullInOv").addEventListener("click",function(ev){if(ev.target===this)closeOv("pullInOv");});
   if($("combineGo"))$("combineGo").addEventListener("click",doCombine);
   $("budNewBtn").addEventListener("click",function(){var n=$("budNewName").value.trim();var msg=$("budMsg");msg.className="msg";if(!n){msg.textContent="Name the new budget.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Creating…";askConfirm({title:"Create “"+n+"”?",msg:"A new private budget spreadsheet is created and the app reloads into it.",ok:"Create"}).then(function(ok){if(!ok){b.disabled=false;b.textContent="＋ Create budget";return;}budgetCreate(n).catch(function(e){msg.textContent="Could not create: "+(e.message||e);msg.className="msg bad";b.disabled=false;b.textContent="＋ Create budget";});});});
   $("budInviteBtn").addEventListener("click",function(){var email=$("budEmail").value.trim();var msg=$("budShareMsg");msg.className="msg";if(!email){msg.textContent="Enter an email address.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Sending…";budgetInvite(sheetId,email).then(function(){msg.innerHTML="Invite sent to <b>"+esc(email)+"</b> ✓ Now tap <b>Copy the app invite link</b> and text it to them so they open it in the app.";$("budEmail").value="";}).catch(function(e){msg.textContent="Could not invite: "+(e.message||e);msg.className="msg bad";}).then(function(){b.disabled=false;b.textContent="Send invite (Editor)";});});
@@ -4700,7 +4852,22 @@ function wire(){
   if($("catPickSearch"))$("catPickSearch").addEventListener("input",function(){renderCatPicker(this.value);});
   if($("catPickDone"))$("catPickDone").addEventListener("click",function(){closeOv("catPickOv");});
   if($("catPickOv"))$("catPickOv").addEventListener("click",function(ev){if(ev.target===this)closeOv("catPickOv");});
-  $("dSource").addEventListener("change",function(){if(this.value==="__budget__"){this.selectedIndex=0;switchView("budget");return;}renderDepTbl();try{renderRecent();}catch(e){}});
+  $("dSource").addEventListener("change",function(){
+    var sel=this;
+    if(sel.value==="__budget__"){sel.selectedIndex=0;switchView("budget");return;}
+    if(sel.value==="__new__"){ // type a brand-new source; it's captured to the ledger on Add and pulled into the budget later
+      askText({title:"New income source",label:"Source name",placeholder:"e.g. Paycheck, Side gig",ok:"Use it"}).then(function(name){
+        name=(name||"").trim();
+        if(!name||name.toLowerCase()==="deposit"){sel.value="";renderDepTbl();return;}
+        // inject as a selectable option if not present, then select it
+        var found=false;Array.prototype.forEach.call(sel.options,function(o){if(o.value.toLowerCase()===name.toLowerCase()){found=true;o.selected=true;}});
+        if(!found){var op=document.createElement("option");op.text=name;op.value=name;sel.insertBefore(op,sel.options[0]);op.selected=true;}
+        renderDepTbl();try{renderRecent();}catch(e){}
+      });
+      return;
+    }
+    renderDepTbl();try{renderRecent();}catch(e){}
+  });
   $("fAmount").addEventListener("input",debounce(renderCatTbl,160));
   $("fDate").addEventListener("change",function(){renderCatTbl();try{renderRecent();}catch(e){}});
   $("fCompany").addEventListener("input",debounce(function(){var v=($("fCompany").value||"").trim().toLowerCase();var cat=companyMap()[v];if(cat&&!$("fCategory").value&&state.cats.some(function(c){return c.name.toLowerCase()===cat.toLowerCase();})){setCategory(cat);}},200));
@@ -4722,28 +4889,6 @@ function wire(){
 try{if(/[?&]reset\b/i.test(location.search)){localStorage.removeItem("nw_sheet_id2");try{history.replaceState(null,"",location.pathname);}catch(_){}}}catch(e){}
 // Tab bar placement is now pure CSS: .tabbar is position:fixed to the viewport bottom, so it sits at the real bottom on iOS
 // (standalone AND Safari) without any JS height measurement — which is what kept mis-reporting and lifting the bar before.
-// TEMP DIAGNOSTIC: report what iOS actually gives us, so we can see WHY the bar sits short. Shown in the footer.
-function vpDiag(){
-  var el=document.getElementById("vpDiag"); if(!el)return;
-  function probe(css){var d=document.createElement("div");d.style.cssText="position:fixed;left:-9999px;width:1px;"+css;document.body.appendChild(d);var h=d.getBoundingClientRect().height;document.body.removeChild(d);return Math.round(h);}
-  var iH=Math.round(window.innerHeight||0);
-  var vv=window.visualViewport?Math.round(window.visualViewport.height):0;
-  var dc=Math.round(document.documentElement.clientHeight||0);
-  var sh=Math.round((window.screen&&window.screen.height)||0);
-  var dpr=window.devicePixelRatio||1;
-  var sab=probe("bottom:0;height:env(safe-area-inset-bottom)");
-  var sat=probe("top:0;height:env(safe-area-inset-top)");
-  var h_dvh=probe("top:0;height:100dvh"), h_svh=probe("top:0;height:100svh"), h_lvh=probe("top:0;height:100lvh"), h_vh=probe("top:0;height:100vh");
-  // where does a fixed;bottom:0 element actually land, relative to innerHeight?
-  var fb=document.createElement("div");fb.style.cssText="position:fixed;left:-9999px;bottom:0;width:1px;height:1px";document.body.appendChild(fb);var fbBottom=Math.round(fb.getBoundingClientRect().bottom);document.body.removeChild(fb);
-  var standalone=(navigator.standalone===true?"nav":"")+((window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)?" mq-standalone":"")+((window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)?" mq-fullscreen":"")||"browser";
-  el.textContent=
-    "innerH="+iH+"  visualVP="+vv+"  clientH="+dc+"  screenH="+sh+"  dpr="+dpr+"\n"+
-    "safe-bottom="+sab+"  safe-top="+sat+"\n"+
-    "100vh="+h_vh+"  100dvh="+h_dvh+"  100svh="+h_svh+"  100lvh="+h_lvh+"\n"+
-    "fixed;bottom:0 lands at="+fbBottom+" (gap under it="+(iH-fbBottom)+")\n"+
-    "mode="+standalone;
-}
 (function poll(){
   if(window.google&&google.accounts&&google.accounts.oauth2){
     tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:_tokCb,error_callback:_tokErr});
