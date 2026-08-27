@@ -70,6 +70,33 @@ try{
   .view{display:none} .view.on{display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 16px;box-shadow:var(--shadow);margin-bottom:16px}
   .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin:0 0 12px}
+  .setsec{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:0;font-family:"Fraunces",Georgia,serif;font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin:22px 2px 2px;padding:6px 4px;text-align:left}
+  .setsec:first-of-type{margin-top:6px}
+  .setsec .settitle{flex:0 0 auto}
+  .setsec .hr{flex:1;height:1px;background:var(--line)}
+  .setsec.setcol{cursor:pointer}
+  .setchev{flex:0 0 auto;color:var(--ink2);font-size:19px;line-height:1;transition:transform .18s ease}
+  .setsec[aria-expanded="true"] .setchev{transform:rotate(90deg)}
+  .setgrp{margin-top:8px}
+  .setgrp[hidden]{display:none}
+  /* Settings cards as a collapsible "table of contents": collapsed shows just the title; tap to expand the bubble */
+  .card.acc{padding-top:12px;padding-bottom:12px;margin-bottom:10px}
+  .acc-hd{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:0;padding:0;cursor:pointer;text-align:left;font-family:inherit}
+  .acc-hd .eyebrow{margin:0;flex:1}
+  .acc-chev{flex:0 0 auto;color:var(--ink2);font-size:18px;line-height:1;transition:transform .18s ease}
+  .acc-hd[aria-expanded="true"] .acc-chev{transform:rotate(90deg)}
+  .acc-bd{margin-top:12px}
+  .acc-bd[hidden]{display:none}
+  /* Personalize: one always-open bubble with labeled sub-groups */
+  .psub{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+  .psub:first-child{border-top:0;margin-top:0;padding-top:0}
+  .psub .eyebrow{margin:0 0 10px}
+  .psub .hintline{margin-top:6px}
+  /* the current budget row shows its spreadsheet actions inline as links */
+  .budcur{padding:2px 0}
+  .budcur .cn{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  .budacts{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:9px}
+  .budacts .lnk2,.budacts a.lnk2{padding:2px 0}
   .row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
   .row:last-child{border-bottom:0}
   .row label{flex:0 0 92px;font-size:14px;color:var(--ink2)}
@@ -506,60 +533,10 @@ try{
   </div>
 
   <div class="view" id="view-settings">
-    <div class="card">
-      <p class="eyebrow">Import past expenses</p>
-      <div class="hintline" style="text-align:left;margin-top:0">Bring in spending from a bank statement, a paste, or an old budget spreadsheet — so your history and budget suggestions are complete.</div>
-      <button class="addbtn" id="settingsImport" style="margin-top:10px">📥 Import expenses</button>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Receipt scanning</p>
-      <div id="scanStatus" class="settRow"></div>
-      <div class="row"><label>Gemini key</label><input id="geminiKey" type="password" autocomplete="off" placeholder="Paste your key"></div>
-      <div style="display:flex;gap:8px;margin-top:12px"><button class="addbtn" id="keySave" style="margin-top:0">Save key</button><button class="addbtn ghost" id="keyClear" style="margin-top:0;color:var(--ink2)">Clear</button></div>
-      <button class="addbtn" id="keyTest" style="background:transparent;border:1px solid var(--line);color:var(--green)">Test scanning</button>
-      <div class="hintline" style="text-align:left">Get a free key in ~2 min at <a class="sheetlink" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. It's saved with this budget (in your own private Google Drive) so it sticks across your devices — on a budget you’ve shared, family members could use it. Then tap 📷 on the Expense screen to scan. Always glance at the total — it reads the final paid amount.</div>
-      <div class="msg" id="keyMsg"></div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Reminders on the Month tab</p>
-      <div class="row"><label>Over budget</label><label class="tog"><input type="checkbox" data-rem="overbudget"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Bills due soon</label><label class="tog"><input type="checkbox" data-rem="duesoon"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Annual bill save-up</label><label class="tog"><input type="checkbox" data-rem="saveup"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Bill not logged yet</label><label class="tog"><input type="checkbox" data-rem="missed"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Goal milestones</label><label class="tog"><input type="checkbox" data-rem="goals"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Weekly recap</label><label class="tog"><input type="checkbox" data-rem="recap"><span class="tog-t"></span></label></div>
-      <div class="hintline" style="text-align:left">These show at the top of your Month tab — the same nudges the old app emailed, but in-app so no server is needed.</div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Budgeting since</p>
-      <div class="row"><label>I started budgeting</label><span style="display:flex;gap:6px"><select id="startMon" style="font-size:16px"></select><select id="startYr" style="font-size:16px"></select></span></div>
-      <div class="hintline" style="text-align:left">Envelopes and &lsquo;banked&rsquo; balances only build from this point forward, so months before you started aren&rsquo;t counted as savings. We guessed from your first logged expense &mdash; adjust it if you set money aside earlier or later.</div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">The add-expense form</p>
-      <div class="row"><label>Show &lsquo;Payee&rsquo; field</label><label class="tog"><input type="checkbox" id="prefPayee"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Show &lsquo;Reimbursed&rsquo; toggle</label><label class="tog"><input type="checkbox" id="prefReimb"><span class="tog-t"></span></label></div>
-      <div class="hintline" style="text-align:left">Turn off fields you don&rsquo;t use to keep the Add screen simple.</div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Data</p>
-      <button type="button" class="gbtn" id="trimLedgerBtn" style="width:100%">Optimize this spreadsheet</button>
-      <div class="hintline" style="text-align:left;margin-top:2px">Tidies your transactions to the top, deletes the leftover empty rows (reclaiming space so imports don&rsquo;t hit Google&rsquo;s size limit), and rewrites the summary formulas to whole-column so they&rsquo;re fast and never tied to a row count. Safe — no transactions or budget are removed.</div>
-      <div class="msg" id="trimMsg"></div>
-      <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%;margin-top:10px">Remove all goals</button>
-      <button type="button" class="gbtn" id="wipeDataBtn" style="width:100%;margin-top:8px;color:var(--bad)">Erase all transactions &amp; history</button>
-      <div class="hintline" style="text-align:left">&lsquo;Erase&rsquo; clears your logged transactions, goals, and net-worth history but keeps your categories, budgets, and income set up. This can&rsquo;t be undone.</div>
-      <div class="msg" id="wipeMsg"></div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">People (payees)</p>
-      <div id="payeeList"></div>
-      <div class="row"><label>Add a person</label><input id="payeeNew" autocomplete="off" placeholder="e.g., Alex"></div>
-      <button class="addbtn" id="payeeAddBtn">＋ Add person</button>
-      <div class="hintline" style="text-align:left">Who paid — pick one on the Expense screen. Separate from income sources.</div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Your budgets</p>
+    <div class="setsec"><span class="settitle">Budgets & sharing</span><span class="hr"></span></div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="your-budgets" aria-expanded="false"><span class="eyebrow">Your budgets</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
       <div id="budList"><div class="empty">Loading…</div></div>
       <div class="row" style="margin-top:4px"><label>New budget</label><input id="budNewName" autocomplete="off" placeholder="e.g., Family"></div>
       <button class="addbtn" id="budNewBtn">＋ Create budget</button>
@@ -568,8 +545,10 @@ try{
       <div class="hintline" id="budHint" style="text-align:left">Each budget is its own private spreadsheet — switch between them here. To open one a family member shared, or your budget from the old app, tap <b>Open a shared or old budget</b> (needs a free Google API key, one-time).</div>
       <div class="msg" id="budMsg"></div>
     </div>
-    <div class="card">
-      <p class="eyebrow">Share this budget</p>
+    </div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="share-this-budget" aria-expanded="false"><span class="eyebrow">Share this budget</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
       <div class="row"><label>Invite by email</label><input id="budEmail" type="email" autocomplete="off" placeholder="name@email.com"></div>
       <button class="addbtn" id="budInviteBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Send invite (Editor)</button>
       <button class="addbtn" id="budJoinBtn">Copy the app invite link</button>
@@ -578,45 +557,123 @@ try{
       <div class="hintline" style="text-align:left">Two steps to add family: <b>Send invite</b> by email to give them access, then <b>Copy the app invite link</b> and text it to them — it opens NestWorth straight to this budget, with no personal budget of their own unless they want one. A <b>starter copy</b> instead hands someone their own new budget with your categories &amp; amounts but none of your transactions.</div>
       <div class="msg" id="budShareMsg"></div>
     </div>
-    <div class="card">
-      <p class="eyebrow">This budget</p>
-      <div class="settRow"><span>Your spreadsheet</span><a class="sheetlink" id="openSheet2" target="_blank" rel="noopener">open ▸</a></div>
-      <button class="addbtn" id="copyLink" style="background:transparent;border:1px solid var(--line);color:var(--green)">Copy the sheet link</button>
-      <button class="addbtn" id="csvBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Export entries (CSV)</button>
-      <button class="addbtn" id="tidyBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Tidy up company names</button>
-      <div class="msg" id="tidyMsg"></div>
     </div>
-    <div class="card">
-      <p class="eyebrow">Add to Home Screen</p>
-      <div class="hintline" style="text-align:left">To lose the browser bar and get the app icon: in Safari tap <b>Share ▸ Add to Home Screen ▸ Add</b>, then open NestWorth from the icon. On Android (Chrome): menu ⋮ ▸ <b>Add to Home screen</b>.</div>
+    <div class="setsec"><span class="settitle">Bring in data</span><span class="hr"></span></div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="import-past-expenses" aria-expanded="false"><span class="eyebrow">Import past expenses</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
+      <div class="hintline" style="text-align:left;margin-top:0">Bring in spending from a bank statement, a paste, or an old budget spreadsheet — so your history and budget suggestions are complete.</div>
+      <button class="addbtn" id="settingsImport" style="margin-top:10px">📥 Import expenses</button>
     </div>
+    </div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="receipt-scanning" aria-expanded="false"><span class="eyebrow">Receipt scanning</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
+      <div id="scanStatus" class="settRow"></div>
+      <div class="row"><label>Gemini key</label><input id="geminiKey" type="password" autocomplete="off" placeholder="Paste your key"></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="addbtn" id="keySave" style="margin-top:0">Save key</button><button class="addbtn ghost" id="keyClear" style="margin-top:0;color:var(--ink2)">Clear</button></div>
+      <button class="addbtn" id="keyTest" style="background:transparent;border:1px solid var(--line);color:var(--green)">Test scanning</button>
+      <div class="hintline" style="text-align:left">Get a free key in ~2 min at <a class="sheetlink" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. It's saved with this budget (in your own private Google Drive) so it sticks across your devices — on a budget you’ve shared, family members could use it. Then tap 📷 on the Expense screen to scan. Always glance at the total — it reads the final paid amount.</div>
+      <div class="msg" id="keyMsg"></div>
+    </div>
+    </div>
+    <button type="button" class="setsec setcol" data-sec="personalize" aria-expanded="false"><span class="settitle">Personalize Visible Fields</span><span class="hr"></span><span class="setchev">&#8250;</span></button>
+    <div class="setgrp" id="grp-personalize" hidden>
     <div class="card">
-      <p class="eyebrow">Account</p>
+      <div class="psub">
+        <p class="eyebrow">Add-expense form settings</p>
+        <div class="row"><label>Show &lsquo;Payee&rsquo; field</label><label class="tog"><input type="checkbox" id="prefPayee"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Show &lsquo;Reimbursed&rsquo; toggle</label><label class="tog"><input type="checkbox" id="prefReimb"><span class="tog-t"></span></label></div>
+      <div class="hintline" style="text-align:left">Turn off fields you don&rsquo;t use to keep the Add screen simple.</div>
+      </div>
+      <div class="psub">
+        <p class="eyebrow">Reminders on the Month tab</p>
+        <div class="row"><label>Over budget</label><label class="tog"><input type="checkbox" data-rem="overbudget"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Bills due soon</label><label class="tog"><input type="checkbox" data-rem="duesoon"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Annual bill save-up</label><label class="tog"><input type="checkbox" data-rem="saveup"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Unlogged expected bills</label><label class="tog"><input type="checkbox" data-rem="missed"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Goal milestones</label><label class="tog"><input type="checkbox" data-rem="goals"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Weekly recap</label><label class="tog"><input type="checkbox" data-rem="recap"><span class="tog-t"></span></label></div>
+      <div class="hintline" style="text-align:left">These show at the top of your Month tab — the same nudges the old app emailed, but in-app so no server is needed.</div>
+      </div>
+      <div class="psub">
+        <p class="eyebrow">People (payees)</p>
+        <div id="payeeList"></div>
+      <div class="row"><label>Add a person</label><input id="payeeNew" autocomplete="off" placeholder="e.g., Alex"></div>
+      <button class="addbtn" id="payeeAddBtn">＋ Add person</button>
+      <div class="hintline" style="text-align:left">Who paid — pick one on the Expense screen. Separate from income sources.</div>
+      </div>
+      <div class="psub">
+        <p class="eyebrow">Budgeting since</p>
+        <div class="row"><label>I started budgeting</label><span style="display:flex;gap:6px"><select id="startMon" style="font-size:16px"></select><select id="startYr" style="font-size:16px"></select></span></div>
+      <div class="hintline" style="text-align:left">Envelopes and &lsquo;banked&rsquo; balances only build from this point forward, so months before you started aren&rsquo;t counted as savings. We guessed from your first logged expense &mdash; adjust it if you set money aside earlier or later.</div>
+      </div>
+      <div class="psub">
+        <p class="eyebrow">Appearance</p>
+        <div class="seg2" id="themeSeg"><button data-th="auto">Auto</button><button data-th="light">Light</button><button data-th="dark">Dark</button></div>
+      </div>
+    </div>
+    </div>
+
+  <div class="setsec"><span class="settitle">Spreadsheet & maintenance</span><span class="hr"></span></div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="spreadsheet-breakdown" aria-expanded="false"><span class="eyebrow">Spreadsheet breakdown</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
+      <div class="hintline" style="text-align:left;margin-top:0">Show each itemized category's bills as indented lines under it in your Account Summary tab (with their own budget &amp; spent). Kept up to date automatically after you edit bills.</div>
+      <button class="addbtn" id="breakdownBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Build itemized breakdown</button>
+      <div class="msg" id="breakdownMsg"></div>
+    </div>
+    </div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="optimize-spreadsheet" aria-expanded="false"><span class="eyebrow">Optimize spreadsheet</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
+      <button type="button" class="gbtn" id="trimLedgerBtn" style="width:100%">Optimize this spreadsheet</button>
+      <div class="hintline" style="text-align:left;margin-top:2px">Tidies your transactions to the top, deletes the leftover empty rows (reclaiming space so imports don&rsquo;t hit Google&rsquo;s size limit), and rewrites the summary formulas to whole-column so they&rsquo;re fast and never tied to a row count. Safe — no transactions or budget are removed.</div>
+      <div class="msg" id="trimMsg"></div>
+    </div>
+    </div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="danger-zone" aria-expanded="false"><span class="eyebrow">Danger zone</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
+      <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%">Remove all goals</button>
+      <button type="button" class="gbtn" id="wipeDataBtn" style="width:100%;margin-top:8px;color:var(--bad)">Erase all transactions &amp; history</button>
+      <div class="hintline" style="text-align:left">&lsquo;Erase&rsquo; clears your logged transactions, goals, and net-worth history but keeps your categories, budgets, and income set up. This can&rsquo;t be undone.</div>
+      <div class="msg" id="wipeMsg"></div>
+    </div>
+    </div>
+    <div class="setsec"><span class="settitle">App & account</span><span class="hr"></span></div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="account" aria-expanded="false"><span class="eyebrow">Account</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
       <div class="settRow"><span id="who2"></span></div>
       <button class="addbtn ghost" id="signout2" style="color:var(--bad)">Sign out</button>
     </div>
-    <div class="card">
-      <p class="eyebrow">Appearance</p>
-      <div class="seg2" id="themeSeg"><button data-th="auto">Auto</button><button data-th="light">Light</button><button data-th="dark">Dark</button></div>
     </div>
-    <div class="card">
-      <p class="eyebrow">Share NestWorth</p>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="share-nestworth" aria-expanded="false"><span class="eyebrow">Share NestWorth</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
       <div class="hintline" style="text-align:left;margin-top:0">Send this to anyone. They open it, sign in with Google, and get their <b>own</b> private budget — nothing of yours is shared.</div>
       <button class="addbtn" id="appShareBtn" style="margin-top:10px">Share the app</button>
       <button class="addbtn" id="appCopyBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Copy the app link</button>
       <div class="msg" id="appShareMsg"></div>
     </div>
-    <div class="card"><p class="eyebrow">App version</p>
+    </div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="app-version" aria-expanded="false"><span class="eyebrow">App version</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
       <div class="hintline" style="text-align:left;margin-top:0">Version <b>v<span id="settVer"></span></b> &nbsp;·&nbsp; Build <span id="settBuild"></span>. Tap to pull the latest version if one’s been published.</div>
       <button class="addbtn" id="updCheckBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Check for updates</button>
       <div class="msg" id="updCheckMsg"></div>
     </div>
-    <div class="card"><p class="eyebrow">Spreadsheet breakdown</p>
-      <div class="hintline" style="text-align:left;margin-top:0">Show each itemized category's bills as indented lines under it in your Account Summary tab (with their own budget &amp; spent). Kept up to date automatically after you edit bills.</div>
-      <button class="addbtn" id="breakdownBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Build itemized breakdown</button>
-      <div class="msg" id="breakdownMsg"></div>
     </div>
-    <div class="card"><p class="eyebrow">About</p><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
+    <div class="card acc">
+      <button type="button" class="acc-hd" data-acc="about" aria-expanded="false"><span class="eyebrow">About</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden><div class="hintline" style="text-align:left">NestWorth · a private, spreadsheet-backed budget. Created by Dr. Candice Z. Ulmer Holland, Ph.D. · a product of Ulmer Consulting, LLC.</div></div>
+    </div>
+    <div class="card" style="margin-top:34px">
+      <p class="eyebrow">Add to Home Screen</p>
+      <div class="hintline" style="text-align:left">To lose the browser bar and get the app icon: in Safari tap <b>Share ▸ Add to Home Screen ▸ Add</b>, then open NestWorth from the icon. On Android (Chrome): menu ⋮ ▸ <b>Add to Home screen</b>.</div>
+    </div>
   </div>
 
   <div class="foot">NestWorth - Build <span id="bldVer"></span> &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
@@ -918,6 +975,42 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.12.12 — Aug 27, 2026 · Build 20260827.26
+//     • Removed "Copy sheet link" from the current budget's actions (link-copying is for sharing, which lives under Share
+//       this budget). Current budget now shows: Open spreadsheet, Export entries (CSV), Tidy company names.
+//   v0.12.11 — Aug 27, 2026 · Build 20260827.25
+//     • Settings copy + Personalize: section renamed "Personalize Visible Fields" and collapses as one unit (no inner
+//       table of contents); "The add-expense form" → "Add-expense form settings"; reminder "Bill not logged yet" →
+//       "Unlogged expected bills".
+//   v0.12.10 — Aug 27, 2026 · Build 20260827.24
+//     • Merged the confusing "This budget" card into "Your budgets": the current budget now lists its spreadsheet actions
+//       (open, copy link, export CSV, tidy company names) as links right under it. Separate "This budget" card removed.
+//   v0.12.9 — Aug 27, 2026 · Build 20260827.23
+//     • Personalize is now a single always-visible bubble with labeled sub-groups (add-expense form, reminders, people,
+//       budgeting-since, appearance) instead of five separate collapsible cards.
+//   v0.12.8 — Aug 27, 2026 · Build 20260827.22
+//     • Shorter collapsed Settings title bubbles (tighter padding + spacing) so more of the table of contents fits per screen.
+//   v0.12.7 — Aug 27, 2026 · Build 20260827.21
+//     • Settings is now a table of contents: section titles are always visible, and each card collapses to just its title
+//       under its section — tap a title to expand that bubble. Each card remembers its open/closed state. Home Screen stays
+//       always-open at the bottom.
+//   v0.12.6 — Aug 27, 2026 · Build 20260827.20
+//     • More space between the last Settings section and the Add to Home Screen bubble.
+//   v0.12.5 — Aug 27, 2026 · Build 20260827.19
+//     • Settings sections are visible again (not collapsible) — every tool shows under its section title. Home Screen card
+//       stays last with no title.
+//   v0.12.4 — Aug 27, 2026 · Build 20260827.18
+//     • Removed the redundant "Add to Home Screen" section title — just the card (with its own header) remains at the bottom.
+//   v0.12.3 — Aug 27, 2026 · Build 20260827.17
+//     • "Add to Home Screen" moved to the very bottom of Settings and made non-collapsible (always visible), so install
+//       steps are always in view; the other five sections stay collapsible.
+//   v0.12.2 — Aug 27, 2026 · Build 20260827.16
+//     • Settings sections are now collapsible (tap a header to expand; each section remembers its state), so the page
+//       starts as a short one-screen list. "Add to Home Screen" restored as its own section.
+//   v0.12.1 — Aug 27, 2026 · Build 20260827.15
+//     • Settings reorganized into 5 labeled sections (Budgets & sharing · Bring in data · Personalize · Spreadsheet &
+//       maintenance · App & account). No tools removed; the "Data" card split into Optimize + Danger zone, and the
+//       redundant "Add to Home Screen" card dropped (new users still get the install tip on the sign-in screen).
 //   v0.12.0 — Aug 27, 2026 · Build 20260827.14
 //     • Income Budget type adds "Every week (same amount)" and "Every 2 weeks (same amount)" — enter one period's amount and
 //       the app spreads it across the months (×52÷12 and ×26÷12). Weekly/biweekly no longer only reachable via Paycheck.
@@ -966,8 +1059,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.12.0"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.14"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.12.12"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.26"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -3180,16 +3273,16 @@ function tidyCompaniesPlan(){
   return canon;
 }
 async function tidyCompanies(){
-  var msg=$("tidyMsg");msg.className="msg";
+  var setMsg=function(t,bad){var m=$("budActMsg");if(m){m.className="msg"+(bad?" bad":"");m.textContent=t;}};
+  setMsg("Checking…");
   await loadAll(); // re-sync before rewriting ledger rows by index (guards concurrent family edits)
   var canon=tidyCompaniesPlan();
   var data=[],n=0;state.rows.forEach(function(r,idx){var co=(""+((r&&r[5])||"")).trim();var c=canon[co.toLowerCase()];if(c&&c!==co){data.push({range:LEDGER+"!F"+(idx+2),values:[[c]]});n++;}});
-  if(!n){msg.textContent="Company names already look clean.";return;}
-  if(!await askConfirm({title:"Tidy company names?",msg:"Merges "+n+" entries with duplicate spellings into their most-used name.",ok:"Tidy up"}))return;
-  var b=$("tidyBtn");b.disabled=true;b.textContent="Tidying…";
-  try{await vBatchUpdate(data);await loadAll();renderAll();msg.textContent="Merged "+n+" entries ✓";}
-  catch(e){msg.textContent="Could not tidy: "+(e.message||e);msg.className="msg bad";}
-  b.disabled=false;b.textContent="Tidy up company names";
+  if(!n){setMsg("Company names already look clean.");return;}
+  if(!await askConfirm({title:"Tidy company names?",msg:"Merges "+n+" entries with duplicate spellings into their most-used name.",ok:"Tidy up"})){setMsg("");return;}
+  setMsg("Tidying…");
+  try{await vBatchUpdate(data);await loadAll();renderAll();setMsg("Merged "+n+" entries ✓");}
+  catch(e){setMsg("Could not tidy: "+(e.message||e),true);}
 }
 function appLink(){try{return location.origin+location.pathname.replace(/[^\/]*$/,"");}catch(e){return "https://czulmer08.github.io/mynestworth/";}}
 function exportCsv(){
@@ -3216,9 +3309,24 @@ async function renderBudgets(){
   var byId={};files.forEach(function(b){byId[b.id]=b;});lsGetBudgets().forEach(function(b){if(!byId[b.id])byId[b.id]=b;});
   if(sheetId&&!byId[sheetId])byId[sheetId]={id:sheetId,name:budgetName||"This budget"};
   var list=Object.keys(byId).map(function(k){return byId[k];}).filter(function(b){return b.id===sheetId||hid.indexOf(b.id)<0;});
+  var sheetUrl=($("openSheet")&&$("openSheet").href)||("https://docs.google.com/spreadsheets/d/"+encodeURIComponent(sheetId||"")+"/edit");
   el.innerHTML=list.map(function(b){var cur=(b.id===sheetId);
-    return '<div class="catitem"><div class="cn">'+esc(b.name)+(cur?' <span class="gbadge lock" style="margin-left:6px">current</span>':'')+'</div><span class="cc-acts">'+(cur?'<button class="lnk2 budrename" data-id="'+esc(b.id)+'" data-n="'+esc(b.name)+'">Rename</button>':'<button class="lnk2 budsw" data-id="'+esc(b.id)+'">Switch</button><button class="lnk2 budrm" data-id="'+esc(b.id)+'" data-n="'+esc(b.name)+'" style="color:var(--ink2)">Remove</button>')+'</span></div>';
+    if(cur){
+      // the current ("this") budget: its name, plus the spreadsheet actions right here as links (no separate card)
+      return '<div class="budcur">'
+        +'<div class="cn">'+esc(b.name)+' <span class="gbadge lock">current</span> <button class="lnk2 budrename" data-id="'+esc(b.id)+'" data-n="'+esc(b.name)+'">Rename</button></div>'
+        +'<div class="budacts">'
+          +'<a class="lnk2 budopen" href="'+esc(sheetUrl)+'" target="_blank" rel="noopener">Open spreadsheet ▸</a>'
+          +'<button type="button" class="lnk2 budcsv">Export entries (CSV)</button>'
+          +'<button type="button" class="lnk2 budtidy">Tidy company names</button>'
+        +'</div>'
+        +'<div class="msg" id="budActMsg"></div>'
+      +'</div>';
+    }
+    return '<div class="catitem"><div class="cn">'+esc(b.name)+'</div><span class="cc-acts"><button class="lnk2 budsw" data-id="'+esc(b.id)+'">Switch</button><button class="lnk2 budrm" data-id="'+esc(b.id)+'" data-n="'+esc(b.name)+'" style="color:var(--ink2)">Remove</button></span></div>';
   }).join("")||'<div class="empty">Just this one so far.</div>';
+  var _cv=el.querySelector(".budcsv");if(_cv)_cv.addEventListener("click",exportCsv);
+  var _td=el.querySelector(".budtidy");if(_td)_td.addEventListener("click",tidyCompanies);
   Array.prototype.forEach.call(el.querySelectorAll(".budsw"),function(b){b.addEventListener("click",function(){var id=this.getAttribute("data-id");askConfirm({title:"Switch budget?",msg:"The app will reload into that budget.",ok:"Switch"}).then(function(ok){if(ok)budgetSwitch(id);});});});
   Array.prototype.forEach.call(el.querySelectorAll(".budrm"),function(b){b.addEventListener("click",function(){var id=this.getAttribute("data-id"),n=this.getAttribute("data-n");askConfirm({title:"Remove &lsquo;"+n+"&rsquo;?",msg:"This takes it off your list here. The spreadsheet itself stays in your Google Drive — nothing is deleted.",ok:"Remove from list"}).then(function(ok){if(ok){budgetUntrack(id);renderBudgets();}});});});
   Array.prototype.forEach.call(el.querySelectorAll(".budrename"),function(b){b.addEventListener("click",function(){var id=this.getAttribute("data-id"),n=this.getAttribute("data-n");askText({title:"Rename budget",label:"Name",value:n}).then(function(v){if(v){budgetRename(id,v).then(function(){renderBudgets();if($("budPill"))$("budPill").textContent=v;budgetName=v;});}});});});
@@ -3266,12 +3374,34 @@ async function shareStarterCopy(){
     msg.textContent="Starter-copy link ready — anyone who opens it gets their own copy of your categories (no data). Copied to share.";msg.className="msg";
   }catch(e){msg.textContent="Could not make a starter copy: "+((e.message||e)+"").slice(0,120);msg.className="msg bad";}
 }
+// Settings cards act like a table of contents: under each (always-visible) section title, every card is collapsed to just
+// its title; tapping a title expands that bubble. Each card remembers its open/closed state so it stays how you left it.
+function accSet(h,bd,open){h.setAttribute("aria-expanded",open?"true":"false");if(open)bd.removeAttribute("hidden");else bd.setAttribute("hidden","");}
+// The "Personalize Visible Fields" section collapses as one unit (its own header toggles the whole group; remembers state).
+function wirePersonalizeSection(){
+  var h=document.querySelector('#view-settings .setsec.setcol[data-sec="personalize"]');if(!h)return;
+  var grp=document.getElementById("grp-personalize");if(!grp)return;
+  var set=function(o){h.setAttribute("aria-expanded",o?"true":"false");if(o)grp.removeAttribute("hidden");else grp.setAttribute("hidden","");};
+  var open=false;try{open=localStorage.getItem("nw_sec_personalize")==="1";}catch(e){}
+  set(open);
+  h.addEventListener("click",function(){var o=h.getAttribute("aria-expanded")!=="true";set(o);try{localStorage.setItem("nw_sec_personalize",o?"1":"0");}catch(e){}});
+}
+function wireAccordions(){
+  var hds=document.querySelectorAll('#view-settings .acc-hd');
+  Array.prototype.forEach.call(hds,function(h){
+    var bd=h.nextElementSibling;if(!bd||!bd.classList.contains("acc-bd"))return;
+    var key=h.getAttribute("data-acc");
+    var open=false;try{open=localStorage.getItem("nw_acc_"+key)==="1";}catch(e){}
+    accSet(h,bd,open);
+    h.addEventListener("click",function(){var o=h.getAttribute("aria-expanded")!=="true";accSet(h,bd,o);try{localStorage.setItem("nw_acc_"+key,o?"1":"0");}catch(e){}});
+  });
+}
 function renderSettings(){
   var has=!!lsGet(GKEY).trim();
   $("scanStatus").innerHTML=has?'<span class="bpos">✓ Ready. Tap 📷 on the Expense screen</span>':'<span style="color:var(--ink2)">Not set up yet. Paste a key below</span>';
   $("geminiKey").value="";
   $("who2").textContent=$("who")?$("who").textContent:"";
-  if($("openSheet")&&$("openSheet").href)$("openSheet2").href=$("openSheet").href;
+  if($("openSheet2")&&$("openSheet")&&$("openSheet").href)$("openSheet2").href=$("openSheet").href;
   var p=remPrefs();Array.prototype.forEach.call(document.querySelectorAll("[data-rem]"),function(cb){cb.checked=!!p[cb.getAttribute("data-rem")];});
   var th="auto";try{th=localStorage.getItem(THKEY)||"auto";}catch(e){}Array.prototype.forEach.call(document.querySelectorAll("#themeSeg button"),function(b){b.classList.toggle("on",b.getAttribute("data-th")===th);});
   if($("budNewName"))$("budNewName").value="";if($("budEmail"))$("budEmail").value="";if($("budMsg"))$("budMsg").textContent="";if($("budShareMsg"))$("budShareMsg").textContent="";
@@ -4797,7 +4927,6 @@ function wire(){
   if($("wipeDataBtn"))$("wipeDataBtn").addEventListener("click",wipeData);
   if($("trimLedgerBtn"))$("trimLedgerBtn").addEventListener("click",runOptimize);
   applyFormPrefs();
-  $("copyLink").addEventListener("click",function(){var url=($("openSheet")&&$("openSheet").href)||"";if(!url)return;try{navigator.clipboard.writeText(url);this.textContent="Copied ✓";}catch(e){this.textContent="Press & hold the ‘open ▸’ link to copy";}var b=this;setTimeout(function(){b.textContent="Copy the sheet link";},1800);});
   $("signout2").addEventListener("click",function(){if($("signout"))$("signout").click();});
   $("catAddBtn").addEventListener("click",addCat);
   $("conAddBtn").addEventListener("click",addCon);
@@ -4850,7 +4979,6 @@ function wire(){
   if($("budSwitchOv"))$("budSwitchOv").addEventListener("click",function(e){if(e.target===this)this.style.display="none";});
   if($("budSwitchOpen"))$("budSwitchOpen").addEventListener("click",function(){$("budSwitchOv").style.display="none";openBudgetPicker();});
   $("budOpenBtn").addEventListener("click",openBudgetPicker);
-  $("csvBtn").addEventListener("click",exportCsv);$("tidyBtn").addEventListener("click",tidyCompanies);
   $("payeeAddBtn").addEventListener("click",function(){var n=$("payeeNew").value.trim();if(n){addPayee(n);$("payeeNew").value="";}});
   $("appShareBtn").addEventListener("click",function(){var url=appLink();var msg=$("appShareMsg");msg.className="msg";if(navigator.share){navigator.share({title:"NestWorth",text:"Try NestWorth — a free private budget app:",url:url}).catch(function(){});}else{try{navigator.clipboard.writeText(url);msg.textContent="Link copied ✓ — paste it anywhere to share.";}catch(e){msg.textContent=url;}}});
   $("appCopyBtn").addEventListener("click",function(){var url=appLink();var msg=$("appShareMsg");msg.className="msg";try{navigator.clipboard.writeText(url);msg.textContent="Link copied ✓";}catch(e){msg.textContent=url;}});
@@ -4927,6 +5055,8 @@ function wire(){
   });
   Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.addEventListener("click",function(){switchView(this.getAttribute("data-v"));});});
   try{initInstallTip();}catch(e){}
+  try{wireAccordions();}catch(e){}
+  try{wirePersonalizeSection();}catch(e){}
 }
 try{if(/[?&]reset\b/i.test(location.search)){localStorage.removeItem("nw_sheet_id2");try{history.replaceState(null,"",location.pathname);}catch(_){}}}catch(e){}
 // Tab bar placement is now pure CSS: .tabbar is position:fixed to the viewport bottom, so it sits at the real bottom on iOS
