@@ -915,6 +915,12 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.11.3 — Aug 27, 2026 · Build 20260827.12
+//     • Category picker: a name that's an itemized bill shows only in its "<parent> bills" section, no longer duplicated
+//       under "All" / "Frequent".
+//   v0.11.2 — Aug 27, 2026 · Build 20260827.11
+//     • The "names you've logged that aren't budgeted" reminder now appears ONLY on the Budget tab, and is year-dependent:
+//       it counts the viewed year's entries against that year's budget (2026 → 2026, 2027 → 2027). Dismiss is per-year.
 //   v0.11.1 — Aug 27, 2026 · Build 20260827.10
 //     • Parity: typed-in (ad-hoc) categories and income sources now also appear in the Google Sheet's OWN dropdowns, not
 //       just the app — the sheet dropdown source lists include names used in the ledger, refreshed right after you log one.
@@ -951,8 +957,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.11.1"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.10"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.11.3"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.12"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -3357,30 +3363,32 @@ function updateCatBtn(){var btn=$("fCatBtn");if(!btn)return;var v=(($("fCategory
 function openCatPicker(){if($("catPickSearch"))$("catPickSearch").value="";renderCatPicker("");openOv("catPickOv");setTimeout(function(){try{$("catPickSearch").focus();}catch(e){}},80);}
 // Distinct expense-category names already used in the ledger (excludes deposits + goals). Lets typed-in categories be
 // reused before they're ever added to a budget — "capture now, organize later".
-function ledgerCatsUsed(){
+function ledgerCatsUsed(year){
   var seen={},out=[];
   (state.rows||[]).forEach(function(r){
-    var e=(""+((r&&r[4])||"")).trim();if(!e)return;var el=e.toLowerCase();
-    if(el==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;
+    if(!r)return;if(year&&Number(r[0])!==year)return; // optional: only this budget year
+    var e=(""+((r[4])||"")).trim();if(!e)return;var el=e.toLowerCase();
+    if(el==="deposit"||isGoalName(e)||isGoalName((r[5])||""))return;
     if(!seen[el]){seen[el]=1;out.push(e);}
   });
   return out;
 }
 // Distinct deposit-source names already used in the ledger — same "reuse a typed name" idea, for income.
-function ledgerSourcesUsed(){
+function ledgerSourcesUsed(year){
   var seen={},out=[];
   (state.rows||[]).forEach(function(r){
     if(!r||(""+((r[4])||"")).trim().toLowerCase()!=="deposit")return;
+    if(year&&Number(r[0])!==year)return; // optional: only this budget year
     var s=(""+((r[3])||"")).trim();if(!s)return;var sl=s.toLowerCase();
     if(!seen[sl]){seen[sl]=1;out.push(s);}
   });
   return out;
 }
 // A suggested monthly amount for a name from what's already in the ledger: total ÷ the number of distinct months it appears.
-function ledgerMonthlySuggest(name,isSource){
+function ledgerMonthlySuggest(name,isSource,year){
   var nl=(""+name).toLowerCase(),tot=0,mset={};
   (state.rows||[]).forEach(function(r){
-    if(!r)return;var ok;
+    if(!r)return;if(year&&Number(r[0])!==year)return;var ok;
     if(isSource)ok=(""+((r[4])||"")).trim().toLowerCase()==="deposit"&&(""+((r[3])||"")).trim().toLowerCase()===nl;
     else ok=(""+((r[4])||"")).trim().toLowerCase()===nl;
     if(!ok)return;
@@ -3390,12 +3398,15 @@ function ledgerMonthlySuggest(name,isSource){
   return r2(tot/(Object.keys(mset).length||1));
 }
 // Everything the ledger has used that ISN'T in the budget yet — the candidates for "pull into budget".
+// Year-scoped: names used in the VIEWED budget year's ledger entries that aren't in that year's budget. So the reminder
+// (and the Budget-tab button) follow the year you're looking at — 2026 entries pull into the 2026 budget, 2027 into 2027.
 function ledgerUnbudgeted(){
+  var y=bYear();
   var budCat={};(state.cats||[]).forEach(function(c){budCat[c.name.toLowerCase()]=1;catBills(c.name).forEach(function(b){budCat[(""+b).toLowerCase()]=1;});});
   var budSrc={};(state.cons||[]).forEach(function(c){budSrc[c.name.toLowerCase()]=1;});
   return {
-    cats:ledgerCatsUsed().filter(function(n){return !budCat[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,false)};}),
-    sources:ledgerSourcesUsed().filter(function(n){return !budSrc[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,true)};})
+    cats:ledgerCatsUsed(y).filter(function(n){return !budCat[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,false,y)};}),
+    sources:ledgerSourcesUsed(y).filter(function(n){return !budSrc[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,true,y)};})
   };
 }
 function pullInCount(){try{var u=ledgerUnbudgeted();return u.cats.length+u.sources.length;}catch(e){return 0;}}
@@ -3449,12 +3460,16 @@ async function applyPullIn(){
   }catch(e){}
   btn.disabled=false;btn.textContent="Add to budget";
 }
-// Gentle one-time banner offering to pull unbudgeted ledger names into the budget.
-var _pullOffered=false,_pullDismissed=false;
+// Gentle banner offering to pull the viewed year's unbudgeted ledger names into that year's budget. Shows ONLY on the
+// Budget tab, and reflects whichever year you're viewing. Dismissal is per-year (dismiss on 2026 still lets 2027 remind you).
+var _pullDismissed={};
 function maybeOfferPullIn(){
-  if(_pullOffered||_pullDismissed||document.getElementById("pullInBar"))return;
-  if(!$("appScreen")||!$("appScreen").classList.contains("on"))return;
-  try{if(pullInCount()>0){_pullOffered=true;showPullBar();}}catch(e){}
+  var bar=document.getElementById("pullInBar");
+  var onBudget=(document.body.getAttribute("data-view")||"")==="budget"&&$("appScreen")&&$("appScreen").classList.contains("on");
+  var n=0;try{n=pullInCount();}catch(e){}
+  if(!onBudget||_pullDismissed[bYear()]||n<=0){if(bar)bar.remove();return;}
+  if(bar)bar.remove(); // rebuild so the count stays current across year changes
+  showPullBar();
 }
 function showPullBar(){
   if(document.getElementById("pullInBar"))return;var n=pullInCount();if(!n)return;
@@ -3462,15 +3477,17 @@ function showPullBar(){
   bar.innerHTML='<span class="rcm">'+n+(n===1?' name you\'ve logged isn\'t':' names you\'ve logged aren\'t')+' in your budget yet.</span><button id="pullNow" type="button">Add to budget</button><button id="pullX" type="button" aria-label="Dismiss">✕</button>';
   document.body.appendChild(bar);try{var _tb=document.getElementById("tabbar");if(_tb)bar.style.bottom=_tb.offsetHeight+"px";}catch(e){}
   document.getElementById("pullNow").addEventListener("click",function(){var bb=document.getElementById("pullInBar");if(bb)bb.remove();openPullIn();});
-  document.getElementById("pullX").addEventListener("click",function(){_pullDismissed=true;var bb=document.getElementById("pullInBar");if(bb)bb.remove();});
+  document.getElementById("pullX").addEventListener("click",function(){_pullDismissed[bYear()]=1;var bb=document.getElementById("pullInBar");if(bb)bb.remove();});
 }
 function renderCatPicker(q){
   var raw=(""+(q||"")).trim();q=raw.toLowerCase();var body=$("catPickBody");if(!body)return;
   var match=function(s){return !q||(""+s).toLowerCase().indexOf(q)>=0;};
   // budget categories PLUS any category already typed into the ledger (not yet budgeted) so it's reusable
   var budgeted={};state.cats.forEach(function(c){budgeted[c.name.toLowerCase()]=1;});
-  var names=state.cats.map(function(c){return c.name;});
-  ledgerCatsUsed().forEach(function(n){if(!budgeted[n.toLowerCase()])names.push(n);});
+  // names that are itemized bills already get their own "<parent> bills" section below — don't also clutter Frequent/All with them
+  var billNames={};state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items)cfg.items.forEach(function(it){if(it&&it.name)billNames[it.name.toLowerCase()]=1;});});
+  var names=state.cats.map(function(c){return c.name;}).filter(function(n){return !billNames[n.toLowerCase()];});
+  ledgerCatsUsed().forEach(function(n){var nl=n.toLowerCase();if(!budgeted[nl]&&!billNames[nl])names.push(n);});
   var h="";var any=false;
   // Shortcut: log this spend as money pulled FROM a savings goal (a goal withdrawal), like the old app.
   var goals=(state.goals||[]).filter(function(g){return g&&g.name;});
@@ -4668,7 +4685,7 @@ async function removeCat(name){
 function switchView(v){
   // leaving the Budget tab while viewing another year → snap back to the current year so logging is correct
   if(v!=="budget"&&budYear!==null){budYear=null;loadAll().then(function(){renderAll();});}
-  Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});["month","add","budget","goals","worth","settings"].forEach(function(x){$("view-"+x).classList.toggle("on",x===v);});try{document.body.setAttribute("data-view",v);}catch(e){}if(v==="settings")renderSettings();try{var _w=document.querySelector(".wrap");if(_w)_w.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
+  Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});["month","add","budget","goals","worth","settings"].forEach(function(x){$("view-"+x).classList.toggle("on",x===v);});try{document.body.setAttribute("data-view",v);}catch(e){}if(v==="settings")renderSettings();try{maybeOfferPullIn();}catch(e){}try{var _w=document.querySelector(".wrap");if(_w)_w.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function applyCreditUI(){var on=$("fCredit")&&$("fCredit").checked;if($("fCreditHint"))$("fCreditHint").style.display=on?"block":"none";if($("addBtn"))$("addBtn").textContent=on?"Add credit":"Add expense";}
 function setMode(m){Array.prototype.forEach.call($("addMode").querySelectorAll("button"),function(b){b.classList.toggle("on",b.getAttribute("data-m")===m);});$("expFields").style.display=(m==="deposit")?"none":"block";$("depFields").style.display=(m==="deposit")?"block":"none";$("addMsg").textContent="";$("addMsg").className="msg";try{renderRecent();}catch(e){}}
 
