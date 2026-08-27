@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NestWorth">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#2E7D5B">
 <script>
 // Inject a web app manifest at runtime (as a same-origin blob) so NestWorth is installable on Android/desktop Chrome,
@@ -903,6 +903,10 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.10.4 — Aug 27, 2026 · Build 20260827.7
+//     • iOS tab-bar gap FIX: switched the status-bar style from black-translucent to default. black-translucent made iOS
+//       shrink the standalone viewport by the top inset but anchor it at the top, leaving a ~59px dead strip at the bottom
+//       the tab bar could never reach. Needs a cold relaunch (or re-add to Home Screen) to take effect.
 //   v0.10.3 — Aug 27, 2026 · Build 20260827.6
 //     • "Show Payee" / "Show Reimbursed" Add-form settings are now PER PROFILE — stored in each budget's Meta tab so they
 //       travel with the budget (and across devices), instead of one device-wide switch. Existing device setting is kept
@@ -923,8 +927,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.10.3"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.6"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.10.4"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.7"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
