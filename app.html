@@ -27,7 +27,7 @@ try{
   @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55);} }
   :root[data-theme="dark"]{ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55); }
   *{box-sizing:border-box} html{-webkit-text-size-adjust:100%}
-  html,body{height:100vh;height:100dvh;margin:0;overflow:hidden;overscroll-behavior:none} /* dynamic-viewport height tracks the VISIBLE area (not the taller layout viewport), so the tab bar sits at the real bottom; body never scrolls — only the inner content does — so this stays put on iOS */
+  html,body{height:100vh;height:100dvh;height:var(--appvh,100dvh);margin:0;overflow:hidden;overscroll-behavior:none} /* --appvh is set from visualViewport.height (the TRUE visible area) in JS — the only reliable way to sit the tab bar at the real bottom on iOS; falls back to dvh/vh. Body never scrolls; only inner content does. */
   :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
   .rtag{display:inline-block;font-size:10px;font-weight:600;color:var(--ink2);background:var(--soft);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   .installtip{margin-top:22px;max-width:340px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left}
@@ -62,7 +62,7 @@ try{
   .top .title{font-family:"Fraunces",serif;font-weight:600;font-size:22px}
   .top .who{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
   .lnk{color:var(--green);font-size:13px;font-weight:600;background:none;border:0;cursor:pointer;padding:6px}
-  .tabbar{flex:0 0 auto;display:flex;background:var(--card);border-top:1px solid var(--line);padding:7px 4px calc(7px + env(safe-area-inset-bottom));z-index:40;box-shadow:0 -4px 18px rgba(27,51,39,.06)}
+  .tabbar{flex:0 0 auto;display:flex;background:var(--card);border-top:1px solid var(--line);padding:7px 4px max(6px,calc(env(safe-area-inset-bottom) - 8px));z-index:40;box-shadow:0 -4px 18px rgba(27,51,39,.06)}
   .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;color:var(--ink2);font-family:inherit;font-size:9.5px;font-weight:600;letter-spacing:0;cursor:pointer;padding:3px 0}
   .tabbar button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
   .tabbar button.on{color:var(--green)}
@@ -535,8 +535,8 @@ try{
     </div>
     <div class="card">
       <p class="eyebrow">Data</p>
-      <button type="button" class="gbtn" id="trimLedgerBtn" style="width:100%">Trim empty ledger rows</button>
-      <div class="hintline" style="text-align:left;margin-top:2px">Tidies your transactions to the top and deletes the leftover empty rows in the spreadsheet, reclaiming space so imports and new tabs don&rsquo;t hit Google&rsquo;s size limit. Safe — no transactions are removed.</div>
+      <button type="button" class="gbtn" id="trimLedgerBtn" style="width:100%">Optimize this spreadsheet</button>
+      <div class="hintline" style="text-align:left;margin-top:2px">Tidies your transactions to the top, deletes the leftover empty rows (reclaiming space so imports don&rsquo;t hit Google&rsquo;s size limit), and rewrites the summary formulas to whole-column so they&rsquo;re fast and never tied to a row count. Safe — no transactions or budget are removed.</div>
       <div class="msg" id="trimMsg"></div>
       <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%;margin-top:10px">Remove all goals</button>
       <button type="button" class="gbtn" id="wipeDataBtn" style="width:100%;margin-top:8px;color:var(--bad)">Erase all transactions &amp; history</button>
@@ -599,7 +599,7 @@ try{
       <div class="msg" id="appShareMsg"></div>
     </div>
     <div class="card"><p class="eyebrow">App version</p>
-      <div class="hintline" style="text-align:left;margin-top:0">You’re on <b>Build <span id="settVer"></span></b>. Tap to pull the latest version if one’s been published.</div>
+      <div class="hintline" style="text-align:left;margin-top:0">Version <b>v<span id="settVer"></span></b> &nbsp;·&nbsp; Build <span id="settBuild"></span>. Tap to pull the latest version if one’s been published.</div>
       <button class="addbtn" id="updCheckBtn" style="background:transparent;border:1px solid var(--line);color:var(--green);margin-top:8px">Check for updates</button>
       <div class="msg" id="updCheckMsg"></div>
     </div>
@@ -709,6 +709,7 @@ try{
   <div class="ovhdr"><span>Search entries</span><button class="ovx" data-ov="searchOv" type="button">✕</button></div>
   <input id="searchInput" autocomplete="off" placeholder="Search company, category, note, amount…" style="width:100%;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);font-family:inherit;font-size:16px;padding:11px 12px;outline:none">
   <div class="srchf">
+    <select id="srchType" class="srchsel"><option value="">All types</option><option value="expense">Expenses</option><option value="deposit">Deposits</option></select>
     <select id="srchScope" class="srchsel"></select>
     <select id="srchCat" class="srchsel"><option value="">Any category</option></select>
     <select id="srchMonth" class="srchsel"><option value="">Any month</option></select>
@@ -896,7 +897,16 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
-var BUILD="2026.08.26.39"; // single source of truth for the running version (shown in the footer + used by the update check)
+// Versioning: SemVer for what changed functionally, a YYYYMMDD.# build number for exactly which deployment this is.
+// 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
+//   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
+// CHANGELOG:
+//   v0.9.0 — Aug 27, 2026 · Build 20260827.1
+//     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
+//     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
+//     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
+var VERSION="0.9.0"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.1"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -919,8 +929,17 @@ function monthsFor(cfg){
   for(i=0;i<12;i++)out[i]=r2(a);return out; // monthly
 }
 // ---- Update check: pull the deployed app.html, read its BUILD, and offer a refresh if it's newer than what's running.
-function buildParts(s){var p=(""+s).split(".").map(function(x){return parseInt(x,10)||0;});while(p.length<4)p.push(0);return p;}
-function buildIsNewer(remote,local){var a=buildParts(remote),b=buildParts(local);for(var i=0;i<4;i++){if(a[i]!==b[i])return a[i]>b[i];}return false;}
+// One comparable key handles every scheme we've shipped: the current YYYYMMDD.# (e.g. 20260827.1), the legacy YYYY.MM.DD.NN,
+// and the brief interim plain-integer builds — all map onto the same numeric line, so newer always sorts higher.
+function buildKey(s){
+  s=(""+s).trim();
+  if(/^\d{8}\.\d+$/.test(s))return parseFloat(s);                    // current: YYYYMMDD.#
+  var m=s.match(/^(\d{4})\.(\d{2})\.(\d{2})\.(\d+)$/);               // legacy: YYYY.MM.DD.NN → YYYYMMDD.NN
+  if(m)return parseFloat(m[1]+m[2]+m[3]+"."+m[4]);
+  if(/^\d+$/.test(s))return +s;                                      // interim plain integer (always < any real date)
+  return 0;
+}
+function buildIsNewer(remote,local){return buildKey(remote)>buildKey(local);}
 var _updDismissed=false,_lastUpdCheck=0;
 async function checkForUpdate(){
   if(_updDismissed||document.getElementById("updBar"))return;
@@ -930,7 +949,7 @@ async function checkForUpdate(){
     var resp=await fetch(base+"?v="+now,{cache:"no-store"}); // cache-buster defeats browser + CDN caching
     if(!resp.ok)return;
     var txt=await resp.text();
-    var m=txt.match(/BUILD\s*=\s*"(\d{4}\.\d{2}\.\d{2}(?:\.\d+)?)"/);
+    var m=txt.match(/BUILD\s*=\s*"([\d.]+)"/);
     if(m&&buildIsNewer(m[1],BUILD))showUpdateBar(m[1]);
   }catch(e){}
 }
@@ -949,7 +968,7 @@ async function manualUpdateCheck(){
     var now=(new Date()).getTime();
     var resp=await fetch(location.href.split(/[?#]/)[0]+"?v="+now,{cache:"no-store"});
     if(!resp.ok)throw new Error("http "+resp.status);
-    var txt=await resp.text();var m=txt.match(/BUILD\s*=\s*"(\d{4}\.\d{2}\.\d{2}(?:\.\d+)?)"/);
+    var txt=await resp.text();var m=txt.match(/BUILD\s*=\s*"([\d.]+)"/);
     if(m&&buildIsNewer(m[1],BUILD)){if(msg){msg.textContent="New version found — updating…";msg.className="msg";}setTimeout(function(){location.replace(location.href.split(/[?#]/)[0]+"?v="+((new Date()).getTime()));},400);return;}
     if(msg){msg.textContent="You’re on the latest version ✓";msg.className="msg";}
   }catch(e){if(msg){msg.textContent="Couldn’t check right now — check your connection and try again.";msg.className="msg bad";}}
@@ -1168,6 +1187,7 @@ async function vappend(range,values){
   }
   var data=values.map(function(row,i){return {range:"'"+tab+"'!A"+(start+i),values:[row]};});
   await vBatchUpdate(data);
+  if(tab===LEDGER){try{await ensureLedgerTable(start+values.length-1);}catch(e){}} // grow the ledger table to cover the new rows
   return {updates:{updatedRange:"'"+tab+"'!A"+start+":I"+(start+values.length-1),updatedRows:values.length}};
 }
 function vBatchUpdate(data){return api(ssBase()+"/values:batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({valueInputOption:"USER_ENTERED",data:data})});}
@@ -2031,10 +2051,27 @@ function esc2(s){return (""+s).replace(/"/g,'""');} // escape double-quotes for 
 // The template's per-month Spent formula. catRef is a cell ref ($A<row>) for a parent or a quoted literal for a bill;
 // pass a bill Company name to add the second criterion (so a bill row sums only its own charges).
 function catSpentF(catRef,company,m){
-  var f="=SUMIFS('Account Ledger'!$G$1:$G$1048361,'Account Ledger'!$E$1:$E$1048361,"+catRef+",";
-  if(company!=null)f+="'Account Ledger'!$F$1:$F$1048361,\""+esc2(company)+"\",";
-  f+="'Account Ledger'!$C$1:$C$1048361,\">=\"&DATE($B$2,"+m+",1),'Account Ledger'!$C$1:$C$1048361,\"<=\"&EOMONTH(DATE($B$2,"+m+",1),0),'Account Ledger'!$C$1:$C$1048361,\"<=\"&TODAY())";
+  // Whole-column references ($G:$G) — Google evaluates only the used range, so this is efficient and never tied to a row count.
+  // The "spent so far" cutoff reads $AC$1 (an "as of" date the app keeps current) instead of TODAY(), so these formulas are
+  // NON-volatile — they recalc only when transactions or the as-of date change, not on every edit — while keeping the meaning.
+  var f="=SUMIFS('Account Ledger'!$G:$G,'Account Ledger'!$E:$E,"+catRef+",";
+  if(company!=null)f+="'Account Ledger'!$F:$F,\""+esc2(company)+"\",";
+  f+="'Account Ledger'!$C:$C,\">=\"&DATE($B$2,"+m+",1),'Account Ledger'!$C:$C,\"<=\"&EOMONTH(DATE($B$2,"+m+",1),0),'Account Ledger'!$C:$C,\"<=\"&$AC$1)";
   return f;
+}
+var _asOfStamp=""; // last date written to $AC$1 this session — avoids redundant writes
+// Keep the "as of" date ($AC$1) on each summary tab current, written as a STATIC value (not =TODAY()) so the Spent formulas
+// that reference it stay non-volatile. Called on load and when returning to the app; only writes when the date changed.
+async function refreshAsOf(force){
+  try{
+    var today=todayISO();
+    if(!force&&_asOfStamp===today)return;
+    var meta=await api(ssBase()+"?fields=sheets.properties(title)");
+    var names=(meta.sheets||[]).map(function(s){return s.properties.title;}).filter(function(t){return /^\d{4} Account Summary$/.test(t);});
+    if(!names.length)return;
+    await vBatchUpdate(names.map(function(sn){return {range:"'"+sn+"'!AC1",values:[[today]]};}));
+    _asOfStamp=today;
+  }catch(e){}
 }
 // Rewrite one year's category block so each itemized category is followed by indented "↳ bill" rows. Idempotent:
 // existing ↳ rows are dropped and regenerated from meta, parents keep their order and budgeted values. The TOTAL row
@@ -2077,6 +2114,7 @@ async function syncBreakdown(sname){
   }
   var totalRow=CAT_END+1,cols=["B","C"].concat(BUDCOLS).concat(SPENTCOLS);
   cols.forEach(function(col){data.push({range:"'"+sname+"'!"+col+totalRow,values:[["=SUMIF($A$"+CAT_START+":$A$"+CAT_END+",\"<>↳*\","+col+CAT_START+":"+col+CAT_END+")"]]});});
+  data.push({range:"'"+sname+"'!AC1",values:[[todayISO()]]}); // the Spent formulas reference $AC$1 — make sure it holds a date
   try{await vBatchUpdate(data);}catch(e){return false;}
   return true;
 }
@@ -2100,19 +2138,26 @@ async function loadAll(){
     catch(e2){state.rows=state.rows||[];}
   }
   normLedgerRows(state.rows); // recognize hand-entered rows (month typed as a name, or blank Year/Month) by deriving from the Date
+  await refreshAsOf(); // keep the "as of" date ($AC$1) current before we read the summary's Spent values (no-op if unchanged today)
   var m=curMonth(), bi=4+(m-1)*2, si=5+(m-1)*2;
   var sname=summaryName();
   await detectLayout(sname); // adapt row ranges to the sheet's actual (possibly expanded) layout
-  var cats=[], cons=[];
+  var cats=[], cons=[], subs={}, lastParent=null; // subs: parent(lower) -> [{name,b12}] collected from the ↳ breakdown rows
   try{
     var s=await vgetU("'"+sname+"'!A"+CAT_START+":AB"+CAT_END);
     (s.values||[]).forEach(function(r,i){
       var name=(""+((r&&r[0])||"")).trim();
-      if(!name||name.charAt(0)==="↳")return; // ↳ rows are itemized-bill breakdown lines, not real categories
+      if(!name)return;
       var b12=[];for(var mm=0;mm<12;mm++){b12.push(Number(r[4+mm*2])||0);}
+      if(name.charAt(0)==="↳"){ // a bill breakdown row — attach to the category above it
+        if(lastParent){(subs[lastParent.toLowerCase()]=subs[lastParent.toLowerCase()]||[]).push({name:name.replace(/^↳\s*/,"").trim(),b12:b12});}
+        return;
+      }
+      lastParent=name;
       cats.push({name:name,row:CAT_START+i,annual:Number(r[1])||0,remaining:Number(r[2])||0,mbud:Number(r[bi])||0,mspent:Number(r[si])||0,bud12:b12});
     });
   }catch(e){ /* year tab may not exist */ }
+  state._sheetSubs=subs;
   try{
     var s2=await vgetU("'"+sname+"'!A"+CON_START+":AB"+CON_END);
     (s2.values||[]).forEach(function(r,i){
@@ -2125,11 +2170,44 @@ async function loadAll(){
   state.cats=cats; state.cons=cons;
   buildIndexes();applyBudgetSpend(); // compute spent / annual-left / deposits client-side from the ledger index
   await readMeta();
+  adoptSheetItemized(); // pick up itemized categories built or edited directly in the summary sheet (↳ rows -> meta bills)
   // If the Gemini key was saved with the budget but this device's copy is gone (iOS cleared storage, or a different browser/app), restore it.
   try{if(state.meta&&state.meta.gkey&&!lsGet(GKEY).trim())lsSet(GKEY,state.meta.gkey);}catch(e){}
   loadGoals();
   await loadCarryIn();
   await loadNW();
+}
+// Round-trip: if a category has indented "↳ bill" rows in the summary that DON'T match what the app already has, treat those
+// rows as the source of truth and rebuild the itemized bill list from them — so building or editing an itemized category
+// directly in the sheet is picked up as itemized in the app. Untouched app-managed categories are left alone (no drift).
+function adoptSheetItemized(){
+  try{
+    var subs=state._sheetSubs||{}; if(!state.meta)return; if(!state.meta.cats)state.meta.cats={};
+    Object.keys(subs).forEach(function(pk){
+      var list=subs[pk]; if(!list||!list.length)return;
+      if(!(state.cats||[]).some(function(c){return c.name.toLowerCase()===pk;}))return; // only for a real category above the rows
+      var cfg=state.meta.cats[pk]||{};
+      var metaItems=(cfg.type==="itemized"&&cfg.items&&cfg.items.length)?cfg.items:null;
+      var matches=false;
+      if(metaItems&&metaItems.length===list.length){
+        matches=list.every(function(sb){
+          var mi=metaItems.filter(function(x){return (""+(x.name||"")).trim().toLowerCase()===sb.name.toLowerCase();})[0];
+          if(!mi)return false;var mv=billMonths([mi]);
+          for(var j=0;j<12;j++){if(Math.abs((mv[j]||0)-(sb.b12[j]||0))>0.01)return false;}return true;
+        });
+      }
+      if(matches)return; // app-managed and unchanged in the sheet → keep the richer meta (with due-days, etc.)
+      var items=list.map(function(sb){
+        var inf=detectCadence(sb.b12);
+        var it={name:sb.name,amount:inf.amount,cadence:inf.cadence,month:inf.month||1};
+        if(inf.cadence==="Custom")it.months=sb.b12.slice();
+        var prev=metaItems?metaItems.filter(function(x){return (""+(x.name||"")).trim().toLowerCase()===sb.name.toLowerCase();})[0]:null;
+        if(prev&&prev.day)it.day=prev.day; // the due-day isn't stored in the sheet — carry it over when the bill still exists
+        return it;
+      });
+      cfg.type="itemized";cfg.items=items;state.meta.cats[pk]=cfg;
+    });
+  }catch(e){}
 }
 // Recompute everything derivable from the in-memory ledger WITHOUT any network calls — used after a local add/edit/delete
 // so a single transaction doesn't refetch the whole (potentially years-long) ledger. Budgets/NW come from the last full load.
@@ -2144,6 +2222,31 @@ function localRowDelete(idx){if(state.rows&&idx>=0&&idx<state.rows.length)state.
 // ---- Edit / delete a logged ledger entry ----
 var LEDGER_GID=null,edIdx=null;
 async function ledgerGid(){if(LEDGER_GID!=null)return LEDGER_GID;try{var m=await api(ssBase()+"?fields=sheets.properties(title,sheetId)");(m.sheets||[]).forEach(function(s){if(s.properties.title===LEDGER)LEDGER_GID=s.properties.sheetId;});}catch(e){}return LEDGER_GID;}
+// The ledger's native Table, so new entries inherit its banding/formatting and stay filterable. We GROW it with the data
+// (via updateTable) instead of pre-sizing it huge — keeping the sheet small and fast while behaving like a real table.
+var LEDGER_TABLE=null; // {id, sheetId, endRow} — endRow is 0-based exclusive (= rows covered)
+async function loadLedgerTable(){
+  try{
+    var gid=await ledgerGid();
+    var m=await api(ssBase()+"?fields=sheets(properties(sheetId),tables(tableId,range,name))");
+    var t=null;(m.sheets||[]).forEach(function(s){if(s.properties&&s.properties.sheetId===gid&&s.tables&&s.tables.length)t=s.tables[0];});
+    LEDGER_TABLE=(t&&t.range)?{id:t.tableId,r:t.range}:null;
+  }catch(e){LEDGER_TABLE=null;}
+  return LEDGER_TABLE;
+}
+// Make sure the ledger table covers 1-based row `lastRow`. Extends with a small buffer so we don't call this on every add.
+async function ensureLedgerTable(lastRow){
+  try{
+    var t=LEDGER_TABLE||await loadLedgerTable();
+    if(!t||!t.r)return; // no native table on this sheet — nothing to grow (entries still work; just no table styling)
+    var curEnd=t.r.endRowIndex||0;
+    if(lastRow<=curEnd)return; // already inside the table
+    var newEnd=lastRow+50;
+    var range={sheetId:t.r.sheetId,startRowIndex:t.r.startRowIndex||0,endRowIndex:newEnd,startColumnIndex:t.r.startColumnIndex||0,endColumnIndex:(t.r.endColumnIndex||9)};
+    await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{updateTable:{table:{tableId:t.id,range:range},fields:"range"}}]})});
+    t.r.endRowIndex=newEnd; // update cache so the next few adds skip the call
+  }catch(e){/* table growth is best-effort; the entry itself is already written */}
+}
 function fillEditCat(cur){var sel=$("edCategory");var names=state.cats.map(function(c){return c.name;}).sort(function(a,b){return a.toLowerCase()<b.toLowerCase()?-1:1;});var curl=(""+(cur||"")).toLowerCase();var has=names.some(function(n){return n.toLowerCase()===curl;});var h='<option value="">(no category)</option>';if(cur&&!has)h+='<option selected>'+esc(cur)+'</option>';names.forEach(function(n){h+='<option'+(n.toLowerCase()===curl?" selected":"")+'>'+esc(n)+'</option>';});sel.innerHTML=h;}
 function openEdit(idx){
   var r=state.rows[idx];if(!r)return;edIdx=idx;
@@ -3035,9 +3138,12 @@ function fillSearchFilters(){
 function renderSearch(){
   var q=(($("searchInput")&&$("searchInput").value)||"").trim().toLowerCase();
   var scope=($("srchScope")&&$("srchScope").value)||"",fcat=(($("srchCat")&&$("srchCat").value)||"").toLowerCase(),fmo=($("srchMonth")&&$("srchMonth").value)||"",sort=($("srchSort")&&$("srchSort").value)||"new";
+  var ftype=($("srchType")&&$("srchType").value)||""; // ""=all, "expense", "deposit"
   var mn=parseFloat(($("srchMin")&&$("srchMin").value||"").replace(/[^0-9.\-]/g,"")),mx=parseFloat(($("srchMax")&&$("srchMax").value||"").replace(/[^0-9.\-]/g,""));
   var rows=[];
   for(var i=0;i<state.rows.length;i++){var r=state.rows[i];var _e4=(""+((r&&r[4])||"")).trim().toLowerCase();if(isGoalName(_e4)||(_e4!=="deposit"&&isGoalName((r&&r[5])||"")))continue;
+    if(ftype==="deposit"&&_e4!=="deposit")continue;
+    if(ftype==="expense"&&_e4==="deposit")continue;
     if(scope&&Number(r[0])!==Number(scope))continue;
     if(fcat&&(""+((r&&r[4])||"")).trim().toLowerCase()!==fcat)continue;
     if(fmo&&Number(r[1])!==Number(fmo))continue;
@@ -3337,10 +3443,18 @@ function renderRecent(){
   var depMode=$("depFields")&&$("depFields").style.display!=="none";
   var fCat=depMode?"":((($("fCategory")&&$("fCategory").value)||"").trim());if(fCat==="__budget__")fCat="";
   var fSrc=depMode?((($("dSource")&&$("dSource").value)||"").trim()):"";if(fSrc==="__budget__")fSrc="";
-  if(hdr)hdr.textContent=(!depMode&&fCat)?("Recent · "+fCat):(depMode&&fSrc)?("Recent · "+fSrc):"Recent entries";
+  var filt=fCat||fSrc;
+  // When a category/source is picked, this list matches the feedback line above it — scoped to that entry's MONTH (from the
+  // date field), so it doesn't show other months. With nothing picked, it's the general all-time recent list.
+  var fy=curYear(),fm=curMonth();
+  if(filt){var dv=depMode?(($("dDate")&&$("dDate").value)||""):(($("fDate")&&$("fDate").value)||"");if(/^\d{4}-\d{2}/.test(dv)){fy=+dv.slice(0,4);fm=+dv.slice(5,7);}}
+  var when=(fy===curYear()&&fm===curMonth())?"this month":("in "+MONTHS[fm-1]+(fy!==curYear()?(" "+fy):""));
+  if(hdr)hdr.textContent=filt?((fCat||fSrc)+" · "+when):"Recent entries";
   if(!rows.length){list.innerHTML='<li class="empty">No entries yet. Add your first one below.</li>';return;}
-  var out=[];
-  for(var i=rows.length-1;i>=0&&out.length<25;i--){
+  // Collect matching rows, then sort by DATE (newest first). The ledger's row order isn't date order — especially after
+  // imports — so iterating from the bottom showed whatever landed last, not the most recent by date.
+  var cand=[];
+  for(var i=0;i<rows.length;i++){
     var r=rows[i];var _re4=(""+((r&&r[4])||"")).trim().toLowerCase();
     if(isGoalName(_re4)||(_re4!=="deposit"&&isGoalName((r&&r[5])||"")))continue;
     if(depMode){
@@ -3349,9 +3463,15 @@ function renderRecent(){
     }else if(fCat){
       if(_re4!==fCat.toLowerCase())continue;
     }
-    out.push('<li class="eitem" data-idx="'+i+'"><div class="l"><div class="co">'+esc((r&&r[5])||(r&&r[3])||"(no company)")+'</div><div class="meta">'+esc(shortDate(r&&r[2]))+((r&&r[4])?(" · "+esc(r[4])):"")+reimbTag(r)+'</div></div><div class="amt">'+money(r&&r[6])+'</div></li>');
+    if(filt&&(Number(r[0])!==fy||Number(r[1])!==fm))continue; // scope to the feedback line's month
+    var iso=serialToISO(r&&r[2])||((Number(r&&r[0])||0)+"-"+pad2(Number(r&&r[1])||0)+"-00");
+    cand.push({i:i,r:r,k:iso});
   }
-  var em=(!depMode&&fCat)?('No entries in '+esc(fCat)+' yet.'):(depMode&&fSrc)?('No deposits from '+esc(fSrc)+' yet.'):(depMode?'No deposits yet.':'No entries yet. Add your first one below.');
+  cand.sort(function(a,b){return a.k<b.k?1:(a.k>b.k?-1:(b.i-a.i));}); // date descending; ties broken by ledger position (latest first)
+  var out=cand.slice(0,25).map(function(o){var r=o.r;
+    return '<li class="eitem" data-idx="'+o.i+'"><div class="l"><div class="co">'+esc((r&&r[5])||(r&&r[3])||"(no company)")+'</div><div class="meta">'+esc(shortDate(r&&r[2]))+((r&&r[4])?(" · "+esc(r[4])):"")+reimbTag(r)+'</div></div><div class="amt">'+money(r&&r[6])+'</div></li>';
+  });
+  var em=(!depMode&&fCat)?('No entries in '+esc(fCat)+' '+when+'.'):(depMode&&fSrc)?('No deposits from '+esc(fSrc)+' '+when+'.'):(depMode?'No deposits yet.':'No entries yet. Add your first one below.');
   list.innerHTML=out.join("")||'<li class="empty">'+em+'</li>';
   Array.prototype.forEach.call(list.querySelectorAll(".eitem"),function(li){li.addEventListener("click",function(){openEdit(Number(this.getAttribute("data-idx")));});});
 }
@@ -3558,7 +3678,7 @@ function renderMonthDetail(mo,yr){
   h+='<ul class="elist">'+lines.map(function(l){
     var right,cls;
     if(!hasBudget){right=money(l.act);}
-    else if(past){var o=l.over;cls=o>0.005?"neg":(o<-0.005?"pos":"");right=money(l.act)+' / '+money(l.bud)+(Math.abs(o)>0.005?(' <span class="'+cls+'">('+(o>0?"+":"−")+money(Math.abs(o))+')</span>'):'');}
+    else if(past){var rem=r2(l.bud-l.act);cls=rem<-0.005?"neg":(rem>0.005?"pos":"");right=money(l.act)+' / '+money(l.bud)+(Math.abs(rem)>0.005?(' <span class="'+cls+'">('+(rem>0?"+":"−")+money(Math.abs(rem))+')</span>'):'');}
     else right=money(l.bud);
     return '<li><span>'+esc(l.name)+'</span><span>'+right+'</span></li>';
   }).join("")+'</ul>';
@@ -3978,6 +4098,54 @@ async function runTrimLedger(){
   }catch(e){if(msg){msg.textContent="Couldn’t finish trimming: "+((e.message||e)+"").slice(0,80)+". Your transactions are safe.";msg.className="msg bad";}}
   if(btn){btn.disabled=false;btn.textContent="Trim empty ledger rows";}
 }
+function colA1(n){var s="";while(n>0){var m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+// Bring an existing budget up to the current standard in one pass: compact the ledger + delete the empty grid rows (frees
+// space, keeps it fast), then rewrite every ledger SUMIFS in the summary to whole-column refs so they don't depend on a row count.
+async function optimizeSheet(){
+  var rows=state.rows||[],real=[];
+  for(var i=0;i<rows.length;i++){var r=rows[i];var y=Number(r&&r[0]);if(y>=1900&&y<=9999)real.push(r.slice(0,9));}
+  await vBatchClear([LEDGER+"!A2:I"]);
+  for(var s=0;s<real.length;s+=500){var chunk=real.slice(s,s+500);var d=chunk.map(function(row,j){return {range:LEDGER+"!A"+(2+s+j),values:[row]};});await vBatchUpdate(d);}
+  var gid=await ledgerGid(),before=0,keep=Math.max(2000,real.length+1001);
+  try{var m0=await api(ssBase()+"?fields=sheets(properties(sheetId,gridProperties(rowCount)))");(m0.sheets||[]).forEach(function(sh){if(sh.properties.sheetId===gid)before=(sh.properties.gridProperties&&sh.properties.gridProperties.rowCount)||0;});
+    if(gid!=null&&before>keep){await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:gid,dimension:"ROWS",startIndex:keep,endIndex:before}}}]})});}
+  }catch(e){}
+  var cellsFixed=0;
+  try{
+    var meta=await api(ssBase()+"?fields=sheets.properties(title)");
+    var names=(meta.sheets||[]).map(function(sh){return sh.properties.title;}).filter(function(t){return /^\d{4} Account Summary$/.test(t);});
+    for(var yi=0;yi<names.length;yi++){var sn=names[yi];
+      try{
+        var g=await api(ssBase()+"/values/"+encodeURIComponent("'"+sn+"'!A1:AB600")+"?valueRenderOption=FORMULA");
+        var vals=g.values||[],data=[];
+        for(var ri=0;ri<vals.length;ri++){var row=vals[ri]||[];for(var ci=0;ci<row.length;ci++){var cell=row[ci];
+          if(typeof cell==="string"&&cell.indexOf("SUMIFS")>=0&&(cell.indexOf("1048361")>=0||cell.indexOf("TODAY(")>=0)){
+            var nf=cell.replace(/\$([A-Z]+)\$1:\$\1\$1048361/g,"$$$1:$$$1");       // whole-column references
+            nf=nf.replace(/"<="&TODAY\(\)/g,'"<="&$$AC$$1');                        // point the volatile TODAY() at the non-volatile helper cell
+            if(nf!==cell)data.push({range:"'"+sn+"'!"+colA1(ci+1)+(ri+1),values:[[nf]]});
+          }
+        }}
+        data.push({range:"'"+sn+"'!AC1",values:[[todayISO()]]}); // give the helper cell a date so the rewritten formulas resolve
+        for(var k=0;k<data.length;k+=400){await vBatchUpdate(data.slice(k,k+400));}
+        cellsFixed+=Math.max(0,data.length-1);
+      }catch(e){}
+    }
+  }catch(e){}
+  await loadAll();renderAll();
+  return {rows:real.length, freed:Math.max(0,before-keep), cells:cellsFixed};
+}
+async function runOptimize(){
+  var btn=$("trimLedgerBtn"),msg=$("trimMsg");
+  if(!await askConfirm({title:"Optimize this spreadsheet?",msg:"Tidies your transactions to the top, deletes the empty rows, and updates the summary formulas to be faster and unbounded. Your transactions and budget are untouched.",ok:"Optimize"}))return;
+  if(btn){btn.disabled=true;btn.textContent="Optimizing…";}if(msg){msg.textContent="Working… this can take a moment.";msg.className="msg";}
+  try{
+    var r=await optimizeSheet();var bits=["kept "+r.rows+" transaction"+(r.rows===1?"":"s")];
+    if(r.freed>0)bits.push("freed "+r.freed.toLocaleString()+" empty rows");
+    if(r.cells>0)bits.push("streamlined "+r.cells+" formula"+(r.cells===1?"":"s"));
+    if(msg){msg.textContent="Done ✓ — "+bits.join(", ")+".";msg.className="msg";}
+  }catch(e){if(msg){msg.textContent="Couldn’t finish: "+((e.message||e)+"").slice(0,80)+". Your data is safe.";msg.className="msg bad";}}
+  if(btn){btn.disabled=false;btn.textContent="Optimize this spreadsheet";}
+}
 
 /* actions */
 async function addEntry(){
@@ -3995,7 +4163,7 @@ async function addEntry(){
   if(!credit&&hasDupExpense(co,amt,y,m)&&!await askConfirm({title:"Log it again?",msg:"You already logged "+money(amt)+(co?(" at <b>"+esc(co)+"</b>"):"")+" this month.",ok:"Add anyway"}))return;
   var signed=credit?-Math.abs(amt):amt; // a credit is stored as a negative row so it lowers the category's spending
   var d=new Date(date+"T00:00:00"),b=$("addBtn");b.disabled=true;b.textContent=credit?"Adding credit…":"Adding…";
-  try{var vals=[d.getFullYear(),d.getMonth()+1,date,payee,cat,co,signed,(credit&&!desc?"Credit / money received":desc),reimb];var res=await vappend(LEDGER+"!A:I",[vals]);var row=appendedRow(res);$("fCompany").value="";$("fCategory").value="";updateCatBtn();$("fAmount").value="";$("fDesc").value="";$("fReimb").checked=false;if($("fCredit")){$("fCredit").checked=false;applyCreditUI();}localRowPush(vals);await syncAfterWrite(y);showAddedUndo(credit?("Credit of "+money(amt)+" added ✓"):"Added ✓",row);}
+  try{var vals=[d.getFullYear(),d.getMonth()+1,date,payee,cat,co,signed,(credit&&!desc?"Credit / money received":desc),reimb];var res=await vappend(LEDGER+"!A:I",[vals]);var row=appendedRow(res);$("fCompany").value="";updateCatBtn();$("fAmount").value="";$("fDesc").value="";$("fReimb").checked=false;/* keep the category selected so you can log several in a row and the filtered list stays put */if($("fCredit")){$("fCredit").checked=false;applyCreditUI();}localRowPush(vals);await syncAfterWrite(y);showAddedUndo(credit?("Credit of "+money(amt)+" added ✓"):"Added ✓",row);}
   catch(e){msg.textContent="Could not add: "+(e.message||e);msg.className="msg bad";}
   b.disabled=false;b.textContent="Add expense";if($("fCredit"))applyCreditUI();
 }
@@ -4254,8 +4422,9 @@ async function confirmAdoption(){
   else{switchView("settings");setTimeout(function(){var el=$("startMon");if(el&&el.scrollIntoView)try{el.scrollIntoView({block:"center"});}catch(_){}} ,200);}
 }
 function wire(){
-  if($("bldVer"))$("bldVer").textContent=BUILD; // footer version from the single source of truth
-  if($("settVer"))$("settVer").textContent=BUILD;
+  if($("bldVer"))$("bldVer").textContent="v"+VERSION+" · "+BUILD;   // footer: SemVer + deployment build
+  if($("settVer"))$("settVer").textContent=VERSION;
+  if($("settBuild"))$("settBuild").textContent=BUILD;
   if($("updCheckBtn"))$("updCheckBtn").addEventListener("click",manualUpdateCheck);
   if($("breakdownBtn"))$("breakdownBtn").addEventListener("click",manualBreakdown);
   setTimeout(checkForUpdate,6000); // check for a newer deploy shortly after load
@@ -4266,6 +4435,7 @@ function wire(){
   try{document.addEventListener("visibilitychange",function(){try{
     if(document.visibilityState!=="visible")return;
     if(!(sheetId&&$("appScreen")&&$("appScreen").classList.contains("on")))return;
+    refreshAsOf().catch(function(){}); // if the app was idle across midnight, roll the "as of" date forward
     var o=null;try{o=JSON.parse(lsGet("nw_tok")||"null");}catch(_){}
     if(!o||!o.e||(o.e-(new Date()).getTime())<10*60*1000)getToken(false).catch(function(){});
   }catch(e){}});}catch(e){}
@@ -4289,12 +4459,12 @@ function wire(){
   if($("ysCancel"))$("ysCancel").addEventListener("click",function(){closeOv("yearSetupOv");});
   $("depBtn").addEventListener("click",addDeposit);
   $("depGoalLink").addEventListener("click",function(ev){ev.preventDefault();switchView("goals");});
-  $("searchOpen").addEventListener("click",function(ev){ev.preventDefault();openOv("searchOv",function(){$("searchInput").value="";fillSearchFilters();renderSearch();});});
+  $("searchOpen").addEventListener("click",function(ev){ev.preventDefault();var dep=$("depFields")&&$("depFields").style.display!=="none";openOv("searchOv",function(){$("searchInput").value="";fillSearchFilters();if($("srchType"))$("srchType").value=dep?"deposit":"expense";renderSearch();});});
   var renderSearchD=debounce(renderSearch,180); // debounce so a multi-year ledger isn't fully rescanned on every keystroke
   $("searchInput").addEventListener("input",renderSearchD);
-  ["srchScope","srchCat","srchMonth","srchSort"].forEach(function(id){var el=$(id);if(el)el.addEventListener("change",renderSearch);});
+  ["srchType","srchScope","srchCat","srchMonth","srchSort"].forEach(function(id){var el=$(id);if(el)el.addEventListener("change",renderSearch);});
   ["srchMin","srchMax"].forEach(function(id){var el=$(id);if(el)el.addEventListener("input",renderSearchD);});
-  if($("srchClear"))$("srchClear").addEventListener("click",function(){["srchCat","srchMonth"].forEach(function(id){if($(id))$(id).value="";});if($("srchScope"))$("srchScope").value="";if($("srchSort"))$("srchSort").value="new";if($("srchMin"))$("srchMin").value="";if($("srchMax"))$("srchMax").value="";if($("searchInput"))$("searchInput").value="";renderSearch();});
+  if($("srchClear"))$("srchClear").addEventListener("click",function(){["srchType","srchCat","srchMonth"].forEach(function(id){if($(id))$(id).value="";});if($("srchScope"))$("srchScope").value="";if($("srchSort"))$("srchSort").value="new";if($("srchMin"))$("srchMin").value="";if($("srchMax"))$("srchMax").value="";if($("searchInput"))$("searchInput").value="";renderSearch();});
   $("recurOpen").addEventListener("click",function(ev){ev.preventDefault();openOv("recurOv",renderRecur);});
   $("scanBtn").addEventListener("click",function(){if(!lsGet(GKEY).trim()){$("addMsg").textContent="Add a free Gemini key in Settings first.";$("addMsg").className="msg bad";switchView("settings");return;}$("receiptFile").click();});
   $("receiptFile").addEventListener("change",onReceiptFile);
@@ -4308,7 +4478,7 @@ function wire(){
   if($("startYr"))$("startYr").addEventListener("change",setStartYM);
   if($("wipeGoalsBtn"))$("wipeGoalsBtn").addEventListener("click",wipeGoals);
   if($("wipeDataBtn"))$("wipeDataBtn").addEventListener("click",wipeData);
-  if($("trimLedgerBtn"))$("trimLedgerBtn").addEventListener("click",runTrimLedger);
+  if($("trimLedgerBtn"))$("trimLedgerBtn").addEventListener("click",runOptimize);
   applyFormPrefs();
   $("copyLink").addEventListener("click",function(){var url=($("openSheet")&&$("openSheet").href)||"";if(!url)return;try{navigator.clipboard.writeText(url);this.textContent="Copied ✓";}catch(e){this.textContent="Press & hold the ‘open ▸’ link to copy";}var b=this;setTimeout(function(){b.textContent="Copy the sheet link";},1800);});
   $("signout2").addEventListener("click",function(){if($("signout"))$("signout").click();});
@@ -4405,10 +4575,10 @@ function wire(){
   if($("catPickOv"))$("catPickOv").addEventListener("click",function(ev){if(ev.target===this)closeOv("catPickOv");});
   $("dSource").addEventListener("change",function(){if(this.value==="__budget__"){this.selectedIndex=0;switchView("budget");return;}renderDepTbl();try{renderRecent();}catch(e){}});
   $("fAmount").addEventListener("input",debounce(renderCatTbl,160));
-  $("fDate").addEventListener("change",renderCatTbl);
+  $("fDate").addEventListener("change",function(){renderCatTbl();try{renderRecent();}catch(e){}});
   $("fCompany").addEventListener("input",debounce(function(){var v=($("fCompany").value||"").trim().toLowerCase();var cat=companyMap()[v];if(cat&&!$("fCategory").value&&state.cats.some(function(c){return c.name.toLowerCase()===cat.toLowerCase();})){setCategory(cat);}},200));
   $("dAmount").addEventListener("input",debounce(renderDepTbl,160));
-  if($("dDate"))$("dDate").addEventListener("change",renderDepTbl);
+  if($("dDate"))$("dDate").addEventListener("change",function(){renderDepTbl();try{renderRecent();}catch(e){}});
   $("signout").addEventListener("click",function(){
     // Revoke + fully clear so a different Google account on this device can't inherit the previous account's budget list/ids.
     try{if(window.google&&google.accounts&&google.accounts.oauth2&&accessToken)google.accounts.oauth2.revoke(accessToken,function(){});}catch(e){}
@@ -4423,6 +4593,23 @@ function wire(){
   try{initInstallTip();}catch(e){}
 }
 try{if(/[?&]reset\b/i.test(location.search)){localStorage.removeItem("nw_sheet_id2");try{history.replaceState(null,"",location.pathname);}catch(_){}}}catch(e){}
+// Pin the app height to the TRUE visible area. iOS mis-reports 100vh/100dvh (leaves dead space under the tab bar), but
+// visualViewport.height is exact. Keep it fresh on resize/rotate/toolbar changes.
+(function(){
+  function setAppVH(){try{
+    // INSTALLED (home-screen) app: visualViewport under-reports (drops the bottom safe area), which double-counts the inset and
+    // lifts the tab bar. Let CSS 100dvh fill the whole screen instead, and let the tab bar's own safe-area padding do the clearing.
+    var sa=(window.navigator&&window.navigator.standalone===true)||(window.matchMedia&&(window.matchMedia("(display-mode: standalone)").matches||window.matchMedia("(display-mode: fullscreen)").matches));
+    if(sa){document.documentElement.style.removeProperty("--appvh");return;}
+    var vv=window.visualViewport;var h=(vv&&vv.height)||window.innerHeight||0;if(h>0)document.documentElement.style.setProperty("--appvh",Math.round(h)+"px"); // Safari tab: visualViewport is the reliable visible height
+  }catch(e){}}
+  setAppVH();
+  try{if(window.visualViewport){window.visualViewport.addEventListener("resize",setAppVH);window.visualViewport.addEventListener("scroll",setAppVH);}}catch(e){}
+  window.addEventListener("resize",setAppVH);
+  window.addEventListener("orientationchange",function(){setAppVH();setTimeout(setAppVH,300);});
+  window.addEventListener("pageshow",setAppVH);
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")setAppVH();});
+})();
 (function poll(){
   if(window.google&&google.accounts&&google.accounts.oauth2){
     tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:_tokCb,error_callback:_tokErr});
