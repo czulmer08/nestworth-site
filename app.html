@@ -612,6 +612,7 @@ try{
   </div>
 
   <div class="foot">NestWorth - Build <span id="bldVer"></span> &nbsp;·&nbsp; <a class="sheetlink" id="openSheet" target="_blank" rel="noopener">open the spreadsheet</a></div>
+  <div class="foot" id="vpDiag" style="font-size:11px;line-height:1.35;opacity:.85;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word"></div>
   </div>
   <nav class="tabbar" id="tabbar">
     <button data-v="add" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><span>Add</span></button>
@@ -902,6 +903,14 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.10.3 — Aug 27, 2026 · Build 20260827.6
+//     • "Show Payee" / "Show Reimbursed" Add-form settings are now PER PROFILE — stored in each budget's Meta tab so they
+//       travel with the budget (and across devices), instead of one device-wide switch. Existing device setting is kept
+//       as a fallback until a profile sets its own.
+//   v0.10.2 — Aug 27, 2026 · Build 20260827.5
+//     • Recent entries (unfiltered) show recent PAST activity — future-dated rows (annual bills logged ahead, e.g. Dec) no
+//       longer sit on top of the current month
+//     • (Build .4–.5 carry a temporary viewport diagnostic in the footer to pin down the iOS tab-bar placement)
 //   v0.10.1 — Aug 27, 2026 · Build 20260827.3
 //     • Tab bar pinned to the viewport with position:fixed — sits at the true bottom on iOS even when 100dvh under-reports
 //       (removes the JS height hack that kept lifting it); template also ships without a stale calc chain so Excel opens it clean
@@ -914,8 +923,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.10.1"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.3"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.10.3"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.6"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -1596,9 +1605,10 @@ function normMeta(o){o=o||{};
   if(!payees.length)payees=["Me"];
   var carry=isObj(o.carry)?o.carry:{}; // per-category "banked before this year" overrides (lowercased name → number)
   var gkey=(o&&typeof o.gkey==="string")?o.gkey:""; // optional: Gemini receipt-scanning key, saved with the budget so it survives device storage being cleared
-  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
+  var prefs=isObj(o.prefs)?o.prefs:{}; // per-profile Add-form field prefs (e.g. show Payee / Reimbursed) — travels with the budget
+  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -1638,6 +1648,7 @@ async function writeMeta(){
       carry:_mergeMap(_metaBase.carry||{},state.meta.carry||{},remote.carry||{}),
       goals:_mergeArr(_metaBase.goals,state.meta.goals,remote.goals),
       payees:_mergeArr(_metaBase.payees,state.meta.payees,remote.payees,function(x){return (""+x).toLowerCase();}),
+      prefs:_mergeMap(_metaBase.prefs||{},state.meta.prefs||{},remote.prefs||{}),
       gkey:(state.meta.gkey!==_metaBase.gkey)?state.meta.gkey:remote.gkey,
       startCash:(state.meta.startCash!==_metaBase.startCash)?state.meta.startCash:remote.startCash,
       startYM:(state.meta.startYM!==_metaBase.startYM)?state.meta.startYM:remote.startYM,
@@ -3357,9 +3368,18 @@ var MONF=["January","February","March","April","May","June","July","August","Sep
 var REMKEY="nw_reminders",REM_DEFAULTS={overbudget:true,duesoon:true,saveup:true,missed:true,goals:true,recap:true};
 function remPrefs(){var o={};try{var raw=localStorage.getItem(REMKEY);o=raw?JSON.parse(raw):{};}catch(e){}var out={};for(var k in REM_DEFAULTS)out[k]=(o[k]==null?REM_DEFAULTS[k]:!!o[k]);return out;}
 function setRemPref(k,v){var p=remPrefs();p[k]=v;try{localStorage.setItem(REMKEY,JSON.stringify(p));}catch(e){}}
-// Add-form field prefs (hide payee / reimbursed)
-function formPref(k){try{var v=localStorage.getItem("nw_pref_"+k);return v==null?true:v==="1";}catch(e){return true;}}
-function setFormPref(k,v){try{localStorage.setItem("nw_pref_"+k,v?"1":"0");}catch(e){}}
+// Add-form field prefs (show/hide Payee + Reimbursed). Stored PER PROFILE in the budget's Meta tab so each budget keeps its
+// own choice and it travels across devices. Legacy device-wide localStorage values are honored as a fallback until this
+// profile sets its own, so nobody's existing setting flips on upgrade.
+function formPref(k){try{
+  var p=state.meta&&state.meta.prefs;
+  if(p&&Object.prototype.hasOwnProperty.call(p,k))return !!p[k];
+  var v=localStorage.getItem("nw_pref_"+k);return v==null?true:v==="1"; // legacy fallback (device-wide) until per-profile is set
+}catch(e){return true;}}
+function setFormPref(k,v){
+  try{if(!state.meta)state.meta={};if(!state.meta.prefs)state.meta.prefs={};state.meta.prefs[k]=!!v;}catch(e){}
+  try{writeMeta();}catch(e){} // persist to THIS budget's Meta tab (fire-and-forget; UI already reflects it synchronously)
+}
 function applyFormPrefs(){
   var pr=$("fPayee")&&$("fPayee").closest?$("fPayee").closest(".row"):null;if(pr)pr.style.display=formPref("payee")?"flex":"none";
   var rr=$("fReimb")&&$("fReimb").closest?$("fReimb").closest(".row"):null;if(rr)rr.style.display=formPref("reimb")?"flex":"none";
@@ -3554,7 +3574,7 @@ function renderRecent(){
   if(!rows.length){list.innerHTML='<li class="empty">No entries yet. Add your first one below.</li>';return;}
   // Collect matching rows, then sort by DATE (newest first). The ledger's row order isn't date order — especially after
   // imports — so iterating from the bottom showed whatever landed last, not the most recent by date.
-  var cand=[];
+  var cand=[],todK=todayISO();
   for(var i=0;i<rows.length;i++){
     var r=rows[i];var _re4=(""+((r&&r[4])||"")).trim().toLowerCase();
     if(isGoalName(_re4)||(_re4!=="deposit"&&isGoalName((r&&r[5])||"")))continue;
@@ -3566,6 +3586,7 @@ function renderRecent(){
     }
     if(filt&&(Number(r[0])!==fy||Number(r[1])!==fm))continue; // scope to the feedback line's month
     var iso=serialToISO(r&&r[2])||((Number(r&&r[0])||0)+"-"+pad2(Number(r&&r[1])||0)+"-00");
+    if(!filt&&iso>todK)continue; // the unfiltered "Recent" list is recent PAST activity — don't let future-dated rows (e.g. annual bills logged ahead for Dec) sit on top of this month
     cand.push({i:i,r:r,k:iso});
   }
   cand.sort(function(a,b){return a.k<b.k?1:(a.k>b.k?-1:(b.i-a.i));}); // date descending; ties broken by ledger position (latest first)
@@ -4137,7 +4158,7 @@ function fillPayeeSource(){
   var src=$("dSource");if(src){var cur2=src.value;if(!cons.length){src.innerHTML='<option value="">No income sources yet…</option><option value="__budget__">＋ Add income line in Budget</option>';}else{src.innerHTML=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur2&&cons.indexOf(cur2)>=0)src.value=cur2;}}
   var esrc=$("edSource");if(esrc){var cur3=esrc.value;var h=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur3&&cons.indexOf(cur3)<0)h='<option>'+esc(cur3)+'</option>'+h;esrc.innerHTML=h;if(cur3)esrc.value=cur3;}
 }
-function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();sizeAllMoney();maybeOfferTidy();}
+function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();}
 // One-time-per-load offer to fix a ledger whose rows were stranded near the bottom of the sheet (by Google's append on a Table).
 var _tidyOffered=false;
 function maybeOfferTidy(){
@@ -4524,6 +4545,7 @@ async function confirmAdoption(){
 }
 function wire(){
   if($("bldVer"))$("bldVer").textContent="v"+VERSION+" · "+BUILD;   // footer: SemVer + deployment build
+  try{vpDiag();}catch(e){}
   if($("settVer"))$("settVer").textContent=VERSION;
   if($("settBuild"))$("settBuild").textContent=BUILD;
   if($("updCheckBtn"))$("updCheckBtn").addEventListener("click",manualUpdateCheck);
@@ -4696,6 +4718,28 @@ function wire(){
 try{if(/[?&]reset\b/i.test(location.search)){localStorage.removeItem("nw_sheet_id2");try{history.replaceState(null,"",location.pathname);}catch(_){}}}catch(e){}
 // Tab bar placement is now pure CSS: .tabbar is position:fixed to the viewport bottom, so it sits at the real bottom on iOS
 // (standalone AND Safari) without any JS height measurement — which is what kept mis-reporting and lifting the bar before.
+// TEMP DIAGNOSTIC: report what iOS actually gives us, so we can see WHY the bar sits short. Shown in the footer.
+function vpDiag(){
+  var el=document.getElementById("vpDiag"); if(!el)return;
+  function probe(css){var d=document.createElement("div");d.style.cssText="position:fixed;left:-9999px;width:1px;"+css;document.body.appendChild(d);var h=d.getBoundingClientRect().height;document.body.removeChild(d);return Math.round(h);}
+  var iH=Math.round(window.innerHeight||0);
+  var vv=window.visualViewport?Math.round(window.visualViewport.height):0;
+  var dc=Math.round(document.documentElement.clientHeight||0);
+  var sh=Math.round((window.screen&&window.screen.height)||0);
+  var dpr=window.devicePixelRatio||1;
+  var sab=probe("bottom:0;height:env(safe-area-inset-bottom)");
+  var sat=probe("top:0;height:env(safe-area-inset-top)");
+  var h_dvh=probe("top:0;height:100dvh"), h_svh=probe("top:0;height:100svh"), h_lvh=probe("top:0;height:100lvh"), h_vh=probe("top:0;height:100vh");
+  // where does a fixed;bottom:0 element actually land, relative to innerHeight?
+  var fb=document.createElement("div");fb.style.cssText="position:fixed;left:-9999px;bottom:0;width:1px;height:1px";document.body.appendChild(fb);var fbBottom=Math.round(fb.getBoundingClientRect().bottom);document.body.removeChild(fb);
+  var standalone=(navigator.standalone===true?"nav":"")+((window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)?" mq-standalone":"")+((window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)?" mq-fullscreen":"")||"browser";
+  el.textContent=
+    "innerH="+iH+"  visualVP="+vv+"  clientH="+dc+"  screenH="+sh+"  dpr="+dpr+"\n"+
+    "safe-bottom="+sab+"  safe-top="+sat+"\n"+
+    "100vh="+h_vh+"  100dvh="+h_dvh+"  100svh="+h_svh+"  100lvh="+h_lvh+"\n"+
+    "fixed;bottom:0 lands at="+fbBottom+" (gap under it="+(iH-fbBottom)+")\n"+
+    "mode="+standalone;
+}
 (function poll(){
   if(window.google&&google.accounts&&google.accounts.oauth2){
     tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:_tokCb,error_callback:_tokErr});
