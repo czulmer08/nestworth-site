@@ -847,6 +847,8 @@ try{
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg></span><label>Source</label><input id="conName" autocomplete="off" placeholder="e.g., Paycheck"></div>
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path></svg></span><label>Budget type</label><select id="conType">
     <option value="paycheck">Paycheck (salary)</option>
+    <option value="weekly">Every week (same amount)</option>
+    <option value="biweekly">Every 2 weeks (same amount)</option>
     <option value="monthly">Every month (same amount)</option>
     <option value="onetime">One-time</option>
     <option value="custom">Custom (set each month)</option>
@@ -916,6 +918,9 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.12.0 — Aug 27, 2026 · Build 20260827.14
+//     • Income Budget type adds "Every week (same amount)" and "Every 2 weeks (same amount)" — enter one period's amount and
+//       the app spreads it across the months (×52÷12 and ×26÷12). Weekly/biweekly no longer only reachable via Paycheck.
 //   v0.11.4 — Aug 27, 2026 · Build 20260827.13
 //     • Insights stat tiles no longer overflow the card: a long Top-category name (e.g. "Holland Household") wraps inside
 //       its tile, and a large Spent/Avg number auto-shrinks to fit instead of pushing off the page or getting cut off.
@@ -961,8 +966,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.11.4"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.13"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.12.0"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.14"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -982,6 +987,8 @@ function monthsFor(cfg){
   if(t==="annual"||t==="onetime"){var mi=(Number(cfg.month)||1)-1;if(mi<0||mi>11)mi=0;out[mi]=r2(a);return out;}
   if(t==="paycheck"){var checks=Number(cfg.freq)||26;var take=a*checks/12;var mo;if(cfg.mode==="keep"){mo=take-(Number(cfg.keep)||0);}else{var pct=(cfg.pct==null?100:Number(cfg.pct))/100;mo=take*pct;}if(mo<0)mo=0;mo=r2(mo);for(i=0;i<12;i++)out[i]=mo;return out;}
   if(t==="itemized"){return billMonths(cfg.items);}
+  if(t==="weekly"){var mw=r2(a*52/12);for(i=0;i<12;i++)out[i]=mw;return out;}   // flat weekly income → spread across the year
+  if(t==="biweekly"){var mb=r2(a*26/12);for(i=0;i<12;i++)out[i]=mb;return out;} // flat every-2-weeks income → spread across the year
   for(i=0;i<12;i++)out[i]=r2(a);return out; // monthly
 }
 // ---- Update check: pull the deployed app.html, read its BUILD, and offer a refresh if it's newer than what's running.
@@ -3872,9 +3879,9 @@ function conTypeUI(){
   $("conAmtRow").style.display=(t==="custom")?"none":"flex";
   $("conMonthRow").style.display=(t==="onetime")?"flex":"none";
   $("conCustom").style.display=(t==="custom")?"block":"none";
-  $("conAmtLbl").textContent=(t==="paycheck")?"Take-home per check":(t==="onetime")?"Amount":"Amount per month";
+  $("conAmtLbl").textContent=(t==="paycheck")?"Take-home per check":(t==="onetime")?"Amount":(t==="weekly")?"Amount per week":(t==="biweekly")?"Amount every 2 weeks":"Amount per month";
   var fw={52:"weekly",26:"every 2 weeks",24:"twice a month",12:"monthly",1:"yearly"}[Number($("conFreq").value)]||"";
-  var hints={paycheck:"Enter one paycheck; the app averages it across the year ("+fw+").",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
+  var hints={paycheck:"Enter one paycheck; the app averages it across the year ("+fw+").",weekly:"Same amount every week — the app spreads it evenly across the months (×52 ÷ 12).",biweekly:"Same amount every 2 weeks — the app spreads it evenly across the months (×26 ÷ 12).",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
   $("conHint").textContent=hints[t]||"";
   if(t==="custom"&&!$("nm0"))buildMGrid("conGrid","nm");
 }
