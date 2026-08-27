@@ -27,7 +27,7 @@ try{
   @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55);} }
   :root[data-theme="dark"]{ --bg:#111A13; --card:#18221A; --ink:#EAF1E7; --ink2:#A7B7AA; --line:#2A372C; --green:#57BC8F; --green-d:#3E9E74; --soft:#1C2C22; --gold:#E4B457; --bad:#e07a5f; --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 36px -16px rgba(0,0,0,.55); }
   *{box-sizing:border-box} html{-webkit-text-size-adjust:100%}
-  html,body{height:100vh;height:100dvh;height:var(--appvh,100dvh);margin:0;overflow:hidden;overscroll-behavior:none} /* --appvh is set from visualViewport.height (the TRUE visible area) in JS — the only reliable way to sit the tab bar at the real bottom on iOS; falls back to dvh/vh. Body never scrolls; only inner content does. */
+  html,body{height:100vh;height:100dvh;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--bg)} /* Body never scrolls; only the inner .wrap scrolls. The tab bar is position:fixed to the viewport bottom, so it no longer depends on this height being pixel-exact (iOS dvh can under-report). html gets the bg so any sub-pixel edge blends. */
   :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
   .rtag{display:inline-block;font-size:10px;font-weight:600;color:var(--ink2);background:var(--soft);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   .installtip{margin-top:22px;max-width:340px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left}
@@ -49,7 +49,7 @@ try{
   :root[data-theme="dark"] body[data-view="add"]{background:#111A13} :root[data-theme="dark"] body[data-view="month"]{background:#0F1917} :root[data-theme="dark"] body[data-view="budget"]{background:#10161F} :root[data-theme="dark"] body[data-view="goals"]{background:#191710} :root[data-theme="dark"] body[data-view="worth"]{background:#0E1913} :root[data-theme="dark"] body[data-view="settings"]{background:#131712}
   .disp{font-family:"Fraunces",Georgia,serif}
   .screen{display:none} .screen.on{display:flex;flex-direction:column;height:100%}
-  .wrap{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;width:100%;max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px 24px}
+  .wrap{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;width:100%;max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(80px + env(safe-area-inset-bottom))} /* bottom padding clears the fixed tab bar */
   .center{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(28px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom))}
   .logo{width:96px;height:96px;border-radius:24px;box-shadow:var(--shadow);margin-bottom:18px}
   .brand{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:38px;margin:0 0 6px}
@@ -62,7 +62,7 @@ try{
   .top .title{font-family:"Fraunces",serif;font-weight:600;font-size:22px}
   .top .who{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
   .lnk{color:var(--green);font-size:13px;font-weight:600;background:none;border:0;cursor:pointer;padding:6px}
-  .tabbar{flex:0 0 auto;display:flex;background:var(--card);border-top:1px solid var(--line);padding:7px 4px max(6px,calc(env(safe-area-inset-bottom) - 8px));z-index:40;box-shadow:0 -4px 18px rgba(27,51,39,.06)}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding:7px 4px max(8px,env(safe-area-inset-bottom));z-index:40;box-shadow:0 -4px 18px rgba(27,51,39,.06)} /* pinned to the real viewport bottom; full safe-area padding lifts the icons above the home indicator */
   .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;color:var(--ink2);font-family:inherit;font-size:9.5px;font-weight:600;letter-spacing:0;cursor:pointer;padding:3px 0}
   .tabbar button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
   .tabbar button.on{color:var(--green)}
@@ -897,16 +897,25 @@ var SCOPE="https://www.googleapis.com/auth/drive.file";
 var SHEET_NAME="NestWorth Budget";
 var TEMPLATE_URL="nestworth-template.xlsx";
 var LEDGER="Account Ledger";
+var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs that feed the ledger's Category / Contributor dropdowns
 // Versioning: SemVer for what changed functionally, a YYYYMMDD.# build number for exactly which deployment this is.
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.10.1 — Aug 27, 2026 · Build 20260827.3
+//     • Tab bar pinned to the viewport with position:fixed — sits at the true bottom on iOS even when 100dvh under-reports
+//       (removes the JS height hack that kept lifting it); template also ships without a stale calc chain so Excel opens it clean
+//   v0.10.0 — Aug 27, 2026 · Build 20260827.2
+//     • Itemized categories total by NAME: an itemized parent (and each ↳ bill) now also counts imported/historical rows
+//       tagged with the bare bill name — with or without the "↳" — so past transactions connect to the new itemized category
+//     • Ledger dropdowns stay in step with the summary: every category, itemized bill (clean name, no "↳"), and contributor
+//       is selectable, across the whole ledger; the app maintains it on existing budgets, the template self-updates for new ones
 //   v0.9.0 — Aug 27, 2026 · Build 20260827.1
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.9.0"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.1"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.10.1"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.3"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -1003,8 +1012,11 @@ function billMonths(items){var m=[0,0,0,0,0,0,0,0,0,0,0,0];(items||[]).forEach(f
 function billAnnual(it){return r2(billMonths([it]).reduce(function(s,z){return s+z;},0));}
 // How much has actually been spent on a single itemized bill this budget year — ledger rows tagged with the parent
 // category (col E) AND the bill's name in the Company column (col F), which is how logging/picking a bill tags them.
-function billSpentYr(parent,billName,y){y=y||bYear();var pl=(""+parent).trim().toLowerCase(),bl=(""+billName).trim().toLowerCase();if(!bl)return 0;var s=0;(state.rows||[]).forEach(function(r){if(!r)return;if(Number(r[0])!==y)return;if((""+((r[4])||"")).trim().toLowerCase()!==pl)return;if((""+((r[5])||"")).trim().toLowerCase()!==bl)return;s+=Number(r[6])||0;});return r2(s);}
-function billSpentMonth(parent,billName,y,m){var pl=(""+parent).trim().toLowerCase(),bl=(""+billName).trim().toLowerCase();if(!bl)return 0;var s=0;(state.rows||[]).forEach(function(r){if(!r)return;if(Number(r[0])!==y||Number(r[1])!==m)return;if((""+((r[4])||"")).trim().toLowerCase()!==pl)return;if((""+((r[5])||"")).trim().toLowerCase()!==bl)return;s+=Number(r[6])||0;});return r2(s);}
+// True if ledger row r belongs to the bill (parent pl / bill bl): app-native tag (Category=parent AND Company=bill),
+// OR categorized directly as the bill name, OR as "↳ bill" — so imported/historical rows connect to the itemized category.
+function _billRowMatch(r,pl,bl){var cat=(""+((r[4])||"")).trim().toLowerCase();if(cat===bl||cat==="↳ "+bl)return true;return cat===pl&&(""+((r[5])||"")).trim().toLowerCase()===bl;}
+function billSpentYr(parent,billName,y){y=y||bYear();var pl=(""+parent).trim().toLowerCase(),bl=(""+billName).trim().toLowerCase();if(!bl)return 0;var s=0;(state.rows||[]).forEach(function(r){if(!r||Number(r[0])!==y)return;if(_billRowMatch(r,pl,bl))s+=Number(r[6])||0;});return r2(s);}
+function billSpentMonth(parent,billName,y,m){var pl=(""+parent).trim().toLowerCase(),bl=(""+billName).trim().toLowerCase();if(!bl)return 0;var s=0;(state.rows||[]).forEach(function(r){if(!r||Number(r[0])!==y||Number(r[1])!==m)return;if(_billRowMatch(r,pl,bl))s+=Number(r[6])||0;});return r2(s);}
 function ord(n){n=Number(n)||0;if(!n)return "";var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 function billCadLabel(it){var day=(Number(it.day)||0)?(" · "+ord(it.day)):"";switch(it.cadence){case"Annual":return "annual · pays "+MONTHS[((Number(it.month)||1)-1)]+day;case"AnnualSaveUp":return "annual, split monthly"+day;case"Custom":return "custom";default:return "monthly"+day;}}
 function annualOf(cfg){return r2(monthsFor(cfg).reduce(function(s,z){return s+z;},0));}
@@ -1656,12 +1668,30 @@ function buildIndexes(){
   state.spend=sp;state.dep=dp;
 }
 // Derive each category's this-month spent + annual-left, and each income source's this-month deposits, from the index (client-side).
+// The bill names of an itemized category — from the app's meta if loaded, else from the sheet's ↳ sub-rows (so this works
+// even before readMeta runs and for categories itemized directly in the sheet).
+function catBills(name){
+  var nl=(""+name).toLowerCase();
+  var cfg=state.meta&&state.meta.cats&&state.meta.cats[nl];
+  if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length)return cfg.items.map(function(it){return it&&it.name;}).filter(Boolean);
+  var subs=state._sheetSubs&&state._sheetSubs[nl];
+  if(subs&&subs.length)return subs.map(function(s){return s.name;}).filter(Boolean);
+  return [];
+}
+// A category's combined 12-month spend: its own rows PLUS every bill matched by name ("bill" and "↳ bill" buckets), so an
+// itemized parent's total (and its envelope balance) picks up imported transactions tagged with the bare bill name —
+// mirroring the summary's parent formula exactly. Buckets are disjoint by Category value, so nothing is double-counted.
+function catSpend12(name){
+  var out=((state.spend&&state.spend[(""+name).toLowerCase()])||_z12()).slice();
+  catBills(name).forEach(function(b){var bl=(""+b).toLowerCase();[bl,"↳ "+bl].forEach(function(key){var sp=state.spend&&state.spend[key];if(sp)for(var k=0;k<12;k++)out[k]+=sp[k];});});
+  return out;
+}
 function applyBudgetSpend(){
   var cm=curMonth()-1;
-  (state.cats||[]).forEach(function(c){var sp=state.spend&&state.spend[c.name.toLowerCase()];var yr=0;if(sp){for(var k=0;k<12;k++)yr+=sp[k];}c.mspent=r2(sp?(sp[cm]||0):0);c.remaining=r2((c.annual||0)-yr);});
+  (state.cats||[]).forEach(function(c){var sp=catSpend12(c.name);var yr=0;for(var k=0;k<12;k++)yr+=sp[k];c.mspent=r2(sp[cm]||0);c.remaining=r2((c.annual||0)-yr);});
   (state.cons||[]).forEach(function(c){var dp=state.dep&&state.dep[c.name.toLowerCase()];c.mdep=r2(dp?(dp[cm]||0):0);});
 }
-function spentByMonth(name){return (state.spend&&state.spend[(""+name).toLowerCase()])||_z12();}
+function spentByMonth(name){return catSpend12(name);}
 // The month you started tracking this year (earliest ledger entry). Envelopes only bank from here — no phantom "savings" for months before you set the budget up.
 // Adoption point (YYYYMM): when the user started budgeting. Explicit meta.startYM wins; otherwise inferred from the earliest
 // real-expense month. Envelopes bank ONLY from here forward — never for months before you started (no phantom "savings").
@@ -1681,8 +1711,11 @@ async function loadCarryIn(){
   var cy=curYear();var adopt=adoptionYM();if(!adopt)return; // nothing to carry in before you've started budgeting
   var ay=Math.floor(adopt/100),am=adopt%100;
   var priorSpent={};
+  // Map each itemized bill name (and its "↳ bill" form) to its parent, so historical rows tagged with the bare bill name
+  // bank into the parent's envelope — same name-matching the summary's parent formula uses.
+  var billToParent={};(state.cats||[]).forEach(function(c){var pl=c.name.toLowerCase();catBills(c.name).forEach(function(b){var bl=(""+b).toLowerCase();billToParent[bl]=pl;billToParent["↳ "+bl]=pl;});});
   // Only count spending from the adoption point forward (so pre-adoption imported history doesn't distort carry-in).
-  state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(!e||e==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;var y=Number(r[0]),m=Number(r[1]);if(y>=cy)return;if(y<ay||(y===ay&&m<am))return;priorSpent[e]=(priorSpent[e]||0)+(Number(r[6])||0);});
+  state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(!e||e==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;var y=Number(r[0]),m=Number(r[1]);if(y>=cy)return;if(y<ay||(y===ay&&m<am))return;var key=billToParent[e]||e;priorSpent[key]=(priorSpent[key]||0)+(Number(r[6])||0);});
   try{
     var meta=await api(ssBase()+"?fields=sheets.properties(title)");var years=[];
     (meta.sheets||[]).forEach(function(s){var mm=(""+s.properties.title).match(/^(\d{4}) Account Summary$/);if(mm){var y=+mm[1];if(y<cy&&y>=ay)years.push(y);}});
@@ -1698,6 +1731,7 @@ async function loadCarryIn(){
         for(var ri=0;ri<rowsY.length;ri++){
           var r=rowsY[ri];var nm=(""+((r&&r[0])||"")).trim().toLowerCase();if(!nm)continue;
           if(nm==="total"||nm==="contributor"||nm.indexOf("contributions")===0||nm.indexOf("balance check")===0)break; // reached totals/income section
+          if(nm.charAt(0)==="↳")continue; // ↳ bill rows are already inside the parent's budget — don't count them again
           var sum=0;for(var k=startK;k<12;k++)sum+=Number(r[4+k*2])||0;priorBudget[nm]=(priorBudget[nm]||0)+sum;
         }
       }
@@ -2050,14 +2084,32 @@ var SPENTCOLS=["F","H","J","L","N","P","R","T","V","X","Z","AB"]; // per-month S
 function esc2(s){return (""+s).replace(/"/g,'""');} // escape double-quotes for a formula string literal
 // The template's per-month Spent formula. catRef is a cell ref ($A<row>) for a parent or a quoted literal for a bill;
 // pass a bill Company name to add the second criterion (so a bill row sums only its own charges).
-function catSpentF(catRef,company,m){
-  // Whole-column references ($G:$G) — Google evaluates only the used range, so this is efficient and never tied to a row count.
-  // The "spent so far" cutoff reads $AC$1 (an "as of" date the app keeps current) instead of TODAY(), so these formulas are
-  // NON-volatile — they recalc only when transactions or the as-of date change, not on every edit — while keeping the meaning.
-  var f="=SUMIFS('Account Ledger'!$G:$G,'Account Ledger'!$E:$E,"+catRef+",";
+// One SUMIFS term (no leading "="). Whole-column references ($G:$G) — Google evaluates only the used range, so this is
+// efficient and never tied to a row count. The "spent so far" cutoff reads $AC$1 (an "as of" date the app keeps current)
+// instead of TODAY(), so these formulas are NON-volatile — they recalc only when transactions or the as-of date change.
+// catRef is a cell ref ($A<row>) or a quoted literal; pass a Company name to add the second criterion.
+function sumifTerm(catRef,company,m){
+  var f="SUMIFS('Account Ledger'!$G:$G,'Account Ledger'!$E:$E,"+catRef+",";
   if(company!=null)f+="'Account Ledger'!$F:$F,\""+esc2(company)+"\",";
   f+="'Account Ledger'!$C:$C,\">=\"&DATE($B$2,"+m+",1),'Account Ledger'!$C:$C,\"<=\"&EOMONTH(DATE($B$2,"+m+",1),0),'Account Ledger'!$C:$C,\"<=\"&$AC$1)";
   return f;
+}
+function catSpentF(catRef,company,m){return "="+sumifTerm(catRef,company,m);} // plain (non-itemized) category / kept for callers
+// A bill sub-row's "spent so far". Totals the bill by NAME so imported/historical transactions connect to the itemized
+// category: (1) the app-native tag (Category=parent AND Company=bill), (2) rows categorized directly as the bill name, and
+// (3) rows categorized as "↳ bill". The three Category criteria are mutually exclusive per row, so nothing is double-counted.
+function billSpentF(parentName,bill,m){
+  return "="+sumifTerm('"'+esc2(parentName)+'"',bill,m)
+        +"+"+sumifTerm('"'+esc2(bill)+'"',null,m)
+        +"+"+sumifTerm('"↳ '+esc2(bill)+'"',null,m);
+}
+// An itemized PARENT's "spent so far": its own category rows PLUS every bill's name-matched historical rows (so the parent
+// total also picks up imported transactions tagged with the bare bill name). Native bill rows (Category=parent) are already
+// inside the first term via the parent match, so summing the bills' company terms here would double-count — we don't.
+function parentSpentF(row,bills,m){
+  var f=sumifTerm("$A"+row,null,m);
+  (bills||[]).forEach(function(b){f+="+"+sumifTerm('"'+esc2(b)+'"',null,m)+"+"+sumifTerm('"↳ '+esc2(b)+'"',null,m);});
+  return "="+f;
 }
 var _asOfStamp=""; // last date written to $AC$1 this session — avoids redundant writes
 // Keep the "as of" date ($AC$1) on each summary tab current, written as a STATIC value (not =TODAY()) so the Spent formulas
@@ -2090,9 +2142,11 @@ async function syncBreakdown(sname){
   });
   var rowsOut=[];
   parents.forEach(function(p){
-    rowsOut.push({name:p.name,bud12:p.bud12,sub:false});
     var cfg=catCfg(p.name);
-    if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length){
+    var isItem=cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length;
+    var bills=isItem?cfg.items.map(function(it){return it&&it.name;}).filter(Boolean):[];
+    rowsOut.push({name:p.name,bud12:p.bud12,sub:false,bills:bills});
+    if(isItem){
       cfg.items.forEach(function(it){if(it&&it.name)rowsOut.push({name:"↳ "+it.name,bud12:billMonths([it]),sub:true,parent:p.name,bill:it.name});});
     }
   });
@@ -2102,10 +2156,11 @@ async function syncBreakdown(sname){
   rowsOut.forEach(function(ro,i){
     var row=CAT_START+i;
     data.push({range:"'"+sname+"'!A"+row,values:[[ro.name]]});
-    var catRef=ro.sub?('"'+esc2(ro.parent)+'"'):("$A"+row);
     for(var j=0;j<12;j++){
       data.push({range:"'"+sname+"'!"+BUDCOLS[j]+row,values:[[r2(ro.bud12[j]||0)]]});
-      data.push({range:"'"+sname+"'!"+SPENTCOLS[j]+row,values:[[catSpentF(catRef,ro.sub?ro.bill:null,j+1)]]});
+      var f=ro.sub?billSpentF(ro.parent,ro.bill,j+1)
+                  :((ro.bills&&ro.bills.length)?parentSpentF(row,ro.bills,j+1):catSpentF("$A"+row,null,j+1));
+      data.push({range:"'"+sname+"'!"+SPENTCOLS[j]+row,values:[[f]]});
     }
   });
   for(var rr=CAT_START+rowsOut.length;rr<=CAT_END;rr++){ // clear any leftover rows below the written block
@@ -2129,7 +2184,7 @@ async function syncBreakdownAllYears(){
 }
 function anyItemized(){var c=(state.meta&&state.meta.cats)||{};for(var k in c){if(c[k]&&c[k].type==="itemized")return true;}return false;}
 // Keep the spreadsheet's itemized breakdown current after a category/bill change — only does work when itemized categories exist.
-async function refreshBreakdown(){try{if(anyItemized())await syncBreakdownAllYears();}catch(e){}}
+async function refreshBreakdown(){try{if(anyItemized())await syncBreakdownAllYears();}catch(e){}try{await syncDropdowns();}catch(e){}}
 async function loadAll(){
   try{var l=await vgetU(LEDGER+"!A2:I");state.rows=l.values||[];state._ledgerOk=true;}
   catch(e){ // don't nuke the whole app if the ledger tab is momentarily unreadable or was renamed — recreate + retry once
@@ -2176,6 +2231,7 @@ async function loadAll(){
   loadGoals();
   await loadCarryIn();
   await loadNW();
+  syncDropdowns(); // keep the ledger Category/Contributor dropdowns in step with the summary (best-effort, only when changed)
 }
 // Round-trip: if a category has indented "↳ bill" rows in the summary that DON'T match what the app already has, treat those
 // rows as the source of truth and rebuild the itemized bill list from them — so building or editing an itemized category
@@ -2246,6 +2302,51 @@ async function ensureLedgerTable(lastRow){
     await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{updateTable:{table:{tableId:t.id,range:range},fields:"range"}}]})});
     t.r.endRowIndex=newEnd; // update cache so the next few adds skip the call
   }catch(e){/* table growth is best-effort; the entry itself is already written */}
+}
+// Keep the ledger's Category and Contributor dropdowns in step with the Account Summary: every category, itemized bill
+// (by its clean name, no "↳"), and contributor that appears on the summary becomes a selectable option — across the WHOLE
+// ledger, not a bounded row range. Lists are written to the hidden source tabs and applied as data validations. Runs only
+// when the list actually changed (cheap no-op otherwise). Best-effort: a failure never blocks the rest of a load.
+var _ddSig=null;
+function ddList(){
+  var seen={},cats=["Deposit"];seen.deposit=1;
+  (state.cats||[]).forEach(function(c){
+    var nm=(""+c.name).trim();if(nm&&!seen[nm.toLowerCase()]){seen[nm.toLowerCase()]=1;cats.push(nm);}
+    catBills(c.name).forEach(function(b){var bn=(""+b).trim();if(bn&&!seen[bn.toLowerCase()]){seen[bn.toLowerCase()]=1;cats.push(bn);}});
+  });
+  var cs={},cons=[];
+  (state.cons||[]).forEach(function(c){var nm=(""+c.name).trim();if(nm&&!cs[nm.toLowerCase()]){cs[nm.toLowerCase()]=1;cons.push(nm);}});
+  return {cats:cats,cons:cons};
+}
+async function syncDropdowns(force){
+  try{
+    var lst=ddList();var sig=JSON.stringify(lst);
+    if(!force&&sig===_ddSig)return true; // nothing changed since last sync
+    var gid=await ledgerGid();if(gid==null)return false;
+    var meta=await api(ssBase()+"?fields=sheets(properties(title,sheetId,gridProperties(rowCount)))");
+    var have={},ledRows=2000;
+    (meta.sheets||[]).forEach(function(s){var p=s.properties;have[p.title]=p;if(p.sheetId===gid)ledRows=(p.gridProperties&&p.gridProperties.rowCount)||2000;});
+    var addReqs=[];
+    if(!have[ACCT_CATS])addReqs.push({addSheet:{properties:{title:ACCT_CATS,hidden:true,gridProperties:{rowCount:1000,columnCount:3}}}});
+    if(!have[CONTRIB_TAB])addReqs.push({addSheet:{properties:{title:CONTRIB_TAB,hidden:true,gridProperties:{rowCount:400,columnCount:1}}}});
+    if(addReqs.length)await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:addReqs})});
+    var catCol=lst.cats.map(function(v){return [v];}),conCol=lst.cons.map(function(v){return [v];});
+    await vBatchUpdate([
+      {range:"'"+ACCT_CATS+"'!C2:C"+(1+catCol.length),values:catCol},
+      {range:"'"+CONTRIB_TAB+"'!A2:A"+(1+Math.max(1,conCol.length)),values:conCol.length?conCol:[[""]]}
+    ]);
+    try{await vBatchClear(["'"+ACCT_CATS+"'!C"+(2+catCol.length)+":C1000","'"+CONTRIB_TAB+"'!A"+(2+conCol.length)+":A400"]);}catch(e){}
+    var lastRow=Math.max(ledRows,2000);
+    var catRange="='"+ACCT_CATS+"'!$C$2:$C$"+(1+catCol.length);
+    var conRange="='"+CONTRIB_TAB+"'!$A$2:$A$"+(1+Math.max(1,conCol.length));
+    var reqs=[
+      {setDataValidation:{range:{sheetId:gid,startRowIndex:1,endRowIndex:lastRow,startColumnIndex:4,endColumnIndex:5},rule:{condition:{type:"ONE_OF_RANGE",values:[{userEnteredValue:catRange}]},showCustomUi:true,strict:false}}},
+      {setDataValidation:{range:{sheetId:gid,startRowIndex:1,endRowIndex:lastRow,startColumnIndex:3,endColumnIndex:4},rule:{condition:{type:"ONE_OF_RANGE",values:[{userEnteredValue:conRange}]},showCustomUi:true,strict:false}}}
+    ];
+    await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:reqs})});
+    _ddSig=sig;
+    return true;
+  }catch(e){return false;}
 }
 function fillEditCat(cur){var sel=$("edCategory");var names=state.cats.map(function(c){return c.name;}).sort(function(a,b){return a.toLowerCase()<b.toLowerCase()?-1:1;});var curl=(""+(cur||"")).toLowerCase();var has=names.some(function(n){return n.toLowerCase()===curl;});var h='<option value="">(no category)</option>';if(cur&&!has)h+='<option selected>'+esc(cur)+'</option>';names.forEach(function(n){h+='<option'+(n.toLowerCase()===curl?" selected":"")+'>'+esc(n)+'</option>';});sel.innerHTML=h;}
 function openEdit(idx){
@@ -4593,23 +4694,8 @@ function wire(){
   try{initInstallTip();}catch(e){}
 }
 try{if(/[?&]reset\b/i.test(location.search)){localStorage.removeItem("nw_sheet_id2");try{history.replaceState(null,"",location.pathname);}catch(_){}}}catch(e){}
-// Pin the app height to the TRUE visible area. iOS mis-reports 100vh/100dvh (leaves dead space under the tab bar), but
-// visualViewport.height is exact. Keep it fresh on resize/rotate/toolbar changes.
-(function(){
-  function setAppVH(){try{
-    // INSTALLED (home-screen) app: visualViewport under-reports (drops the bottom safe area), which double-counts the inset and
-    // lifts the tab bar. Let CSS 100dvh fill the whole screen instead, and let the tab bar's own safe-area padding do the clearing.
-    var sa=(window.navigator&&window.navigator.standalone===true)||(window.matchMedia&&(window.matchMedia("(display-mode: standalone)").matches||window.matchMedia("(display-mode: fullscreen)").matches));
-    if(sa){document.documentElement.style.removeProperty("--appvh");return;}
-    var vv=window.visualViewport;var h=(vv&&vv.height)||window.innerHeight||0;if(h>0)document.documentElement.style.setProperty("--appvh",Math.round(h)+"px"); // Safari tab: visualViewport is the reliable visible height
-  }catch(e){}}
-  setAppVH();
-  try{if(window.visualViewport){window.visualViewport.addEventListener("resize",setAppVH);window.visualViewport.addEventListener("scroll",setAppVH);}}catch(e){}
-  window.addEventListener("resize",setAppVH);
-  window.addEventListener("orientationchange",function(){setAppVH();setTimeout(setAppVH,300);});
-  window.addEventListener("pageshow",setAppVH);
-  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")setAppVH();});
-})();
+// Tab bar placement is now pure CSS: .tabbar is position:fixed to the viewport bottom, so it sits at the real bottom on iOS
+// (standalone AND Safari) without any JS height measurement — which is what kept mis-reporting and lifting the bar before.
 (function poll(){
   if(window.google&&google.accounts&&google.accounts.oauth2){
     tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:_tokCb,error_callback:_tokErr});
