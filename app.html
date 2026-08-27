@@ -284,8 +284,9 @@ try{
   .insseg button{flex:1;padding:7px 0;border:0;background:transparent;color:var(--ink2);font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer}
   .insseg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
   .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-  .stile{background:var(--soft);border-radius:12px;padding:11px 10px}
+  .stile{background:var(--soft);border-radius:12px;padding:11px 10px;min-width:0}
   .stile .sv{font-family:"Fraunces",Georgia,serif;font-size:19px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stile .sv.txt{font-size:16px;line-height:1.14;white-space:normal;word-break:break-word;text-overflow:clip;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .stile .sl{font-size:10.5px;color:var(--ink2);margin-top:5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
   .inschart{display:flex;align-items:flex-end;gap:3px;height:90px;margin:2px 0 4px}
   .inscol{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:0}
@@ -915,6 +916,9 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.11.4 — Aug 27, 2026 · Build 20260827.13
+//     • Insights stat tiles no longer overflow the card: a long Top-category name (e.g. "Holland Household") wraps inside
+//       its tile, and a large Spent/Avg number auto-shrinks to fit instead of pushing off the page or getting cut off.
 //   v0.11.3 — Aug 27, 2026 · Build 20260827.12
 //     • Category picker: a name that's an itemized bill shows only in its "<parent> bills" section, no longer duplicated
 //       under "All" / "Frequent".
@@ -957,8 +961,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.11.3"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.12"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.11.4"; // SemVer — what changed functionally (display only)
+var BUILD="20260827.13"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -3651,6 +3655,19 @@ function renderMonth(){
 var _insRange="year";
 function insWindow(){var now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1,keys=[];if(_insRange==="12mo"){for(var i=11;i>=0;i--){var mm=cm-i,yy=cy;while(mm<1){mm+=12;yy--;}keys.push({y:yy,m:mm});}}else{for(var mo=1;mo<=12;mo++)keys.push({y:cy,m:mo});}return keys;}
 function insSeries(){var keys=insWindow();var series=keys.map(function(k){return {y:k.y,m:k.m,total:0};});var idx={};series.forEach(function(s,i){idx[s.y*100+s.m]=i;});var byCat={};state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim(),el=e.toLowerCase();if(!e||el==="deposit"||isGoalName(e))return;var k=Number(r[0])*100+Number(r[1]);if(idx[k]==null)return;var a=Number(r[6])||0;if(a<=0)return;series[idx[k]].total+=a;byCat[e]=(byCat[e]||0)+a;});return {series:series,byCat:byCat};}
+// Shrink a number stat tile's value just enough to fit its tile (keeps small numbers big/punchy; large household totals
+// like $57,514.56 shrink instead of ellipsizing). Skips the wrapping text tile (.txt) and hidden/zero-width tiles.
+function fitStileNums(){
+  try{
+    var els=document.querySelectorAll('.stile .sv:not(.txt)');
+    Array.prototype.forEach.call(els,function(el){
+      el.style.fontSize='';
+      if(!el.clientWidth)return; // not visible yet
+      var fs=19;el.style.fontSize=fs+'px';var guard=0;
+      while(el.scrollWidth>el.clientWidth+1&&fs>12&&guard++<14){fs-=1;el.style.fontSize=fs+'px';}
+    });
+  }catch(e){}
+}
 function catMonthly(catName){var nl=catName.toLowerCase(),keys=insWindow(),out=keys.map(function(k){return {y:k.y,m:k.m,v:0};});var idx={};out.forEach(function(o,i){idx[o.y*100+o.m]=i;});state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(e!==nl)return;var k=Number(r[0])*100+Number(r[1]);if(idx[k]==null)return;var a=Number(r[6])||0;if(a<=0)return;out[idx[k]].v+=a;});return out;}/* Insights is a GROSS spending view — exclude credits/refunds so the Top-category figure and this drill-down agree */
 function renderInsights(){
   if(!$("insBody"))return;
@@ -3683,7 +3700,7 @@ function renderInsights(){
   var topCat=catArr[0];
   var h='';
   h+='<div class="insseg" id="insSeg"><button data-r="year"'+(_insRange==="year"?' class="on"':'')+'>This year</button><button data-r="12mo"'+(_insRange==="12mo"?' class="on"':'')+'>Last 12 months</button></div>';
-  h+='<div class="stiles"><div class="stile"><div class="sv">'+money(totWin)+'</div><div class="sl">Spent</div></div><div class="stile"><div class="sv">'+money(avg)+'</div><div class="sl">Avg / mo</div></div><div class="stile"><div class="sv">'+(topCat?esc(topCat.name):"—")+'</div><div class="sl">Top category</div></div></div>';
+  h+='<div class="stiles"><div class="stile"><div class="sv">'+money(totWin)+'</div><div class="sl">Spent</div></div><div class="stile"><div class="sv">'+money(avg)+'</div><div class="sl">Avg / mo</div></div><div class="stile"><div class="sv txt" title="'+(topCat?esc(topCat.name):"")+'">'+(topCat?esc(topCat.name):"—")+'</div><div class="sl">Top category</div></div></div>';
   // bar chart
   h+='<div class="inschart">'+series.map(function(x,i){var hp=Math.round(x.total/mx*84)+2;return '<div class="inscol'+(i===peakIdx&&peakV>0?" peak":"")+'" data-y="'+x.y+'" data-m="'+x.m+'"><div class="insbar" style="height:'+hp+'px" title="'+MONTHS[x.m-1]+' '+x.y+': '+money(x.total)+'"></div><div class="insml">'+MONTHS[x.m-1].slice(0,1)+'</div></div>';}).join("")+'</div>';
   if(peakV>0)h+='<div class="crem">Highest: <b>'+MONTHS[series[peakIdx].m-1]+' '+series[peakIdx].y+'</b> at '+money(peakV)+'. Tap a bar for that month.</div>';
@@ -3705,6 +3722,7 @@ function renderInsights(){
   // top categories (tap → trend)
   if(catArr.length){h+='<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:5px">Top categories · tap for trend</div>'+catArr.slice(0,5).map(function(x){return '<div class="totrow inscat" data-n="'+esc(x.name)+'" style="margin-top:4px;cursor:pointer"><span>'+esc(x.name)+' ›</span><b>'+money(x.v)+'</b></div>';}).join("")+'</div>';}
   $("insBody").innerHTML=h;
+  fitStileNums();
   var seg=$("insSeg");if(seg)Array.prototype.forEach.call(seg.querySelectorAll("button"),function(b){b.addEventListener("click",function(){_insRange=this.getAttribute("data-r");renderInsights();});});
   Array.prototype.forEach.call($("insBody").querySelectorAll(".inscol"),function(col){col.addEventListener("click",function(){openMonthDetail(Number(this.getAttribute("data-m")),Number(this.getAttribute("data-y")));});});
   Array.prototype.forEach.call($("insBody").querySelectorAll(".inscat"),function(row){row.addEventListener("click",function(){openCatTrend(this.getAttribute("data-n"));});});
@@ -4685,7 +4703,7 @@ async function removeCat(name){
 function switchView(v){
   // leaving the Budget tab while viewing another year → snap back to the current year so logging is correct
   if(v!=="budget"&&budYear!==null){budYear=null;loadAll().then(function(){renderAll();});}
-  Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});["month","add","budget","goals","worth","settings"].forEach(function(x){$("view-"+x).classList.toggle("on",x===v);});try{document.body.setAttribute("data-view",v);}catch(e){}if(v==="settings")renderSettings();try{maybeOfferPullIn();}catch(e){}try{var _w=document.querySelector(".wrap");if(_w)_w.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
+  Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});["month","add","budget","goals","worth","settings"].forEach(function(x){$("view-"+x).classList.toggle("on",x===v);});try{document.body.setAttribute("data-view",v);}catch(e){}if(v==="settings")renderSettings();if(v==="month"){try{requestAnimationFrame(fitStileNums);}catch(e){try{fitStileNums();}catch(_){}}}try{maybeOfferPullIn();}catch(e){}try{var _w=document.querySelector(".wrap");if(_w)_w.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function applyCreditUI(){var on=$("fCredit")&&$("fCredit").checked;if($("fCreditHint"))$("fCreditHint").style.display=on?"block":"none";if($("addBtn"))$("addBtn").textContent=on?"Add credit":"Add expense";}
 function setMode(m){Array.prototype.forEach.call($("addMode").querySelectorAll("button"),function(b){b.classList.toggle("on",b.getAttribute("data-m")===m);});$("expFields").style.display=(m==="deposit")?"none":"block";$("depFields").style.display=(m==="deposit")?"block":"none";$("addMsg").textContent="";$("addMsg").className="msg";try{renderRecent();}catch(e){}}
 
