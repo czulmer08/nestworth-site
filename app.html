@@ -142,7 +142,9 @@ try{
   .tog-t:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
   .tog input:checked + .tog-t{background:var(--green)}
   .tog input:checked + .tog-t:before{transform:translateX(24px)}
-  .addbtn{width:100%;margin-top:14px;padding:14px;border:0;border-radius:13px;background:var(--green);color:#fff;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer}
+  #offlineBar{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:#7a5b12;color:#fff;font-size:12.5px;font-weight:600;text-align:center;line-height:1.3;padding:7px 12px;padding-top:calc(7px + env(safe-area-inset-top))}
+body.is-offline #offlineBar{display:block}
+.addbtn{width:100%;margin-top:14px;padding:14px;border:0;border-radius:13px;background:var(--green);color:#fff;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer}
   .addbtn:disabled{opacity:.5}
   .hintline{font-size:12px;color:var(--ink2);margin-top:10px;text-align:center}
   .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
@@ -313,24 +315,51 @@ try{
   .gs-tog{margin-top:12px}
   .gs-tog label:first-child{flex:1 1 auto;white-space:nowrap}
   .gs-hi{width:34px;height:34px;flex:0 0 auto;background-size:contain;background-position:center bottom;background-repeat:no-repeat}
-  .wrenlog{flex:1;overflow:auto;padding:16px 16px 6px;display:flex;flex-direction:column;gap:14px;min-height:200px}
-  .wmsg{display:flex;gap:9px;align-items:flex-end;max-width:86%;animation:wrise .28s cubic-bezier(.22,1,.36,1) both}
+  .share-more{margin-top:10px}
+  .share-more summary{cursor:pointer;color:var(--ink2);font-size:13px;list-style:none;padding:4px 0}
+  .share-more summary::-webkit-details-marker{display:none}
+  .share-more summary:before{content:"⋯ ";font-weight:700}
+  .sw-done{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+  .sw-hi{width:44px;height:48px;flex:0 0 auto;background-size:contain;background-position:center bottom;background-repeat:no-repeat}
+  .swlink{word-break:break-all;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;color:var(--ink2);margin:0 0 10px}
+  .stale-badge{font-size:10px;font-weight:700;color:var(--gold);background:rgba(180,140,20,.12);border-radius:6px;padding:1px 5px;white-space:nowrap;vertical-align:middle}
+  .decchips{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .decchip{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+  .decchip:active{transform:translateY(1px)}
+  .decchip .decic{font-size:19px;flex:0 0 auto}
+  .dec-back{background:none;border:none;color:var(--ink2);font-family:inherit;font-size:13px;font-weight:600;padding:8px 2px 2px;cursor:pointer}
+  .dec-badge{display:inline-block;font-weight:700;font-size:15px;padding:6px 14px;border-radius:999px}
+  .dec-badge.ok{background:rgba(30,120,70,.12);color:var(--green)}
+  .dec-badge.warn{background:rgba(180,140,20,.14);color:var(--gold)}
+  .dec-table{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px}
+  .dec-th,.dec-tr{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:9px 13px}
+  .dec-th{background:var(--soft);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2);font-weight:700}
+  .dec-th span:not(:first-child),.dec-tr span:not(:first-child){text-align:right;min-width:74px;font-variant-numeric:tabular-nums}
+  .dec-tr{border-top:1px solid var(--line);font-size:13.5px}
+  .dec-tr .dec-lab{color:var(--ink2)}
+  .dec-tr .dec-b{color:var(--ink2)}
+  .dec-tr .dec-a{font-weight:700}
+  .dec-tr .dec-a.ok{color:var(--green)}
+  .dec-tr .dec-a.warn{color:var(--gold)}
+  .dec-narr{font-family:"Wren Body",-apple-system,system-ui,sans-serif;font-style:italic;font-size:14px;line-height:1.45;color:var(--ink);background:var(--soft);border-radius:12px;padding:11px 13px;margin-bottom:12px}
+  .wrenlog{flex:1;overflow:auto;padding:12px 14px 6px;display:flex;flex-direction:column;gap:8px;min-height:200px}
+  .wmsg{display:flex;gap:6px;align-items:flex-end;max-width:88%;animation:wrise .28s cubic-bezier(.22,1,.36,1) both}
   @keyframes wrise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
   .wmsg.me{align-self:flex-end}
-  .wmsg .av{width:48px;height:54px;background-color:transparent;background-size:contain;background-position:center bottom;background-repeat:no-repeat;flex:0 0 auto}
-  .wbub{position:relative;background:var(--wren-bub);border:1.5px solid var(--wren-bd);border-radius:20px 20px 20px 6px;padding:11px 15px 8px;box-shadow:0 2px 6px -3px rgba(60,45,15,.22)}
+  .wmsg .av{width:38px;height:42px;background-color:transparent;background-size:contain;background-position:center bottom;background-repeat:no-repeat;flex:0 0 auto}
+  .wbub{position:relative;background:var(--wren-bub);border:1px solid var(--wren-bd);border-radius:16px 16px 16px 5px;padding:7px 12px 5px;box-shadow:0 2px 6px -3px rgba(60,45,15,.22)}
   .wbub .wname{font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;font-style:normal;font-weight:700;color:var(--wren-head)}
-  .wbub .wtext{font-family:"Wren Body",-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;font-style:italic;font-size:15.5px;line-height:1.5;color:var(--ink)}
-  .wtime{font-size:10.5px;color:var(--ink2);opacity:.75;text-align:right;margin-top:6px;font-style:normal;font-family:-apple-system,system-ui,sans-serif;letter-spacing:.02em}
-  .wmsg.me .wbub{background:var(--wren-user);border:0;border-radius:20px 20px 6px 20px;box-shadow:0 2px 6px -3px rgba(20,40,25,.4)}
-  .wmsg.me .wbub .wtext{font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;font-style:normal;font-size:15px;line-height:1.45;color:#fff;font-weight:500}
+  .wbub .wtext{font-family:"Wren Body",-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;font-style:italic;font-size:13.5px;line-height:1.38;color:var(--ink)}
+  .wtime{font-size:9.5px;color:var(--ink2);opacity:.7;text-align:right;margin-top:2px;font-style:normal;font-family:-apple-system,system-ui,sans-serif;letter-spacing:.02em}
+  .wmsg.me .wbub{background:var(--wren-user);border:0;border-radius:16px 16px 5px 16px;box-shadow:0 2px 6px -3px rgba(20,40,25,.4)}
+  .wmsg.me .wbub .wtext{font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;font-style:normal;font-size:13.5px;line-height:1.38;color:#fff;font-weight:500}
   .wmsg.me .wtime{color:rgba(255,255,255,.75)}
   .wact{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
   .wact button{border:1.5px solid var(--wren-head);background:transparent;color:var(--wren-head);border-radius:11px;font-family:inherit;font-size:13.5px;font-weight:700;padding:7px 13px;cursor:pointer;transition:transform .06s}
   .wact button:active{transform:scale(.96)}
   .wact button.primary{background:var(--wren-head);color:#fff;border-color:var(--wren-head)}
-  .wrenchips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 16px 2px}
-  .wchip{border:1.5px solid var(--wren-bd);background:var(--wren-bub);color:var(--wren-head);border-radius:999px;font-family:inherit;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;transition:transform .06s,background .15s,color .15s}
+  .wrenchips{display:flex;flex-wrap:wrap;gap:6px;padding:5px 16px 2px}
+  .wchip{border:1px solid var(--wren-bd);background:var(--wren-bub);color:var(--wren-head);border-radius:999px;font-family:inherit;font-size:11px;font-weight:500;padding:4px 9px;cursor:pointer;opacity:.9;transition:transform .06s,background .15s,color .15s}
   .wchip:active{transform:scale(.96)}
   .wchip:hover{background:var(--wren-bd);color:#fff}
   .wrenform{display:flex;gap:10px;align-items:center;padding:12px 16px calc(14px + env(safe-area-inset-bottom));margin-top:6px}
@@ -479,6 +508,23 @@ try{
   #tidyBar .rcm,#pullInBar .rcm{flex:1;font-weight:600}
   #tidyNow,#pullNow{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px;background:#fff;color:#215E44}
   #tidyX,#pullX{background:transparent;border:0;color:#fff;padding:8px 10px;font-size:16px;cursor:pointer;opacity:.9}
+  #revBar{position:fixed;left:0;right:0;bottom:0;z-index:9996;background:linear-gradient(180deg,#EAD3A0,#DCBE85);color:#3A4A38;display:flex;align-items:center;gap:10px;padding:11px 14px calc(11px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.22);font-size:14px;font-family:inherit}
+  #revBar .rcm{flex:1;font-weight:700}
+  #revOpen{border:0;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:8px 14px;background:#215E44;color:#fff}
+  #revX{background:transparent;border:0;color:#3A4A38;padding:8px 10px;font-size:16px;cursor:pointer;opacity:.8}
+  .rev-hi{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .rev-hi .sw-hi{width:46px;height:52px;flex:0 0 auto;background-size:contain;background-position:center bottom;background-repeat:no-repeat}
+  .rev-lead{font-size:13.5px;color:var(--ink2);line-height:1.5}
+  .rev-card{border:1px solid var(--line);border-left:3px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--card)}
+  .rev-card.rev-good{border-left-color:var(--green)}
+  .rev-card.rev-warn{border-left-color:var(--gold)}
+  .rev-card.rev-flat{border-left-color:var(--ink3,#9fb0a4)}
+  .rev-head{display:flex;align-items:flex-start;gap:10px}
+  .rev-ic{font-size:18px;flex:0 0 auto;line-height:1.3}
+  .rev-htx{font-weight:600;color:var(--ink);font-size:14.5px;line-height:1.4}
+  .rev-why{margin-top:8px;background:none;border:none;color:var(--green);font-family:inherit;font-size:13px;font-weight:700;padding:2px 0;cursor:pointer}
+  .rev-detail{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+  .rev-line{font-size:13px;color:var(--ink2);line-height:1.55;padding:2px 0}
   .pin-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
   .pin-row .pin-chk{width:20px;height:20px;flex:0 0 auto;accent-color:var(--green)}
   .pin-row .pin-name{flex:1;font-weight:600;color:var(--ink);cursor:pointer;word-break:break-word}
@@ -517,6 +563,8 @@ try{
 </head>
 <body>
 
+<div id="offlineBar" role="status">⚠ You're offline — your Nest is safe. Reconnect to load or change your financial data.</div>
+
 <div class="screen on" id="splash"><div class="center"><img class="logo" src="apple-touch-icon.png" alt=""><div class="brand disp">NestWorth</div><div class="tag"><span class="spin"></span>&nbsp; <span id="splashMsg">Loading…</span></div></div></div>
 
 <div class="screen" id="signinScreen"><div class="center">
@@ -551,6 +599,7 @@ try{
 
   <div class="view" id="view-month">
     <div class="card"><div id="mTot"><div class="totrow"><span>This month</span><b><span class="spin"></span></b></div></div></div>
+    <div class="card" id="reviewCard" style="display:none;padding:12px"><button class="addbtn" id="reviewOpenBtn" style="margin:0;background:linear-gradient(180deg,#EAD3A0,#DCBE85);color:#3A4A38">🪺 <span id="reviewBtnLabel">Last month in review</span></button></div>
     <div class="card" id="remCard" style="display:none"><p class="eyebrow">Reminders</p><div id="remBody"></div></div>
     <div class="card"><p class="eyebrow" id="mLabel">By category</p><div id="mBody"><div class="empty"><span class="spin"></span></div></div></div>
     <div class="card" id="fcCard" style="display:none"><p class="eyebrow">Forecast</p><div id="fcBody"></div></div>
@@ -574,12 +623,13 @@ try{
         <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 12 22l-9-9V4h9z"></path><circle cx="7.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"></circle></svg></span><label>Company</label><input id="fCompany" list="complist2" autocomplete="off" placeholder="e.g., Publix"></div>
         <datalist id="complist2"></datalist>
         <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg></span><label>Category</label><button type="button" id="fCatBtn" class="pickbtn placeholder">Choose a category…</button><input type="hidden" id="fCategory"></div>
+        <div id="fCatHint" style="display:none;font-size:12px;color:var(--green);font-weight:600;margin:-4px 0 4px 40px">✨ Picked from your history — tap the category to change it.</div>
         <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span><label>Amount</label><span class="mfield">$<input id="fAmount" class="money" inputmode="decimal" placeholder="0.00"></span></div>
         <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="16" y1="2" x2="16" y2="6"></line></svg></span><label>Date</label><input id="fDate" type="date"></div>
         <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg></span><label>Payee</label><select id="fPayee"></select></div>
         <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="14" y2="17"></line></svg></span><label>Description</label><input id="fDesc" autocomplete="off" placeholder="Optional"></div>
-        <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg></span><label>Reimbursed</label><label class="tog"><input type="checkbox" id="fReimb"><span class="tog-t"></span></label></div>
-        <div class="row" id="fCreditRow"><span class="ri"><svg viewBox="0 0 24 24"><path d="M20 12v9H4v-9"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7C12 7 12 2 8.5 2 6.5 2 6.5 5 6.5 5 6.5 7 9 7 12 7z"></path><path d="M12 7c0 0 0-5 3.5-5C17.5 2 17.5 5 17.5 5 17.5 7 15 7 12 7z"></path></svg></span><label>Money received (credit)</label><label class="tog"><input type="checkbox" id="fCredit"><span class="tog-t"></span></label></div>
+        <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg></span><label>Awaiting reimbursement</label><label class="tog"><input type="checkbox" id="fReimb"><span class="tog-t"></span></label></div>
+        <div class="row" id="fCreditRow"><span class="ri"><svg viewBox="0 0 24 24"><path d="M20 12v9H4v-9"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7C12 7 12 2 8.5 2 6.5 2 6.5 5 6.5 5 6.5 7 9 7 12 7z"></path><path d="M12 7c0 0 0-5 3.5-5C17.5 2 17.5 5 17.5 5 17.5 7 15 7 12 7z"></path></svg></span><label>Refund / credit received</label><label class="tog"><input type="checkbox" id="fCredit"><span class="tog-t"></span></label></div>
         <div class="hintline" id="fCreditHint" style="text-align:left;display:none">Records money that came IN for this category — a gift, refund, or reimbursement. It lowers what you've spent in the category (more left to spend), instead of counting as an expense.</div>
         <button class="addbtn" id="addBtn">Add expense</button>
         <div class="hintline" style="text-align:left"><a href="#" id="recurOpen" style="color:var(--green);font-weight:600">🔁 Log a recurring bill →</a></div>
@@ -604,10 +654,15 @@ try{
   <div class="view" id="view-budget">
     <div class="yearnav"><button type="button" id="yearPrev" class="yearbtn">‹</button><span id="yearLabel" class="disp">2026</span><button type="button" id="yearNext" class="yearbtn">›</button></div>
     <div class="card" id="yearBanner" style="display:none;background:var(--soft);border:1px solid var(--gold)"><div style="font-size:13.5px;color:var(--ink)"><b id="yearBannerText">Viewing a different year</b> — expenses you log still go to today. <button type="button" id="yearBackBtn" class="lnk2" style="margin-left:4px">Back to this year</button></div></div>
-    <div class="card" id="feasCard"><p class="eyebrow">Does this budget work?</p><div id="feasBody"><div class="empty">Add income and categories to check the yearly picture.</div></div></div>
+    <div class="card" id="feasCard"><p class="eyebrow">Does this budget work?</p><div id="feasBody"><div class="empty">Add income and categories to check the yearly picture.</div></div>
+      <button class="addbtn" id="decOpenBtn" style="margin-top:12px;background:linear-gradient(180deg,#EAD3A0,#DCBE85);color:#3A4A38">🔮 Run a what-if decision</button>
+      <div class="hintline" style="text-align:left">Thinking about a purchase, a new payment, a trip, or funding a goal faster? See what it does to your whole plan.</div>
+    </div>
     <div class="card" id="stressCard" style="display:none">
       <p class="eyebrow">Cash flow through the year</p>
       <div class="row"><label>Starting savings</label><span class="mfield">$<input id="stStart" class="money" inputmode="decimal" placeholder="0.00"></span></div>
+      <div class="row"><label>Nest Egg Floor</label><span class="mfield">$<input id="stFloor" class="money" inputmode="decimal" placeholder="optional"></span></div>
+      <div class="hintline" style="text-align:left;margin-top:-2px">The lowest you'd want your available cash to fall. Wren checks every decision against it — leave blank to skip.</div>
       <div class="seg2" id="stModeSeg" style="margin-top:10px"><button data-sm="plan" class="on">Plan</button><button data-sm="actual">Plan + actual</button></div>
       <div id="stGrid"></div>
       <div id="stVerdict" class="fbline" style="border-top:0;padding-top:4px"></div>
@@ -699,12 +754,14 @@ try{
     <div class="card acc">
       <button type="button" class="acc-hd" data-acc="share-this-budget" aria-expanded="false"><span class="eyebrow">Share this budget</span><span class="acc-chev">&#8250;</span></button>
       <div class="acc-bd" hidden>
-      <div class="row"><label>Invite by email</label><input id="budEmail" type="email" autocomplete="off" placeholder="name@email.com"></div>
-      <button class="addbtn" id="budInviteBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Send invite (Editor)</button>
-      <button class="addbtn" id="budJoinBtn">Copy the app invite link</button>
-      <button class="addbtn" id="budShareBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Get the raw spreadsheet link</button>
-      <button type="button" class="gbtn" id="starterCopyBtn" style="width:100%;margin-top:8px">Share a blank starter copy (my categories, no data)</button>
-      <div class="hintline" style="text-align:left">Two steps to add family: <b>Send invite</b> by email to give them access, then <b>Copy the app invite link</b> and text it to them — it opens NestWorth straight to this budget, with no personal budget of their own unless they want one. A <b>starter copy</b> instead hands someone their own new budget with your categories &amp; amounts but none of your transactions.</div>
+      <button class="addbtn" id="budWizBtn">＋ Invite someone to this Nest</button>
+      <div class="hintline" style="text-align:left">One flow: enter their email, NestWorth grants them access, then you send them the app link to join. They log into the <b>same</b> budget with you — no separate personal budget unless they want one.</div>
+      <details class="share-more"><summary>Other ways to share</summary>
+        <button class="addbtn" id="budJoinBtn" style="margin-top:8px">Copy the app invite link</button>
+        <button class="addbtn" id="budShareBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Get the raw spreadsheet link</button>
+        <button type="button" class="gbtn" id="starterCopyBtn" style="width:100%;margin-top:8px">Share a blank starter copy (my categories, no data)</button>
+        <div class="hintline" style="text-align:left">A <b>starter copy</b> hands someone their own new budget with your categories &amp; amounts but none of your transactions.</div>
+      </details>
       <div class="msg" id="budShareMsg"></div>
     </div>
     </div>
@@ -721,9 +778,11 @@ try{
       <div class="acc-bd" hidden>
       <div id="scanStatus" class="settRow"></div>
       <div class="row"><label>Gemini key</label><input id="geminiKey" type="password" autocomplete="off" placeholder="Paste your key"></div>
+      <div class="row" id="keyShareRow"><label>Share with this Nest</label><label class="tog"><input type="checkbox" id="keyShare"><span class="tog-t"></span></label></div>
+      <div class="hintline" style="text-align:left;margin-top:2px">Off (default): your key stays <b>on this device only</b>. On: it's saved into this budget so anyone with <b>Editor access to this Nest can use it</b> — turn this on only if you mean to share one key with your household.</div>
       <div style="display:flex;gap:8px;margin-top:12px"><button class="addbtn" id="keySave" style="margin-top:0">Save key</button><button class="addbtn ghost" id="keyClear" style="margin-top:0;color:var(--ink2)">Clear</button></div>
       <button class="addbtn" id="keyTest" style="background:transparent;border:1px solid var(--line);color:var(--green)">Test scanning</button>
-      <div class="hintline" style="text-align:left">Get a free key in ~2 min at <a class="sheetlink" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. It's saved with this budget (in your own private Google Drive) so it sticks across your devices — on a budget you’ve shared, family members could use it. Then tap 📷 on the Expense screen to scan. Always glance at the total — it reads the final paid amount.</div>
+      <div class="hintline" style="text-align:left">Get a free key in ~2 min at <a class="sheetlink" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>. Then tap 📷 on the Expense screen to scan. Always glance at the total — it reads the final paid amount.</div>
       <div class="msg" id="keyMsg"></div>
     </div>
     </div>
@@ -733,7 +792,7 @@ try{
       <div class="psub">
         <p class="eyebrow">Add-expense form settings</p>
         <div class="row"><label>Show &lsquo;Payee&rsquo; field</label><label class="tog"><input type="checkbox" id="prefPayee"><span class="tog-t"></span></label></div>
-      <div class="row"><label>Show &lsquo;Reimbursed&rsquo; toggle</label><label class="tog"><input type="checkbox" id="prefReimb"><span class="tog-t"></span></label></div>
+      <div class="row"><label>Show &lsquo;Awaiting reimbursement&rsquo; toggle</label><label class="tog"><input type="checkbox" id="prefReimb"><span class="tog-t"></span></label></div>
       <div class="hintline" style="text-align:left">Turn off fields you don&rsquo;t use to keep the Add screen simple.</div>
       </div>
       <div class="psub">
@@ -785,7 +844,10 @@ try{
     <div class="card acc">
       <button type="button" class="acc-hd" data-acc="danger-zone" aria-expanded="false"><span class="eyebrow">Danger zone</span><span class="acc-chev">&#8250;</span></button>
       <div class="acc-bd" hidden>
-      <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%">Remove all goals</button>
+      <button type="button" class="gbtn" id="backupBtn" style="width:100%;color:var(--green)">💾 Back up this Nest — copy to Drive</button>
+      <div class="hintline" style="text-align:left;margin-top:4px">Saves a dated copy of your whole workbook to your Google Drive, so you always have a restore point.</div>
+      <div class="msg" id="backupMsg"></div>
+      <button type="button" class="gbtn" id="wipeGoalsBtn" style="width:100%;margin-top:12px">Remove all goals</button>
       <button type="button" class="gbtn" id="wipeDataBtn" style="width:100%;margin-top:8px;color:var(--bad)">Erase all transactions &amp; history</button>
       <div class="hintline" style="text-align:left">&lsquo;Erase&rsquo; clears your logged transactions, goals, and net-worth history but keeps your categories, budgets, and income set up. This can&rsquo;t be undone.</div>
       <div class="msg" id="wipeMsg"></div>
@@ -893,7 +955,7 @@ try{
     <div class="row"><label>Amount</label><span class="mfield">$<input id="edAmount" class="money" inputmode="decimal" placeholder="0.00"></span></div>
     <div class="row"><label>Date</label><input id="edDate" type="date"></div>
     <div class="row"><label>Description</label><input id="edDesc" autocomplete="off" placeholder="Optional"></div>
-    <div class="row" id="edReimbRow"><label>Reimbursed</label><label class="tog"><input type="checkbox" id="edReimb"><span class="tog-t"></span></label></div>
+    <div class="row" id="edReimbRow"><label>Awaiting reimbursement</label><label class="tog"><input type="checkbox" id="edReimb"><span class="tog-t"></span></label></div>
     <button class="addbtn" id="edSave" type="button">Save changes</button>
     <button class="addbtn ghost" id="edDelete" type="button">Delete entry</button>
     <div class="msg" id="edMsg"></div>
@@ -905,6 +967,51 @@ try{
   <div class="askm" id="askMsg"></div>
   <div class="row" id="askInputRow" style="display:none"><label id="askLabel">Amount</label><span class="mfield"><span id="askCur">$</span><input id="askInput" class="money" inputmode="decimal" placeholder="0.00"></span></div>
   <div class="askbtns"><button class="addbtn ghost" id="askCancel" type="button" style="margin-top:0;color:var(--ink2)">Cancel</button><button class="addbtn" id="askOk" type="button" style="margin-top:0">OK</button></div>
+</div></div>
+
+<div id="decOv" class="ov" style="display:none;z-index:70"><div class="ovcard">
+  <div class="ovhdr" style="justify-content:space-between"><span id="decTitle">Run a decision</span><button class="ovx" data-ov="decOv" type="button">✕</button></div>
+  <div id="decStep1">
+    <div class="hintline" style="text-align:left;margin-top:0">What are you thinking about? I'll run it against your whole plan — surplus, cash flow, goals, and your Nest Egg Floor.</div>
+    <div class="decchips" id="decTypes"></div>
+  </div>
+  <div id="decStep2" style="display:none">
+    <div id="decForm"></div>
+    <div class="msg" id="decMsg"></div>
+    <button class="addbtn" id="decRun">See what happens</button>
+    <button class="addbtn ghost" id="decBack" style="color:var(--ink2)">← Back</button>
+  </div>
+  <div id="decResult" style="display:none">
+    <div id="decVerdict" style="margin-bottom:10px"></div>
+    <div class="dec-table" id="decTable"></div>
+    <div class="dec-narr" id="decNarr"></div>
+    <button class="addbtn" id="decAnother">Try another</button>
+    <button class="addbtn ghost" id="decDone" style="color:var(--ink2)">Done</button>
+  </div>
+</div></div>
+
+<div id="revOv" class="ov" style="display:none;z-index:70"><div class="ovcard">
+  <div class="ovhdr" style="justify-content:space-between"><span id="revTitle">Monthly Nest Review</span><button class="ovx" data-ov="revOv" type="button">✕</button></div>
+  <div id="revBody"></div>
+  <button class="addbtn ghost" id="revClose" style="color:var(--ink2);margin-top:6px">Done</button>
+</div></div>
+
+<div id="shareWizOv" class="ov" style="display:none;z-index:70"><div class="ovcard">
+  <div class="ovhdr" style="justify-content:space-between"><span>Invite to this Nest</span><button class="ovx" data-ov="shareWizOv" type="button">✕</button></div>
+  <div id="swStep1">
+    <div class="hintline" style="text-align:left;margin-top:0">Add a family member to <b>this</b> budget — they'll log expenses into the same Nest with you.</div>
+    <div class="row"><label>Their email</label><input id="swEmail" type="email" autocomplete="off" inputmode="email" placeholder="name@email.com"></div>
+    <button class="addbtn" id="swGrantBtn">Give them access</button>
+    <div class="hintline" style="text-align:left">This grants them Editor access to your budget's Google Sheet, and Google emails them an invitation.</div>
+    <div class="msg" id="swMsg"></div>
+  </div>
+  <div id="swStep2" style="display:none">
+    <div class="sw-done"><span class="sw-hi wren-happy" aria-hidden="true"></span><div><div class="eyebrow" style="margin:0;text-transform:none;font-size:15px" id="swDoneTitle">They have access!</div><div class="hintline" style="text-align:left;margin:6px 0 2px">One more step — send them this link. It opens NestWorth straight into your budget (not just the raw spreadsheet).</div></div></div>
+    <div class="swlink" id="swLink"></div>
+    <button class="addbtn" id="swShareBtn">📤 Share the app link</button>
+    <button class="addbtn" id="swInviteMoreBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">Invite someone else</button>
+    <button class="addbtn ghost" id="swDoneBtn" style="color:var(--ink2)">Done</button>
+  </div>
 </div></div>
 
 <div id="wizOv" class="ov" style="display:none"><div class="ovcard">
@@ -1095,6 +1202,8 @@ try{
     <option value="1">Every year</option>
   </select></div>
   <div class="row" id="conAmtRow"><span class="ri"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span><label id="conAmtLbl">Take-home per check</label><span class="mfield">$<input id="conAmt" class="money" inputmode="decimal" placeholder="0.00"></span></div>
+  <div class="row" id="conCalRow" style="display:none"><label>Use real paydays</label><label class="tog"><input type="checkbox" id="conCalendar"><span class="tog-t"></span></label></div>
+  <div class="row" id="conAnchorRow" style="display:none"><span class="ri"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="16" y1="2" x2="16" y2="6"></line></svg></span><label>Next payday</label><input id="conAnchor" type="date"></div>
   <div id="conModeWrap"><div class="chips" id="conMode"><button type="button" class="chip on" data-m="pct">Budget a %</button><button type="button" class="chip" data-m="keep">Set aside $/mo</button></div></div>
   <div class="row" id="conPctRow"><label>% of check to budget</label><input id="conPct" inputmode="decimal" value="100"></div>
   <div class="row" id="conKeepRow" style="display:none"><label>Set aside $/mo</label><span class="mfield">$<input id="conKeep" class="money" inputmode="decimal" placeholder="0.00"></span></div>
@@ -1122,6 +1231,7 @@ try{
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="16" y1="2" x2="16" y2="6"></line></svg></span><label>Target date</label><input id="gDate" type="month"></div>
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg></span><label>Monthly plan</label><input id="gMonthly" inputmode="decimal" placeholder="auto from target + date"></div>
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M3 10 12 4l9 6"></path><line x1="5" y1="10" x2="5" y2="20"></line><line x1="19" y1="10" x2="19" y2="20"></line><line x1="9" y1="10" x2="9" y2="20"></line><line x1="15" y1="10" x2="15" y2="20"></line><line x1="3" y1="20" x2="21" y2="20"></line></svg></span><label>Held in</label><select id="gAccount"></select></div>
+  <div class="hintline" style="text-align:left;margin-top:-2px">Pick the account this money actually sits in (Checking, Savings…) so it's counted once — earmarked inside that account, not added on top of your net worth. Choose <b>Its own savings</b> if it's set aside on its own.</div>
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg></span><label>Budget category</label><select id="gCategory"></select></div>
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M3 12h18"></path><path d="M8 7l-5 5 5 5"></path></svg></span><label>Paying down</label><select id="gDebt"></select></div>
   <div class="row"><span class="ri"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg></span><label>Fund from leftover</label><label class="tog"><input type="checkbox" id="gResidual"><span class="tog-t"></span></label></div>
@@ -1152,6 +1262,98 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.45.0 — Aug 28, 2026 · Build 20260828.61
+//     • Guided Decisions picker (Budget › "🔮 Run a what-if decision"): tap what you're thinking about — a large purchase
+//       or trip, a monthly payment, reaching a goal sooner, an income change, spending more/less — answer a couple of
+//       plain questions (how much, when, paid from where), and see a before/after table (annual surplus, lowest cash,
+//       goal finish date, Nest Egg Floor) plus Wren's plain-language read. No need to know how to phrase a cash-flow
+//       question. Funding a purchase FROM a goal is modeled correctly (draws the goal, leaves cash flow intact).
+//   v0.44.0 — Aug 28, 2026 · Build 20260828.60
+//     • NestWorth Decision Engine (foundation): a pure state-in/numbers-out layer (computeCashflow / computeAnnualPlan /
+//       evaluateDecision) reruns the WHOLE model on a hypothetical — annual plan, cash flow, goals, cushion — and returns
+//       a structured before/after. Wren narrates it (never computes it) with the assumption stated. Ask "can we afford a
+//       $6,000 vacation in December?", "can we add a $700/month payment?", or "increase Renovation to $1,500" and she
+//       answers from the deterministic diff. One engine, many entrances (purchase / recurring / goal / income).
+//     • Nest Egg Floor: an optional "lowest cash you're comfortable with" (Budget › Cash flow). Every decision and the
+//       cash-flow verdict now check against it.
+//     • Cash-flow now consistently treats fixed goal contributions as spendable-cash outflows — the live screen and the
+//       Decision Engine share one function, so their numbers can't disagree. MODEL_SPEC updated (§6, §7a, §12).
+//   v0.43.0 — Aug 28, 2026 · Build 20260828.59
+//     • Gemini key is now on-device by default: it's saved only in this device's local storage and is NOT written into the
+//       shared budget unless you deliberately turn on "Share with this Nest" (which then lets family members with Editor
+//       access use it). Fixed the contradicting "on-device only" comment and the Settings + privacy-policy copy to match.
+//       New suite: verify-gemini-share.js.
+//   v0.42.0 — Aug 28, 2026 · Build 20260828.58
+//     • Per-account net-worth freshness: each account now tracks its own last-updated date (stamped when you change that
+//       balance; untouched accounts keep their date). Worth shows "N of your accounts may be stale" in the headline and a
+//       ⏳ badge on any account not refreshed in 45+ days — so an old 401(k) balance can't quietly imply today's net worth
+//       is precise. Existing accounts fall back to the global update date, so nothing is falsely flagged on day one.
+//   v0.41.0 — Aug 28, 2026 · Build 20260828.57
+//     • Real payday calendar (optional): weekly/biweekly income can now toggle "Use real paydays" and set a next-payday
+//       date. The app maps the actual checks per month — so the two 3-paycheck months (or 5-paycheck weeks) show up in
+//       your Cash-flow-through-the-year forecast instead of a flat average. The ×52÷12 / ×26÷12 smoothing stays the default.
+//     • Added deterministic tests for weekly/biweekly annualization, the payday calendar, and year rollover.
+//   v0.40.0 — Aug 28, 2026 · Build 20260828.56
+//     • More audit items: (1) a backup is offered before any bulk import — a rollback checkpoint. (2) Envelope balances
+//       now read "$X banked thru <last completed month>" so it's clear the current month isn't counted until it closes.
+//       (3) Wren's affordability answer now also gives THIS month's specific free cash, distinct from the annual average.
+//       (4) "Budget from last year" can Match each month (keeps seasonal spikes) or spread Even monthly. (5) Import
+//       duplicate detection now catches same-amount entries within a day (statement-date drift), labeled "possible
+//       duplicate" to review rather than silently merged.
+//   v0.39.0 — Aug 28, 2026 · Build 20260828.55
+//     • Sharing wizard (P2): one "Invite someone to this Nest" flow — enter their email → NestWorth grants Editor access →
+//       a success screen (with Wren) that hands you the app link to send, via the native share sheet or copy. Underneath
+//       it's still the two Google steps, but the person experiences a single flow. The raw-spreadsheet link and blank
+//       starter copy now live under "Other ways to share." New suite: verify-sharewiz.js. This completes the audit's
+//       hardening cycle (P0 concurrency → P1 model clarity → P2 quick wins) plus the Financial Model Spec.
+//   v0.38.0 — Aug 28, 2026 · Build 20260828.54
+//     • Goal ↔ account clarity (P2): the "Held in" picker in the Add-goal form now explains why to set it — the goal's
+//       money is earmarked inside that account, counted once, not added on top of net worth. Linking happens at setup.
+//   v0.37.0 — Aug 28, 2026 · Build 20260828.53
+//     • Backups (P2): a "Back up this Nest" button in Settings › Danger zone copies your whole workbook to Google Drive
+//       with a dated name — your restore point. Erasing now offers that backup first and requires you to type ERASE to
+//       confirm, so irreversible deletion takes more than a tap. New suite: verify-backup.js.
+//   v0.36.0 — Aug 28, 2026 · Build 20260828.52
+//     • P2 quick wins: an offline banner ("You're offline — your Nest is safe…") so a cached UI never looks like live
+//       data; net worth now shows "updated N days ago" right in the headline (gold once it's been >45 days); and the
+//       Add screen's two toggles are clearer — "Awaiting reimbursement" (an expense you'll be paid back for) vs
+//       "Refund / credit received" (money coming in). Accounting is unchanged.
+//   v0.35.0 — Aug 28, 2026 · Build 20260828.51
+//     • Model clarity (P1): in "actual" mode, the CURRENT month now blends what you've actually spent so far with the
+//       rest of its plan (never less than the plan), in both the yearly feasibility check and Cash-flow-through-the-year —
+//       so an over-budget month shows up immediately instead of waiting for the month to close. Feasibility now names
+//       itself the "annual plan" and points to Cash flow for month-to-month timing.
+//     • Goal timing (P1): a goal's funding periods count the current month THROUGH the target month (due by end of the
+//       target month), so a goal you set up this month counts this month. Auto-suggested monthly amounts follow suit.
+//       The "bump this goal" nudge now says "your annual budget has room" (it's based on the annual average).
+//   v0.34.0 — Aug 28, 2026 · Build 20260828.50
+//     • Data integrity (P0): transaction append is now atomic. Each new row is reserved with a unique nonce in column A
+//       and verified before the real write, so two people in the same household logging at the same instant can never
+//       overwrite each other's entry — the same reserve-and-verify guarantee budget rows already had. Falls back to
+//       Google's own append if the scan can't run, so a write is never lost. New suite: verify-append-concurrency.js.
+//   v0.33.0 — Aug 28, 2026 · Build 20260828.49
+//     • Wren analytics, Layer 3 (deterministic, on-device). New: year-end forecast ("where will we end the year?"),
+//       cash-flow check ("are we living within our means?" / "will we run out?"), affordability ("when could I afford
+//       a $12k car?"), what-if scenarios ("what if I cut Food $200 toward the Car Fund?" — never changes your real
+//       budget), the "where did our money go?" narrative, recurring/subscription detection, unusual-spending flags vs
+//       your own average, member split, debt-paydown progress, budget recommendations from your history, and personal
+//       baselines (realistic budget, most-ever, "normally spend in <month>", average monthly leftover, chronic over/under).
+//       Affordability is phrased as a plan average, not a monthly guarantee.
+//   v0.32.0 — Aug 28, 2026 · Build 20260828.48
+//     • Wren analytics, Layer 2 (still free + on-device, deterministic — she computes, then explains). New answers:
+//       "what am I over budget on?", "how am I doing this month?", "how much do I have left in <category>?",
+//       "am I on pace to stay under budget (on <category>)?", "am I spending more than last month?" (same point in the
+//       month), "how much did I spend at <merchant> this year?", "am I on track for <goal>?" (ETA), and
+//       "why did my net worth change?" (splits it into assets vs. debt paydown). Warm and non-judgmental by design.
+//   v0.31.1 — Aug 28, 2026 · Build 20260828.47
+//     • Tightened the chat bubbles (smaller padding, text, avatars, and gaps) so much more of the conversation fits on
+//       one screen, without losing the look.
+//   v0.31.0 — Aug 28, 2026 · Build 20260828.46
+//     • Wren now answers questions about your money — free and fully on-device (no API, nothing leaves your phone).
+//       Ask things like "how much did I spend on groceries this month?", "what's my biggest category this year?",
+//       "how much did I make?" or "how much did I save?" and she computes the answer from your ledger, with a Show me
+//       to the Month tab. How-to questions still go to the guide as before.
+//     • Chat suggested-topic chips are smaller and quieter so they don't compete with the conversation.
 //   v0.30.0 — Aug 28, 2026 · Build 20260828.45
 //     • Category picker: ad-hoc/history categories now appear only if they were used THIS year — old one-off categories
 //       from prior years no longer clutter the list. Your set-up budget categories always show (even before their first
@@ -1410,10 +1612,14 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.30.0"; // SemVer — what changed functionally (display only)
-var BUILD="20260828.45"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.48.0"; // SemVer — what changed functionally (display only)
+var BUILD="20260828.64"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
+// Offline awareness: the shell + Wren help load from cache, but live spreadsheet reads/writes need Google — so say so
+// plainly rather than letting a cached UI imply stale numbers are live.
+function updateOfflineBar(){try{document.body.classList.toggle("is-offline",navigator.onLine===false);}catch(e){}}
+try{window.addEventListener("online",updateOfflineBar);window.addEventListener("offline",updateOfflineBar);updateOfflineBar();}catch(e){}
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -1421,7 +1627,19 @@ var LEDGER_SCAN=20000; // how far down to look for the true next ledger row (Goo
 var NW="Net Worth", ASSET_START=4, ASSET_END=23, DEBT_START=27, DEBT_END=36;
 var accessToken=null, tokenClient=null, sheetId=null, userEmail="";
 var state={rows:[],cats:[],cons:[],assets:[],debts:[],goals:[],goalSet:{},carryIn:{},nwHist:[],meta:{cats:{},cons:{},goals:[]}};
-var MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+// The last COMPLETED month — envelopes only bank through here; the current month isn't counted until it closes.
+function lastCompletedMon(){var lcm=curMonth()-1;return lcm>=1?MONTHS[lcm-1]:"Dec";}
+// How many paydays land in each month of `year`, given a payday anchor date and an interval in days (7 weekly, 14 biweekly).
+// Steps by whole days from noon (DST-safe) so a real biweekly year shows its two 3-paycheck months.
+function paydaysPerMonth(anchorISO,interval,year){
+  var out=[0,0,0,0,0,0,0,0,0,0,0,0];
+  var base=new Date((""+anchorISO)+"T12:00:00");if(isNaN(base.getTime()))return out;
+  var step=interval*86400000,floor=new Date(year,0,1,12).getTime(),ceil=new Date(year,11,31,12).getTime(),t=base.getTime();
+  while(t>=floor)t-=step; t+=step;                      // first payday on/after Jan 1
+  for(;t<=ceil;t+=step){var d=new Date(t);if(d.getFullYear()===year)out[d.getMonth()]++;}
+  return out;
+};
 var META_SHEET="NestWorth Meta";
 function r2(n){return Math.round((Number(n)||0)*100)/100;}
 // Compute the 12 monthly budgeted amounts from a budget-type config.
@@ -1433,8 +1651,9 @@ function monthsFor(cfg){
   if(t==="annual"||t==="onetime"){var mi=(Number(cfg.month)||1)-1;if(mi<0||mi>11)mi=0;out[mi]=r2(a);return out;}
   if(t==="paycheck"){var checks=Number(cfg.freq)||26;var take=a*checks/12;var mo;if(cfg.mode==="keep"){mo=take-(Number(cfg.keep)||0);}else{var pct=(cfg.pct==null?100:Number(cfg.pct))/100;mo=take*pct;}if(mo<0)mo=0;mo=r2(mo);for(i=0;i<12;i++)out[i]=mo;return out;}
   if(t==="itemized"){return billMonths(cfg.items);}
-  if(t==="weekly"){var mw=r2(a*52/12);for(i=0;i<12;i++)out[i]=mw;return out;}   // flat weekly income → spread across the year
-  if(t==="biweekly"){var mb=r2(a*26/12);for(i=0;i<12;i++)out[i]=mb;return out;} // flat every-2-weeks income → spread across the year
+  if(t==="weekly"||t==="biweekly"){var iv=(t==="weekly")?7:14;
+    if(cfg.calendar&&cfg.payAnchor){var cnt=paydaysPerMonth(cfg.payAnchor,iv,bYear());for(i=0;i<12;i++)out[i]=r2(a*cnt[i]);return out;} // real payday calendar: actual checks per month (3-paycheck months show up)
+    var mf=r2(a*(t==="weekly"?52:26)/12);for(i=0;i<12;i++)out[i]=mf;return out;} // flat: spread evenly across the year
   for(i=0;i<12;i++)out[i]=r2(a);return out; // monthly
 }
 // ---- Update check: pull the deployed app.html, read its BUILD, and offer a refresh if it's newer than what's running.
@@ -1690,17 +1909,41 @@ async function claimRow(sheetName,start,end,name,which){
 }
 // Append rows by writing to the first free row FROM THE TOP, not Google's values.append — which, when a tab is a full-sheet
 // native Table, appends after the table and strands rows ~1,000,000 rows down. Falls back to the API append if the scan can't run.
+// Reserve append rows ATOMICALLY against other devices: for each row, write a unique nonce to column A at the end of the
+// tab, read it back, and only keep the row if our nonce survived. If another phone grabbed that row at the same instant,
+// its value now occupies it, so the next scan's end moves past it and we take a fresh row. This is the same reserve-and-
+// verify guarantee claimRow() gives budget rows — so two spouses logging at 5:17 can never overwrite each other's entry.
+// Returns the claimed row numbers, or null if the scan can't run / the tab is full (caller falls back to Google's append).
+async function claimRows(tab,count){
+  var rows=[],base="~clm"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  for(var need=0;need<count;need++){
+    var got=0;
+    for(var attempt=0;attempt<8&&!got;attempt++){
+      var g;try{g=await vgetU("'"+tab+"'!A1:A"+LEDGER_SCAN);}catch(e){return null;}
+      var vals=(g.values||[]),last=0;
+      for(var r=1;r<=vals.length;r++){if(vals[r-1]&&(""+(vals[r-1][0]==null?"":vals[r-1][0])).trim()!=="")last=r;}
+      var row=Math.max(last,1)+1;while(rows.indexOf(row)>=0)row++;
+      if(row>LEDGER_SCAN)return null;
+      var nonce=base+"-"+need;
+      try{await vBatchUpdate([{range:"'"+tab+"'!A"+row,values:[[nonce]]}]);}catch(e){return null;}
+      var v;try{v=await vgetU("'"+tab+"'!A"+row);}catch(e){rows.push(row);got=row;break;} // can't verify — assume ours rather than spin
+      var cur=(v.values&&v.values[0]&&v.values[0][0]);cur=(cur==null?"":""+cur);
+      if(cur===nonce){rows.push(row);got=row;}
+    }
+    if(!got)return null;
+  }
+  return rows;
+}
 async function vappend(range,values){
   var tab=(range.split("!")[0]).replace(/^'|'$/g,"");
-  var start=null;
-  try{var g=await vgetU("'"+tab+"'!A1:A"+LEDGER_SCAN);var n=(g.values||[]).length;if(n<LEDGER_SCAN){start=(n<1?1:n)+1;}}catch(e){}
-  if(start==null){ // read failed, or an unusually huge ledger — use the API append so a write is never lost
+  var claimed=null;try{claimed=await claimRows(tab,values.length);}catch(e){claimed=null;}
+  if(!claimed){ // scan failed, or the tab is full — use the API append so a write is never lost (Google assigns the row)
     return api(ssBase()+"/values/"+encodeURIComponent(range)+":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:values})});
   }
-  var data=values.map(function(row,i){return {range:"'"+tab+"'!A"+(start+i),values:[row]};});
-  await vBatchUpdate(data);
-  if(tab===LEDGER){try{await ensureLedgerTable(start+values.length-1);}catch(e){}} // grow the ledger table to cover the new rows
-  return {updates:{updatedRange:"'"+tab+"'!A"+start+":I"+(start+values.length-1),updatedRows:values.length}};
+  var data=values.map(function(row,i){return {range:"'"+tab+"'!A"+claimed[i],values:[row]};});
+  try{await vBatchUpdate(data);}catch(e){try{await vBatchClear(claimed.map(function(rw){return "'"+tab+"'!A"+rw;}));}catch(_){}throw e;} // release reservations on failure so we don't strand nonce rows
+  if(tab===LEDGER){try{await ensureLedgerTable(Math.max.apply(null,claimed));}catch(e){}} // grow the ledger table to cover the new rows
+  return {updates:{updatedRange:"'"+tab+"'!A"+claimed[0]+":I"+claimed[0],updatedRows:values.length,_rows:claimed}};
 }
 function vBatchUpdate(data){return api(ssBase()+"/values:batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({valueInputOption:"USER_ENTERED",data:data})});}
 function vBatchClear(ranges){return api(ssBase()+"/values:batchClear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ranges:ranges})});}
@@ -1968,6 +2211,133 @@ async function budgetInvite(id,email){
   email=(email||"").trim();if(!email)throw new Error("Enter an email.");
   await api("https://www.googleapis.com/drive/v3/files/"+id+"/permissions?sendNotificationEmail=true&fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:"writer",type:"user",emailAddress:email})});
 }
+// One "Invite to this Nest" wizard: email → grant Editor access → success screen with the app link to send. Underneath it's
+// still the two Google steps (permission + app link), but the person experiences a single flow.
+function openShareWiz(){$("swEmail").value="";var m=$("swMsg");if(m){m.textContent="";m.className="msg";}$("swStep1").style.display="";$("swStep2").style.display="none";openOv("shareWizOv");setTimeout(function(){try{$("swEmail").focus();}catch(e){}},80);}
+function swGrant(){var email=($("swEmail").value||"").trim();var msg=$("swMsg");msg.className="msg";
+  if(!/.+@.+\..+/.test(email)){msg.textContent="Enter a valid email address.";msg.className="msg bad";return;}
+  var b=$("swGrantBtn");b.disabled=true;b.textContent="Granting access…";msg.textContent="";
+  budgetInvite(sheetId,email).then(function(){$("swDoneTitle").textContent=email+" now has access!";$("swLink").textContent=joinLink();$("swStep1").style.display="none";$("swStep2").style.display="";})
+  .catch(function(e){msg.textContent="Couldn't grant access: "+((e.message||e)+"").slice(0,90);msg.className="msg bad";})
+  .then(function(){b.disabled=false;b.textContent="Give them access";});}
+function swShareLink(){var url=joinLink(),b=$("swShareBtn");
+  if(navigator.share){navigator.share({title:"Join my NestWorth budget",text:"I'm sharing my NestWorth budget with you — open this to join:",url:url}).catch(function(){});return;}
+  try{navigator.clipboard.writeText(url);b.textContent="Link copied ✓";setTimeout(function(){b.textContent="📤 Share the app link";},1800);}catch(e){}}
+
+// ===== Decisions picker: a guided front door to the Decision Engine, so a non-technical person can model a choice by
+// tapping instead of knowing how to phrase it. Each entrance just builds a `change` and calls evaluateDecision(). =====
+var DEC_TYPES=[
+  {id:'purchase',icon:'🏠',label:'A large purchase or trip'},
+  {id:'payment',icon:'🚗',label:'Take on a monthly payment'},
+  {id:'goal',icon:'🎯',label:'Reach a goal sooner'},
+  {id:'income',icon:'💵',label:'A change in income'},
+  {id:'expense',icon:'🧾',label:'Spend more or less each month'},
+  {id:'life',icon:'🪺',label:'Plan a life change'},
+  {id:'ask',icon:'✨',label:'Something else — ask Wren'}
+];
+// Life changes compose SEVERAL changes into one scenario — a new monthly cost + a one-time upfront + an income change —
+// and run them through evaluateDecision as a batch. Same engine, a friendlier entrance for the big moments.
+var LIFE={
+  baby:{icon:'👶',label:'We’re having a baby',intro:'Rough new monthly costs, one-time setup, and any income change during leave — Wren will run all of it at once.',fields:[
+    {id:'lfMonthly',label:'New costs each month',ph:'childcare, insurance…'},
+    {id:'lfUpfront',label:'One-time upfront',ph:'supplies, medical'},
+    {id:'lfIncome',label:'Monthly income change',ph:'e.g. -1500 on leave',signed:true}
+  ]},
+  house:{icon:'🏠',label:'We’re buying a house',intro:'How much more the new place costs each month than you pay now, plus the cash to close.',fields:[
+    {id:'lfMonthly',label:'Monthly cost above what you pay now',ph:'mortgage+tax+ins − rent'},
+    {id:'lfUpfront',label:'Upfront (down payment + closing)',ph:'cash to close'}
+  ]},
+  income:{icon:'💼',label:'One income is changing',intro:'A raise, a new job, or one income pausing for a while.',fields:[
+    {id:'lfIncome',label:'Monthly income change',ph:'e.g. 800 or -2000',signed:true}
+  ]},
+  car:{icon:'🚗',label:'We’re getting a car',intro:'The monthly payment and insurance, plus any down payment today.',fields:[
+    {id:'lfMonthly',label:'Payment + insurance each month',ph:'0.00'},
+    {id:'lfUpfront',label:'Down payment now',ph:'0.00'}
+  ]}
+};
+var LIFE_ORDER=['baby','house','income','car'];
+var _decLife=null;
+var _decType=null;
+function decShow(step){$("decStep1").style.display=step===1?"":"none";$("decStep2").style.display=step===2?"":"none";$("decResult").style.display=step===3?"":"none";}
+function openDecisions(){
+  var c=$("decTypes");c.innerHTML=DEC_TYPES.map(function(t){return '<button type="button" class="decchip" data-t="'+t.id+'"><span class="decic">'+t.icon+'</span>'+t.label+'</button>';}).join("");
+  Array.prototype.forEach.call(c.querySelectorAll('.decchip'),function(b){b.addEventListener('click',function(){decPick(this.getAttribute('data-t'));});});
+  $("decTitle").textContent="Run a decision";decShow(1);openOv("decOv");
+}
+function decPick(type){
+  if(type==='ask'){closeOv('decOv');openWren();return;}
+  if(type==='life'){
+    _decType='life';_decLife=null;
+    $("decForm").innerHTML='<div class="hintline" style="text-align:left;margin-bottom:2px">Which life change are you planning?</div><div class="decchips">'+LIFE_ORDER.map(function(k){var L=LIFE[k];return '<button type="button" class="decchip" data-l="'+k+'"><span class="decic">'+L.icon+'</span>'+L.label+'</button>';}).join("")+'</div>';
+    Array.prototype.forEach.call($("decForm").querySelectorAll('.decchip'),function(bb){bb.addEventListener('click',function(){decPickLife(this.getAttribute('data-l'));});});
+    $("decTitle").textContent="Plan a life change";$("decMsg").textContent="";$("decMsg").className="msg";
+    $("decRun").style.display='none';decShow(2);return;
+  }
+  _decType=type;
+  var monthOpts=MONTHS.map(function(m,i){return '<option value="'+(i+1)+'"'+((i+1)===curMonth()?' selected':'')+'>'+m+' '+curYear()+'</option>';}).join("");
+  var goals=(state.goals||[]).filter(function(g){return g&&g.name&&!g.archived;});
+  var goalOpts=goals.map(function(g){return '<option value="'+esc(g.name)+'">'+esc(g.name)+'</option>';}).join("");
+  var fromOpts='<option value="cash">Checking / Savings</option>'+goals.map(function(g){return '<option value="goal:'+esc(g.name)+'">From the '+esc(g.name)+' goal</option>';}).join("")+'<option value="cash">Not sure yet</option>';
+  var amtRow=function(lbl){return '<div class="row"><label>'+lbl+'</label><span class="mfield">$<input id="decAmt" class="money" inputmode="decimal" placeholder="0.00"></span></div>';};
+  var forms={
+    purchase:amtRow('How much?')+'<div class="row"><label>When?</label><select id="decMonth">'+monthOpts+'</select></div><div class="row"><label>Paid from</label><select id="decFrom">'+fromOpts+'</select></div>',
+    payment:amtRow('How much / month?')+'<div class="hintline" style="text-align:left">A new recurring cost — a car payment, a loan, a subscription.</div>',
+    goal:goals.length?('<div class="row"><label>Which goal?</label><select id="decGoal">'+goalOpts+'</select></div>'+amtRow('New amount / month')):'<div class="hintline" style="text-align:left">You don\'t have any savings goals yet — add one on the Goals tab first.</div>',
+    income:'<div class="row"><label>Direction</label><select id="decDir"><option value="1">More income</option><option value="-1">Less income</option></select></div>'+amtRow('How much / month?'),
+    expense:'<div class="row"><label>Direction</label><select id="decDir"><option value="1">Spend more</option><option value="-1">Spend less</option></select></div>'+amtRow('How much / month?')
+  };
+  $("decForm").innerHTML=forms[type]||'';
+  var titles={purchase:'A large purchase or trip',payment:'A monthly payment',goal:'Reach a goal sooner',income:'A change in income',expense:'Change monthly spending'};
+  $("decTitle").textContent=titles[type]||'Run a decision';
+  $("decMsg").textContent="";$("decMsg").className="msg";
+  $("decRun").style.display=(type==='goal'&&!goals.length)?'none':'';
+  decShow(2);var amt=$("decAmt");if(amt)setTimeout(function(){try{amt.focus();}catch(e){}},60);
+}
+function decPickLife(k){
+  var L=LIFE[k];if(!L)return;_decLife=k;
+  var rows=L.fields.map(function(f){return '<div class="row"><label>'+f.label+'</label><span class="mfield">$<input id="'+f.id+'" class="money" inputmode="'+(f.signed?'text':'decimal')+'" placeholder="'+(f.ph||'0.00')+'"></span></div>';}).join("");
+  $("decForm").innerHTML='<div class="hintline" style="text-align:left;margin-bottom:8px">'+L.intro+'</div>'+rows+'<button type="button" class="dec-back" id="decLifeBack">‹ Other life changes</button>';
+  $("decLifeBack").addEventListener('click',function(){decPick('life');});
+  $("decTitle").textContent=L.label;$("decMsg").textContent="";$("decMsg").className="msg";$("decRun").style.display='';
+  var f0=$(L.fields[0].id);if(f0)setTimeout(function(){try{f0.focus();}catch(e){}},60);
+}
+function decLifeVal(id){var e=$(id);return e?(parseFloat((""+e.value).replace(/[^0-9.\-]/g,""))||0):0;}
+function decAmtVal(){var e=$("decAmt");return e?(parseFloat((""+e.value).replace(/[^0-9.\-]/g,""))||0):0;}
+function decRun(){
+  var msg=$("decMsg");msg.className="msg";
+  if(_decType==='life'){
+    if(!_decLife){msg.textContent="Pick a life change.";msg.className="msg bad";return;}
+    var mo=decLifeVal('lfMonthly'),up=decLifeVal('lfUpfront'),inc=decLifeVal('lfIncome'),batch=[];
+    if(mo>0)batch.push({type:'expenseMonthly',amount:mo});
+    if(up>0)batch.push({type:'purchase',amount:up,month:curMonth(),from:'cash'});
+    if(inc!==0)batch.push({type:'income',amount:inc});
+    if(!batch.length){msg.textContent="Enter at least one amount.";msg.className="msg bad";return;}
+    var rl;try{rl=evaluateDecision(batch);}catch(e){msg.textContent="Couldn't run that scenario.";msg.className="msg bad";return;}
+    rl._life=LIFE[_decLife];decRenderResult(rl);return;
+  }
+  var amt=decAmtVal(),change=null;
+  if(_decType!=='goal'&&_decType!=='payment'&&_decType!=='income'&&_decType!=='expense'&&_decType!=='purchase')return;
+  if(amt<=0){msg.textContent="Enter an amount.";msg.className="msg bad";return;}
+  if(_decType==='purchase')change={type:'purchase',amount:amt,month:Number($("decMonth").value)||curMonth(),from:$("decFrom").value};
+  else if(_decType==='payment')change={type:'expenseMonthly',amount:amt};
+  else if(_decType==='goal'){var gn=$("decGoal")&&$("decGoal").value;if(!gn){msg.textContent="Pick a goal.";msg.className="msg bad";return;}change={type:'goalMonthly',goal:gn,monthly:amt};}
+  else if(_decType==='income')change={type:'income',amount:(Number($("decDir").value)||1)*amt};
+  else if(_decType==='expense')change={type:'expenseMonthly',amount:(Number($("decDir").value)||1)*amt};
+  var res;try{res=evaluateDecision(change);}catch(e){msg.textContent="Couldn't run that scenario.";msg.className="msg bad";return;}
+  decRenderResult(res);
+}
+function decRenderResult(res){
+  var b=res.before,d=res.after,rows=[];
+  rows.push(['Annual surplus',money(b.surplus),money(d.surplus),d.surplus>=b.surplus-0.005]);
+  rows.push(['Lowest cash'+(d.lowMonth?(' · '+d.lowMonth):''),money(b.low),money(d.low),d.low>=b.low-0.005]);
+  if(b.netEnd!=null&&d.netEnd!=null)rows.push(['Net worth · year-end',money(b.netEnd),money(d.netEnd),d.netEnd>=b.netEnd-0.005]);
+  if(res.goal&&res.goal.before&&res.goal.after)rows.push(['“'+esc(res.goal.name)+'” done',res.goal.before,res.goal.after,true]);
+  if(res.floor>0)rows.push(['Nest Egg Floor '+money(res.floor),'',(res.passesFloor?'✓ holds':'⚠ breached'),res.passesFloor]);
+  $("decTable").innerHTML='<div class="dec-th"><span></span><span>Now</span><span>After</span></div>'+rows.map(function(r){return '<div class="dec-tr"><span class="dec-lab">'+r[0]+'</span><span class="dec-b">'+r[1]+'</span><span class="dec-a '+(r[3]?'ok':'warn')+'">'+r[2]+'</span></div>';}).join("");
+  $("decVerdict").innerHTML='<span class="dec-badge '+(res.feasible?'ok':'warn')+'">'+(res.feasible?'✓ You can do it':'⚠ This would stretch you')+'</span>';
+  $("decNarr").innerHTML='<span class="sw-hi wren-happy" style="width:32px;height:36px;display:inline-block;vertical-align:middle;margin-right:8px"></span>'+wrenDecisionMsg(res);
+  $("decTitle").textContent=res._life?(res._life.icon+' '+res._life.label):"What happens";decShow(3);
+}
 async function createFromTemplate(nm){
   if($("splashMsg"))$("splashMsg").textContent="Setting up your budget…";
   var resp=await fetch(TEMPLATE_URL,{cache:"no-store"});
@@ -2095,12 +2465,13 @@ function normMeta(o){o=o||{};
   var payees=Array.isArray(o.payees)?o.payees.filter(function(p){return p!=null&&(""+p).trim();}):[];
   if(!payees.length)payees=["Me"];
   var carry=isObj(o.carry)?o.carry:{}; // per-category "banked before this year" overrides (lowercased name → number)
-  var gkey=(o&&typeof o.gkey==="string")?o.gkey:""; // optional: Gemini receipt-scanning key, saved with the budget so it survives device storage being cleared
+  var gkey=(o&&typeof o.gkey==="string")?o.gkey:""; // Gemini key stored in the budget ONLY when the user opts into "Share with this Nest" (otherwise "" — the key lives on-device in localStorage)
   var prefs=isObj(o.prefs)?o.prefs:{}; // per-profile Add-form field prefs (e.g. show Payee / Reimbursed) — travels with the budget
   var hiddenCats=Array.isArray(o.hiddenCats)?o.hiddenCats.filter(function(x){return x!=null&&(""+x).trim();}):[]; // categories hidden from the picker (still in history)
-  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
+  var acctAsOf=isObj(o.acctAsOf)?o.acctAsOf:{}; // per-account last-updated dates (lowercased name → YYYY-MM-DD) for freshness flags
+  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,acctAsOf:acctAsOf,floor:Number(o&&o.floor)||0,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],acctAsOf:{},floor:0,nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -2145,6 +2516,8 @@ async function writeMeta(){
       gkey:(state.meta.gkey!==_metaBase.gkey)?state.meta.gkey:remote.gkey,
       startCash:(state.meta.startCash!==_metaBase.startCash)?state.meta.startCash:remote.startCash,
       startYM:(state.meta.startYM!==_metaBase.startYM)?state.meta.startYM:remote.startYM,
+      acctAsOf:_mergeMap(_metaBase.acctAsOf||{},state.meta.acctAsOf||{},remote.acctAsOf||{}),
+      floor:(state.meta.floor!==_metaBase.floor)?state.meta.floor:remote.floor,
       nwUpdated:(state.meta.nwUpdated!==_metaBase.nwUpdated)?state.meta.nwUpdated:remote.nwUpdated
     };
     if(!merged.payees.length)merged.payees=["Me"];
@@ -2245,14 +2618,27 @@ async function loadCarryIn(){
   }catch(e){}
 }
 function priorYearSpendByCat(){var py=curYear()-1,by={};state.rows.forEach(function(r){if(Number(r[0])!==py)return;var e=(""+((r&&r[4])||"")).trim(),el=e.toLowerCase();if(!e||el==="deposit"||isGoalName(e))return;by[el]=(by[el]||0)+(Number(r[6])||0);});return by;}
+// Prior-year spend split BY MONTH per category — lets a "budget from last year" keep the seasonal pattern (a Travel spike
+// in July stays in July) instead of flattening the yearly total to an even monthly amount.
+function priorYearSpendByCatMonth(){var py=curYear()-1,by={};state.rows.forEach(function(r){if(Number(r[0])!==py)return;var e=(""+((r&&r[4])||"")).trim(),el=e.toLowerCase();if(!e||el==="deposit"||isGoalName(e))return;var mo=Number(r[1]);if(mo<1||mo>12)return;if(!by[el])by[el]=[0,0,0,0,0,0,0,0,0,0,0,0];by[el][mo-1]+=(Number(r[6])||0);});return by;}
 function hasPriorYearData(){var by=priorYearSpendByCat();for(var k in by)if(by[k]>0.005)return true;return false;}
 async function budgetAllFromLastYear(){
   var by=priorYearSpendByCat(),py=curYear()-1;
   var targets=(state.cats||[]).filter(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized")return false;return (by[c.name.toLowerCase()]||0)>0.005&&(c.mbud||0)<0.005;});
   if(!targets.length){await askInfo("Nothing to fill","Either there's no "+py+" spending to base budgets on, or your categories already have amounts set.");return;}
-  if(!await askConfirm({title:"Budget from "+py+"?",msg:"Set a monthly budget for "+targets.length+" empty categor"+(targets.length===1?"y":"ies")+" from your average "+py+" spending. Categories you've already budgeted are left alone.",ok:"Fill "+targets.length}))return;
+  if(!await askConfirm({title:"Budget from "+py+"?",msg:"Set a monthly budget for "+targets.length+" empty categor"+(targets.length===1?"y":"ies")+" from your "+py+" spending. Categories you've already budgeted are left alone.",ok:"Continue"}))return;
+  // Seasonal or even? Matching each month preserves spikes (Travel in summer, gifts in December); even spreads the total.
+  var seasonal=await askConfirm({title:"Match the months?",msg:"<b>Match each month</b> keeps last year's seasonal pattern (a July travel spike stays in July). <b>Even monthly</b> spreads each category's yearly total evenly.",ok:"Match each month",cancel:"Even monthly"});
+  var byM=priorYearSpendByCatMonth();
   var sname=summaryName(),data=[];
-  targets.forEach(function(c){var mo=r2((by[c.name.toLowerCase()]||0)/12);var cfg={type:"monthly",amount:mo};var rl=catRoll(c.name);if(rl==="envelope"||rl==="buffer")cfg.roll=rl;var mv=monthsFor(cfg);BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+c.row,values:[[mv[i]]]});});state.meta.cats[c.name.toLowerCase()]=cfg;});
+  targets.forEach(function(c){
+    var m=byM[c.name.toLowerCase()]||[0,0,0,0,0,0,0,0,0,0,0,0],tot=m.reduce(function(a,b){return a+b;},0);
+    var cfg,mv;
+    if(seasonal){mv=m.map(function(v){return r2(v);});cfg={type:"custom",months:mv.slice()};}
+    else{var mo=r2(tot/12);cfg={type:"monthly",amount:mo};mv=monthsFor(cfg);}
+    var rl=catRoll(c.name);if(rl==="envelope"||rl==="buffer")cfg.roll=rl;
+    BUDCOLS.forEach(function(col,i){data.push({range:"'"+sname+"'!"+col+c.row,values:[[mv[i]]]});});
+    state.meta.cats[c.name.toLowerCase()]=cfg;});
   try{await vBatchUpdate(data);await writeMeta();await loadAll();renderAll();}catch(e){await askInfo("Couldn't fill",""+(e.message||e));}
 }
 function openCombine(){
@@ -2370,6 +2756,94 @@ function goalHold(){var h=0;(state.goals||[]).forEach(function(g){if(g.archived|
 function goalSaveAnnual(){var s=0;(state.goals||[]).forEach(function(g){if(g.archived||g.category||g.residual)return;s+=g.monthly*12;});return r2(s);}
 // Residual pool = leftover income after expenses and fixed goals (feasibility diff / 12).
 function residualPool(){var budget=0;state.cats.forEach(function(c){budget+=c.annual;});var income=0;state.cons.forEach(function(c){income+=c.annual;});var diff=income-budget-goalSaveAnnual();return r2(Math.max(0,diff/12));}
+// THIS month's modeled free cash (uses each category/income's plan for the current month, so a seasonal month is accurate),
+// distinct from residualPool()'s annual-average. Fixed goal commitments are held back.
+function availableThisMonth(){var cm=curMonth()-1,inc=0,exp=0,goalMo=0;
+  (state.cons||[]).forEach(function(c){inc+=(c.bud12&&c.bud12[cm])||0;});
+  (state.cats||[]).forEach(function(c){exp+=(c.bud12&&c.bud12[cm])||0;});
+  (state.goals||[]).forEach(function(g){if(g&&!g.archived&&!g.category&&!g.residual)goalMo+=(g.monthly||0);});
+  return r2(inc-exp-goalMo);}
+// ===== NestWorth Decision Engine: pure state-in / numbers-out models so a hypothetical can be run without touching live
+// data or the DOM. This is the SAME math the live screens use — one source of truth. Wren narrates the diff; she never
+// computes these numbers herself (the "narrator, not calculator" rule). Every entrance (a purchase, a goal change, a life
+// event) just builds a `change` and calls evaluateDecision(). =====
+function fixedGoalMonthly(goals){var s=0;(goals||[]).forEach(function(g){if(!g||g.archived||g.category||g.residual)return;s+=Number(g.monthly)||0;});return r2(s);}
+function nestFloor(){return (state.meta&&Number(state.meta.floor))||0;}
+function currentPlan(){return {cons:state.cons||[],cats:state.cats||[],rows:state.rows||[],goals:state.goals||[],startCash:(state.meta&&Number(state.meta.startCash))||0,goalMonthlyFixed:fixedGoalMonthly(state.goals),oneTime:null};}
+function clonePlan(p){var c={};for(var k in p)c[k]=p[k];c.oneTime=p.oneTime?p.oneTime.slice():null;return c;}
+function _cfArrays(plan){var inc=[0,0,0,0,0,0,0,0,0,0,0,0],exp=[0,0,0,0,0,0,0,0,0,0,0,0];(plan.cons||[]).forEach(function(c){(c.bud12||[]).forEach(function(v,m){inc[m]+=Number(v)||0;});});(plan.cats||[]).forEach(function(c){(c.bud12||[]).forEach(function(v,m){exp[m]+=Number(v)||0;});});return {inc:inc,exp:exp};}
+// Month-by-month running spendable cash. Fixed goal contributions leave spendable cash each month (they stay in net worth,
+// but aren't cash you can spend), and a one-time outflow is applied in its month. Current month blends actual-to-date with plan.
+function computeCashflow(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=opts.year||curYear(),bnd=curMonth();
+  var a=_cfArrays(plan),inc=a.inc,exp=a.exp,ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];
+  (plan.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
+  var gh=(opts.includeGoalHold===false)?0:(Number(plan.goalMonthlyFixed)||0);
+  var start=Number(plan.startCash)||0,bal=start,low=start,lowM=-1,months=[];
+  for(var m=0;m<12;m++){var im,em;
+    if(mode==="actual"){if((m+1)<bnd){im=ai[m];em=ae[m];}else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);}else{im=inc[m];em=exp[m];}}
+    else{im=inc[m];em=exp[m];}
+    var one=(plan.oneTime&&plan.oneTime[m])||0,net=r2(im-em-gh-one);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}months.push({m:m+1,net:net,bal:bal});}
+  return {months:months,end:bal,low:low,lowM:lowM,lowMonth:(lowM>=0?MONTHS[lowM]:"")};}
+function computeAnnualPlan(plan){var a=_cfArrays(plan),income=0,budget=0;a.inc.forEach(function(v){income+=v;});a.exp.forEach(function(v){budget+=v;});var goalSave=(Number(plan.goalMonthlyFixed)||0)*12;return {income:r2(income),budget:r2(budget),goalSave:r2(goalSave),surplus:r2(income-budget-goalSave)};}
+// Current net worth (assets + stand-alone goal balances − debts), read straight from live state — the same figure the
+// Net worth screen shows. Position (§10), kept separate from cash and the annual plan.
+function netWorthNow(){
+  var goals=(state.goals||[]).filter(function(g){return !g.archived;});
+  var stTot=goals.filter(function(g){return !g.account;}).reduce(function(a,g){return a+(g.balance||0);},0);
+  var ta=(state.assets||[]).reduce(function(a,x){return a+(x.bal||0);},0)+stTot;
+  var td=(state.debts||[]).reduce(function(a,x){return a+(x.bal||0);},0);
+  return r2(ta-td);
+}
+// Project net worth to year-end: it grows each remaining month by money KEPT = income − expense − one-time. Goal
+// contributions are NOT subtracted here (unlike cash flow) because money moved into a goal stays in net worth — it's
+// still yours, just no longer spendable. So accelerating a goal leaves this figure unchanged; a purchase or a new
+// recurring cost lowers it. Same current-month blend as cash flow (§4). A projection — assumes the rest of the year tracks plan.
+function computeNetWorthTrajectory(plan){
+  var a=_cfArrays(plan),inc=a.inc,exp=a.exp,y=curYear(),bnd=curMonth();
+  var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];
+  (plan.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
+  var now=netWorthNow(),add=0;
+  for(var m=bnd-1;m<12;m++){var im,em;
+    if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);}else{im=inc[m];em=exp[m];}
+    var one=(plan.oneTime&&plan.oneTime[m])||0;add=r2(add+(im-em-one));}
+  return {now:now,end:r2(now+add)};}
+function planMetrics(plan){var ap=computeAnnualPlan(plan),cf=computeCashflow(plan,{mode:"actual",includeGoalHold:true}),nw=computeNetWorthTrajectory(plan);return {surplus:ap.surplus,low:cf.low,lowMonth:cf.lowMonth,end:cf.end,netEnd:nw.end,netNow:nw.now};}
+function goalCompletion(g){if(!g||(g.target||0)<=0)return null;var need=Math.max(0,(g.target||0)-(g.balance||0));if(need<=0.005)return "already reached";if((g.monthly||0)<=0)return null;var mo=Math.ceil(need/g.monthly),d=new Date();d=new Date(d.getFullYear(),d.getMonth()+mo,1);return d.toLocaleString("en-US",{month:"short",year:"numeric"});}
+// Run a hypothetical change against the whole model. change: {type:'goalMonthly',goal,monthly} | {type:'purchase',amount,month}
+// Apply ONE change to the cloned hypo plan (mutating it), accumulating into ctx.goalInfo. Written so several changes can be
+// applied in sequence to the same plan (a "life change" batch) — expense/income concat onto hypo (not base) so they stack,
+// and one-time outflows ADD into their month rather than replacing the whole array.
+function _applyChange(base,hypo,change,ctx){
+  if(change.type==="goalMonthly"){
+    var gb=(base.goals||[]).filter(function(g){return g.name.toLowerCase()===(""+change.goal).toLowerCase();})[0];
+    var oldM=gb?(gb.monthly||0):0,newM=Number(change.monthly)||0;
+    hypo.goalMonthlyFixed=r2(hypo.goalMonthlyFixed+(newM-oldM));
+    if(gb)ctx.goalInfo={name:gb.name,before:goalCompletion(gb),after:goalCompletion({target:gb.target,balance:gb.balance,monthly:newM}),oldMonthly:oldM,newMonthly:newM};
+  }else if(change.type==="purchase"){
+    if(/^goal:/.test(change.from||"")){
+      // Funded from a savings goal: the money is already set aside, so spendable cash is unaffected — instead the goal's
+      // balance drops and its finish date pushes out (or it may no longer reach).
+      var gn=change.from.slice(5),gg=(base.goals||[]).filter(function(g){return g.name.toLowerCase()===gn.toLowerCase();})[0];
+      if(gg){var nb=r2(Math.max(0,(gg.balance||0)-(Number(change.amount)||0)));ctx.goalInfo={name:gg.name,before:goalCompletion(gg),after:goalCompletion({target:gg.target,balance:nb,monthly:gg.monthly}),fundedFrom:true,remaining:nb};}
+    }else{
+      var pm=(change.month&&change.month>=1&&change.month<=12)?(change.month-1):(curMonth()-1);
+      if(!hypo.oneTime)hypo.oneTime=[0,0,0,0,0,0,0,0,0,0,0,0];
+      hypo.oneTime[pm]=r2(hypo.oneTime[pm]+(Number(change.amount)||0));
+    }
+  }else if(change.type==="expenseMonthly"){
+    hypo.cats=(hypo.cats||[]).concat([{name:"_scenario",bud12:[0,0,0,0,0,0,0,0,0,0,0,0].map(function(){return Number(change.amount)||0;})}]);
+  }else if(change.type==="income"){
+    hypo.cons=(hypo.cons||[]).concat([{name:"_scenario",bud12:[0,0,0,0,0,0,0,0,0,0,0,0].map(function(){return Number(change.amount)||0;})}]);
+  }
+}
+// evaluateDecision accepts a single change OR an array of changes (a life-change batch). All changes apply to one cloned
+// plan, then the whole model reruns once — so a batch's before/after reflects every part at once.
+function evaluateDecision(change){
+  var base=currentPlan(),before=planMetrics(base),hypo=clonePlan(base),ctx={goalInfo:null};
+  var batch=Array.isArray(change),changes=batch?change:[change];
+  changes.forEach(function(c){_applyChange(base,hypo,c,ctx);});
+  var after=planMetrics(hypo),floor=nestFloor(),passesFloor=(floor<=0)||(after.low>=floor-0.005);
+  return {type:batch?"batch":change.type,batch:batch,changes:changes,feasible:(after.surplus>=-0.005)&&passesFloor,before:before,after:after,goal:ctx.goalInfo,floor:floor,passesFloor:passesFloor};}
 function computeResidual(){
   // Exclude goals that have reached their target — a finished residual goal must stop drawing the leftover pool and starving the others.
   var res=(state.goals||[]).filter(function(g){return g.residual&&!g.archived&&!(g.target>0&&g.balance>=g.target-0.005);});
@@ -2380,6 +2854,9 @@ function computeResidual(){
   return {pool:pool,goals:res};
 }
 function monthsUntil(ym){if(!ym)return 0;var p=(""+ym).split("-");var ty=Number(p[0]),tm=Number(p[1]);if(!ty||!tm)return 0;return (ty-curYear())*12+(tm-curMonth());}
+// Funding periods for a savings goal: the current month THROUGH the target month, inclusive ("due by end of the target
+// month"), so a goal you set up this month counts this month as a chance to contribute. 0 when no date is set.
+function goalFundMonths(ym){if(!ym)return 0;return Math.max(1,monthsUntil(ym)+1);}
 function fmtYM(ym){if(!ym)return "";var p=(""+ym).split("-");var tm=Number(p[1]);if(!tm)return "";return MONTHS[tm-1]+" "+p[0];}
 var NWHIST="NW History";
 async function ensureNWHistory(){
@@ -2403,6 +2880,12 @@ function ymNow(){var d=new Date();return d.getFullYear()*100+(d.getMonth()+1);}
 function todayISO(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
 function daysSinceISO(iso){if(!iso)return null;var p=(""+iso).slice(0,10).split("-");if(p.length<3)return null;var t=new Date(+p[0],+p[1]-1,+p[2]);if(isNaN(t))return null;var now=new Date();now=new Date(now.getFullYear(),now.getMonth(),now.getDate());return Math.round((now-t)/86400000);}
 function fmtYmNum(n){n=Number(n)||0;var mo=n%100,yr=Math.floor(n/100);if(mo<1||mo>12)return ""+n;return MONTHS[mo-1]+" "+yr;}
+// Per-account freshness: its own last-updated date, falling back to the global one (so existing accounts aren't flagged
+// stale on day one). >45 days without an update reads as stale.
+function acctAsOf(name){var m=(state.meta&&state.meta.acctAsOf)||{};return m[(""+name).toLowerCase()]||(state.meta&&state.meta.nwUpdated)||"";}
+function acctStaleDays(name){return daysSinceISO(acctAsOf(name));}
+function staleAccounts(){var out=[];(state.assets||[]).concat(state.debts||[]).forEach(function(x){var d=acctStaleDays(x.name);if(d!=null&&d>45)out.push({name:x.name,days:d});});return out;}
+function _staleB(name){var d=acctStaleDays(name);return (d!=null&&d>45)?(' <span class="stale-badge" title="Not updated in '+d+' days — re-enter this balance to refresh.">⏳ '+d+'d</span>'):'';}
 async function loadNWHistory(){
   state.nwHist=[];
   try{var g=await vgetU(NWHIST+"!A2:F400");var byYm={};
@@ -2481,7 +2964,11 @@ function renderWorth(){
   var lastH=(state.nwHist||[]).slice(-1)[0];
   var asOf=(state.meta&&state.meta.nwUpdated)||(lastH&&lastH.asOf)||"";
   var days=daysSinceISO(asOf);
-  var stale=(days!=null&&days>45)?('<div style="font-size:11.5px;color:var(--gold);margin-top:8px;font-weight:600">⏳ Balances last updated '+days+' days ago — tap “Recalculate” or update your accounts to refresh.</div>'):(asOf?('<div style="font-size:11px;color:var(--ink2);margin-top:8px">Last updated '+(days===0?"today":(days===1?"yesterday":(days+" days ago")))+'</div>'):'');
+  // Freshness right in the headline, so nobody mistakes a stale figure for a live one (the numbers are only as current as your last balance update).
+  var freshHead=asOf?('<div style="font-size:11px;margin-top:3px;color:'+((days!=null&&days>45)?"var(--gold)":"var(--ink2)")+';font-weight:'+((days!=null&&days>45)?"600":"400")+'">updated '+(days===0?"today":(days===1?"yesterday":(days+" days ago")))+((days!=null&&days>45)?" ⏳":"")+'</div>'):'';
+  var _stale=staleAccounts();
+  if(_stale.length)freshHead+='<div style="font-size:11px;margin-top:2px;color:var(--gold);font-weight:600">⏳ '+_stale.length+' of your accounts may be stale — '+_stale.slice(0,2).map(function(x){return esc(x.name)+" ("+x.days+"d)";}).join(", ")+(_stale.length>2?", …":"")+'</div>';
+  var stale=(days!=null&&days>45)?('<div style="font-size:11.5px;color:var(--gold);margin-top:8px;font-weight:600">⏳ Balances last updated '+days+' days ago — tap “Recalculate” or update your accounts to refresh.</div>'):'';
   // New all-time high — a rare, real milestone (mirrors the goal-reached banner). Needs prior history to beat, and a positive nest egg.
   var _nets=(state.nwHist||[]).map(function(x){return x.net;});
   var _newHigh=false;
@@ -2490,7 +2977,7 @@ function renderWorth(){
   var _ack=parseFloat(lsGet("nw_hi_ack"))||0;
   var _showEgg=_newHigh&&net>_ack+0.005;
   var milestone=_showEgg?'<div class="nw-egg"><span class="ne-wren wren-nestegg" aria-hidden="true"></span><span class="ne-txt">A new high! Your net worth just reached <b>'+money(net)+'</b>. Your nest egg is growing.</span><button class="ne-x" id="nwEggX" type="button" aria-label="Dismiss">×</button></div>':'';
-  $("wNet").innerHTML=milestone+'<div style="text-align:center;padding:6px 0"><div style="font-size:11.5px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:700">Net worth</div><div class="disp" style="font-size:36px;font-weight:600;line-height:1.1;color:'+(net>=0?"var(--green)":"var(--bad)")+'">'+money(net)+'</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px">'+money(ta)+' assets · '+money(td)+' debts</div>'+gline+nwTrendHTML()+stale+((state.assets.length||state.debts.length||standalone.length)?'<button class="gbtn" id="nwRecalcBtn" style="margin-top:12px">↻ Recalculate net worth</button>':'')+((reconcileNeeded().length&&state.assets.length)?'<button class="gbtn" id="nwReconcileBtn" style="margin-top:8px;color:var(--gold)">⚖ Link '+reconcileNeeded().length+' set-aside goal'+(reconcileNeeded().length===1?"":"s")+' to an account</button>':'')+'</div>';
+  $("wNet").innerHTML=milestone+'<div style="text-align:center;padding:6px 0"><div style="font-size:11.5px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:700">Net worth</div><div class="disp" style="font-size:36px;font-weight:600;line-height:1.1;color:'+(net>=0?"var(--green)":"var(--bad)")+'">'+money(net)+'</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px">'+money(ta)+' assets · '+money(td)+' debts</div>'+freshHead+gline+nwTrendHTML()+stale+((state.assets.length||state.debts.length||standalone.length)?'<button class="gbtn" id="nwRecalcBtn" style="margin-top:12px">↻ Recalculate net worth</button>':'')+((reconcileNeeded().length&&state.assets.length)?'<button class="gbtn" id="nwReconcileBtn" style="margin-top:8px;color:var(--gold)">⚖ Link '+reconcileNeeded().length+' set-aside goal'+(reconcileNeeded().length===1?"":"s")+' to an account</button>':'')+'</div>';
   var rb=$("nwRecalcBtn");if(rb)rb.addEventListener("click",recalcNW);
   var rcb=$("nwReconcileBtn");if(rcb)rcb.addEventListener("click",openReconcile);
   var _egX=$("nwEggX");if(_egX)_egX.addEventListener("click",function(){lsSet("nw_hi_ack",String(net));renderWorth();}); // acknowledge this high; it won't show again until you beat it
@@ -2503,9 +2990,9 @@ function renderWorth(){
     if(ear>0.005){nested='<div class="cc-bills">'+(byAcct[k]||[]).map(function(g){return '<div class="cc-bill"><span>🎯 '+esc(g.name)+'</span><span>'+money(g.balance)+'</span></div>';}).join("")+'</div>';}
     var sub=(ear>0.005)?('<div class="cb">'+money(ear)+' earmarked · '+(over>0.005?('<span style="color:var(--bad)">'+money(over)+' over-allocated</span>'):(money(free)+' free'))+'</div>'):'';
     var tr=acctTrend("asset",x.name),trl=tr?('<div class="cb" style="color:'+(tr.chg>=0?"var(--green)":"var(--bad)")+'">'+(tr.chg>=0?"▲ up ":"▼ down ")+money(Math.abs(tr.chg))+' since '+fmtYmNum(tr.since)+'</div>'):'';
-    return '<div class="catcard2"><div class="cc-head"><span class="cc-name">'+esc(x.name)+'</span><span class="cc-acts"><span style="font-weight:700;font-variant-numeric:tabular-nums">'+money(x.bal)+'</span><button class="rm" data-k="asset" data-n="'+esc(x.name)+'">Remove</button></span></div>'+sub+trl+nested+'</div>';
+    return '<div class="catcard2"><div class="cc-head"><span class="cc-name">'+esc(x.name)+_staleB(x.name)+'</span><span class="cc-acts"><span style="font-weight:700;font-variant-numeric:tabular-nums">'+money(x.bal)+'</span><button class="rm" data-k="asset" data-n="'+esc(x.name)+'">Remove</button></span></div>'+sub+trl+nested+'</div>';
   }).join("");}
-  $("debtList").innerHTML=state.debts.length?state.debts.map(function(x){var tr=acctTrend("debt",x.name),trl=tr?('<div class="cb" style="color:'+(tr.chg<=0?"var(--green)":"var(--bad)")+'">'+(tr.chg<=0?"▼ down ":"▲ up ")+money(Math.abs(tr.chg))+' since '+fmtYmNum(tr.since)+'</div>'):'';return '<div class="catcard2"><div class="cc-head"><span class="cc-name">'+esc(x.name)+'</span><span class="cc-acts"><span style="font-weight:700;color:var(--bad);font-variant-numeric:tabular-nums">-'+money(x.bal)+'</span><button class="rm" data-k="debt" data-n="'+esc(x.name)+'">Remove</button></span></div>'+trl+'</div>';}).join(""):'<div class="empty">None yet. Add one below.</div>';
+  $("debtList").innerHTML=state.debts.length?state.debts.map(function(x){var tr=acctTrend("debt",x.name),trl=tr?('<div class="cb" style="color:'+(tr.chg<=0?"var(--green)":"var(--bad)")+'">'+(tr.chg<=0?"▼ down ":"▲ up ")+money(Math.abs(tr.chg))+' since '+fmtYmNum(tr.since)+'</div>'):'';return '<div class="catcard2"><div class="cc-head"><span class="cc-name">'+esc(x.name)+_staleB(x.name)+'</span><span class="cc-acts"><span style="font-weight:700;color:var(--bad);font-variant-numeric:tabular-nums">-'+money(x.bal)+'</span><button class="rm" data-k="debt" data-n="'+esc(x.name)+'">Remove</button></span></div>'+trl+'</div>';}).join(""):'<div class="empty">None yet. Add one below.</div>';
   Array.prototype.forEach.call(document.querySelectorAll("#view-worth .rm"),function(b){b.addEventListener("click",function(){removeNW(this.getAttribute("data-k"),this.getAttribute("data-n"));});});
 }
 async function recalcNW(){
@@ -2521,7 +3008,7 @@ async function addNW(kind,nameEl,balEl,btn,msgEl,start,end,word){
   try{
     var row=await claimRow(NW,start,end,name); // claims the name row safely against concurrent adds
     if(!row){msgEl.textContent="That list is full — remove one or edit it in the sheet.";msgEl.className="msg bad";btn.disabled=false;btn.textContent="Add "+word;return;}
-    await vBatchUpdate([{range:NW+"!B"+row,values:[[bal]]}]);nameEl.value="";balEl.value="";msgEl.textContent="Added ✓";await loadNW();renderWorth();setTimeout(function(){if(msgEl.textContent==="Added ✓")msgEl.textContent="";},1500);}
+    await vBatchUpdate([{range:NW+"!B"+row,values:[[bal]]}]);try{state.meta.acctAsOf=state.meta.acctAsOf||{};state.meta.acctAsOf[name.toLowerCase()]=todayISO();await writeMeta();}catch(e){} nameEl.value="";balEl.value="";msgEl.textContent="Added ✓";await loadNW();renderWorth();setTimeout(function(){if(msgEl.textContent==="Added ✓")msgEl.textContent="";},1500);}
   catch(e){msgEl.textContent="Could not add: "+(e.message||e);msgEl.className="msg bad";}
   btn.disabled=false;btn.textContent="Add "+word;
 }
@@ -2739,7 +3226,8 @@ async function loadAll(){
   buildIndexes();applyBudgetSpend(); // compute spent / annual-left / deposits client-side from the ledger index
   await readMeta();
   adoptSheetItemized(); // pick up itemized categories built or edited directly in the summary sheet (↳ rows -> meta bills)
-  // If the Gemini key was saved with the budget but this device's copy is gone (iOS cleared storage, or a different browser/app), restore it.
+  // Opt-in shared key only: if the user chose "Share with this Nest", meta.gkey is set, and any device opening the budget
+  // (including a family member's) can use it. A device-only key never reaches here because meta.gkey stays "".
   try{if(state.meta&&state.meta.gkey&&!lsGet(GKEY).trim())lsSet(GKEY,state.meta.gkey);}catch(e){}
   loadGoals();
   await loadCarryIn();
@@ -2934,7 +3422,8 @@ async function logRecur(b){
   catch(e){msg.textContent="Could not log: "+(e.message||e);msg.className="msg bad";}
   finally{logRecur._busy=false;}
 }
-// ---- Receipt scanning (Gemini, key on-device only) ----
+// ---- Receipt scanning (Gemini). Key lives on THIS device by default (localStorage); it's only written into the shared
+// budget metadata when the user explicitly turns on "Share with this Nest". ----
 var GKEY="nw_gemini_key",GMODEL="nw_gemini_model",GMODELS="nw_gemini_models";
 function lsGet(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
@@ -3000,10 +3489,11 @@ async function onReceiptFile(ev){
   var msg=$("addMsg");msg.className="msg";msg.textContent="Reading receipt…";var b=$("scanBtn");b.disabled=true;b.textContent="Scanning…";
   try{
     var b64=await fileToScaledB64(f);var d=await scanReceiptImg(b64);
-    if(d.merchant)$("fCompany").value=d.merchant;
+    if(d.merchant)$("fCompany").value=normalizeMerchant(d.merchant)||d.merchant;
     if(d.total>0)$("fAmount").value=d.total.toFixed(2);
     if(/^\d{4}-\d{2}-\d{2}$/.test(d.date))$("fDate").value=d.date;
     if(d.category){var mc=state.cats.filter(function(c){return c.name.toLowerCase()===d.category.toLowerCase();})[0];setCategory(mc?mc.name:"");} // set the canonical category name + refresh the picker button
+    if(!$("fCategory").value&&$("fCompany").value){var _sc=suggestCatFor($("fCompany").value);if(_sc&&state.cats.some(function(c){return c.name.toLowerCase()===_sc.toLowerCase();})){setCategory(_sc);if($("fCatHint"))$("fCatHint").style.display="";}} // learn the category from your history if the receipt didn't name one
     renderCatTbl();msg.textContent="Filled from receipt — check the total, then tap Add.";msg.className="msg";
   }catch(e){
     if((e.message||e)==="no-key"){msg.textContent="Add a free Gemini key in Settings first.";msg.className="msg bad";switchView("settings");}
@@ -3345,7 +3835,14 @@ async function applyNW(){
     var data=[];assets.forEach(function(it,i){data.push({range:NW+"!A"+(ASSET_START+i)+":B"+(ASSET_START+i),values:[[it.name,it.bal]]});});debts.forEach(function(it,i){data.push({range:NW+"!A"+(DEBT_START+i)+":B"+(DEBT_START+i),values:[[it.name,it.bal]]});});
     if(data.length)await vBatchUpdate(data);
     var asOf=($("nwAsOf")&&$("nwAsOf").value)||"";
-    state.meta.nwUpdated=/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:((state._scanAsOf&&/^\d{4}-\d{2}-\d{2}$/.test(state._scanAsOf))?state._scanAsOf:todayISO());state._scanAsOf="";state._nwForce=true;await writeMeta();
+    var eff=/^\d{4}-\d{2}-\d{2}$/.test(asOf)?asOf:((state._scanAsOf&&/^\d{4}-\d{2}-\d{2}$/.test(state._scanAsOf))?state._scanAsOf:todayISO());
+    state.meta.nwUpdated=eff;
+    // Per-account freshness: stamp only accounts whose balance actually changed; ones left untouched keep their old date (so they can read as stale).
+    state.meta.acctAsOf=state.meta.acctAsOf||{};
+    var prevBal={};(state.assets||[]).forEach(function(x){prevBal[x.name.toLowerCase()]=x.bal;});(state.debts||[]).forEach(function(x){prevBal[x.name.toLowerCase()]=x.bal;});
+    var liveAcct={};assets.concat(debts).forEach(function(it){var k=it.name.toLowerCase();liveAcct[k]=1;if(!(k in prevBal)||Math.abs((prevBal[k]||0)-it.bal)>0.005)state.meta.acctAsOf[k]=eff;});
+    Object.keys(state.meta.acctAsOf).forEach(function(k){if(!liveAcct[k])delete state.meta.acctAsOf[k];}); // forget removed accounts
+    state._scanAsOf="";state._nwForce=true;await writeMeta();
     closeOv("nwOv");await loadAll();renderAll();
     // Reconcile: link set-aside goals to a holding account so their money isn't double-counted
     if(reconcileNeeded().length&&state.assets.length&&await askConfirm({title:"Link your goals to an account?",msg:"You have money set aside in goals that isn't linked to any account. Linking each goal to the account that actually holds it keeps your net worth from counting it twice.",ok:"Link them",cancel:"Skip"})){openReconcile();}
@@ -3550,22 +4047,42 @@ function impExistingSet(){
 // catches the same transaction pulled from two sources with different category/company text.
 function impMarkDuplicates(){
   var existing=impExistingSet();
-  IMPTX.forEach(function(t){t._dup=!!existing[(t.date||"")+"|"+r2(t.amount||0)];});
+  IMPTX.forEach(function(t){
+    var a=r2(t.amount||0),d=(t.date||"");
+    var hit=!!existing[d+"|"+a];
+    if(!hit&&d){var base=new Date(d+"T00:00:00");if(!isNaN(base)){[-1,1].forEach(function(off){var iso=new Date(base.getTime()+off*86400000).toISOString().slice(0,10);if(existing[iso+"|"+a])hit=true;});}} // ±1 day catches statement-date drift
+    t._dup=hit;
+  });
 }
 function impCatGroups(){
   var g={};IMPTX.forEach(function(t){if(t.isDep)return;var raw=(t.category||"").trim(),k=raw.toLowerCase();if(!g[k])g[k]={raw:raw,n:0,amt:0};g[k].n++;g[k].amt+=Math.abs(t.amount||0);});
   return Object.keys(g).sort(function(a,b){return g[b].n-g[a].n;}).map(function(k){return g[k];});
 }
+// Clean each imported merchant to a canonical name, then fill any BLANK category from how you've categorized that merchant
+// before. Only touches rows with no category (respects whatever the file provided); marks auto-filled rows with _auto.
+var _impAutoN=0;
+function impAutoCategorize(){
+  var idx=merchantCatIndex(),n=0;
+  IMPTX.forEach(function(t){
+    if(t.isDep)return;
+    if(t.company){var nm=normalizeMerchant(t.company);if(nm)t.company=nm;}
+    if((""+(t.category||"")).trim())return;                 // file gave a category → leave it for the tidy step
+    var sug=suggestCatFor(t.company||t.desc||"",idx);
+    if(sug){t.category=sug;t._auto=true;n++;}
+  });
+  return n;
+}
 function renderImpReview(){
   var cats=(state.cats||[]).map(function(c){return c.name;});
+  if(!IMPTX._auto){_impAutoN=impAutoCategorize();IMPTX._auto=true;}   // once per parsed batch (a fresh array each parse)
   impMarkDuplicates();
   var dupN=IMPTX.filter(function(t){return t._dup;}).length;
   var willImport=IMPTX.filter(function(t){return !(_impSkipDup&&t._dup);}).length;
   var incN=IMPTX.filter(function(t){return t.isDep&&!(_impSkipDup&&t._dup);}).length;
   var expN=willImport-incN;
-  $("impRevCount").innerHTML="<b>"+expN+"</b> expense"+(expN===1?"":"s")+(incN?(" and <b>"+incN+"</b> income entr"+(incN===1?"y":"ies")):"")+" ready to import"+(IMPTX.length>50?" · showing the first 50 below — the rest import with the categories you set above.":". Fix a category or tap ✕ to skip a row.")+((IMP_INCOME&&IMP_INCOME.length)?('<span style="display:block;margin-top:5px;color:var(--green);font-weight:600">＋ '+IMP_INCOME.length+' income source'+(IMP_INCOME.length===1?"":"s")+' found in your old budget — we’ll suggest '+(IMP_INCOME.length===1?"it":"them")+' when you build your budget.</span>'):"");
+  $("impRevCount").innerHTML="<b>"+expN+"</b> expense"+(expN===1?"":"s")+(incN?(" and <b>"+incN+"</b> income entr"+(incN===1?"y":"ies")):"")+" ready to import"+(IMPTX.length>50?" · showing the first 50 below — the rest import with the categories you set above.":". Fix a category or tap ✕ to skip a row.")+(_impAutoN>0?('<span style="display:block;margin-top:5px;color:var(--green);font-weight:600">✨ '+_impAutoN+' row'+(_impAutoN===1?"":"s")+' auto-categorized from your history — double-check the ✨ ones below.</span>'):"")+((IMP_INCOME&&IMP_INCOME.length)?('<span style="display:block;margin-top:5px;color:var(--green);font-weight:600">＋ '+IMP_INCOME.length+' income source'+(IMP_INCOME.length===1?"":"s")+' found in your old budget — we’ll suggest '+(IMP_INCOME.length===1?"it":"them")+' when you build your budget.</span>'):"");
   // Duplicate banner
-  if(dupN>0){$("impRevDup").innerHTML='<div class="improw" style="border-color:var(--gold)"><div class="improw-top"><span class="improw-m">⚠️ '+dupN+' row'+(dupN===1?"":"s")+' already in your ledger</span><label class="tog" style="transform:scale(.85)"><input type="checkbox" id="impSkipDup"'+(_impSkipDup?" checked":"")+'><span class="tog-t"></span></label></div><div class="improw-sub">Same date + amount as existing entries (e.g. re-imported or pulled from two sources). Skip them?</div></div>';var sd=$("impSkipDup");if(sd)sd.addEventListener("change",function(){_impSkipDup=this.checked;renderImpReview();});}
+  if(dupN>0){$("impRevDup").innerHTML='<div class="improw" style="border-color:var(--gold)"><div class="improw-top"><span class="improw-m">⚠️ '+dupN+' possible duplicate'+(dupN===1?"":"s")+'</span><label class="tog" style="transform:scale(.85)"><input type="checkbox" id="impSkipDup"'+(_impSkipDup?" checked":"")+'><span class="tog-t"></span></label></div><div class="improw-sub">Same amount, on or within a day of an entry you already have — likely re-imported or pulled from two sources. Review them, or leave this on to skip. (Two genuine same-day, same-amount purchases would show here too.)</div></div>';var sd=$("impSkipDup");if(sd)sd.addEventListener("change",function(){_impSkipDup=this.checked;renderImpReview();});}
   else $("impRevDup").innerHTML="";
   // Category consolidation: map each imported category onto one of your existing categories (applies to every row in the group)
   var groups=impCatGroups();
@@ -3591,9 +4108,9 @@ function renderImpReview(){
     var opts='<option value="">(no category)</option>';
     if(t.category&&!inList)opts+='<option selected>'+esc(t.category)+'</option>';
     cats.forEach(function(c){opts+='<option'+(c.toLowerCase()===(t.category||"").toLowerCase()?" selected":"")+'>'+esc(c)+'</option>';});
-    return '<div class="improw"'+((_impSkipDup&&t._dup)?' style="opacity:.5"':'')+'><div class="improw-top"><span class="improw-m">'+esc(t.company||t.category||"Expense")+(t._dup?' <span class="rtag">dup</span>':'')+'</span><span class="improw-a">'+money(t.amount)+'</span><button type="button" class="improw-x" data-i="'+i+'">✕</button></div><div class="improw-sub">'+esc(shortDate(t.date))+'</div><select class="improw-cat" data-i="'+i+'">'+opts+'</select></div>';
+    return '<div class="improw"'+((_impSkipDup&&t._dup)?' style="opacity:.5"':'')+'><div class="improw-top"><span class="improw-m">'+esc(t.company||t.category||"Expense")+(t._auto?' <span class="rtag" style="background:var(--soft);color:var(--green)">✨ auto</span>':'')+(t._dup?' <span class="rtag">dup</span>':'')+'</span><span class="improw-a">'+money(t.amount)+'</span><button type="button" class="improw-x" data-i="'+i+'">✕</button></div><div class="improw-sub">'+esc(shortDate(t.date))+'</div><select class="improw-cat" data-i="'+i+'">'+opts+'</select></div>';
   }).join("");
-  Array.prototype.forEach.call($("impRevList").querySelectorAll(".improw-cat"),function(s){s.addEventListener("change",function(){var i=+this.getAttribute("data-i");if(IMPTX[i])IMPTX[i].category=this.value;});});
+  Array.prototype.forEach.call($("impRevList").querySelectorAll(".improw-cat"),function(s){s.addEventListener("change",function(){var i=+this.getAttribute("data-i");if(IMPTX[i]){IMPTX[i].category=this.value;if(IMPTX[i]._auto){IMPTX[i]._auto=false;var tag=this.closest(".improw").querySelector(".rtag");if(tag&&/auto/.test(tag.textContent))tag.remove();}}});});
   Array.prototype.forEach.call($("impRevList").querySelectorAll(".improw-x"),function(x){x.addEventListener("click",function(){var i=+this.getAttribute("data-i");if(i>=0)IMPTX.splice(i,1);renderImpReview();});});
   var go=$("impRevGo");if(go)go.textContent="Add "+willImport+(incN?" entr"+(willImport===1?"y":"ies"):(" expense"+(willImport===1?"":"s")));
 }
@@ -3608,6 +4125,11 @@ async function impDoImport(){
   if(!kept.length){$("impMsg").textContent="Every row here is already in your ledger — nothing new to add.";$("impMsg").className="msg bad";return;}
   var skipped=dupExisting+dupBatch;
   rows=kept;
+  // Offer a rollback checkpoint before a bulk import.
+  if(await askConfirm({title:"Back up first?",msg:"About to add <b>"+kept.length+"</b> transaction"+(kept.length===1?"":"s")+". Save a quick backup of your workbook to Drive first? Recommended — it's your undo.",ok:"Yes, back up",cancel:"Skip backup"})){
+    try{$("impMsg").textContent="Backing up…";$("impMsg").className="msg";await backupNest();$("impMsg").textContent="Backed up ✓ — importing…";}
+    catch(e){if(!await askConfirm({title:"Backup didn't finish",msg:"Import anyway, without a backup?",ok:"Import anyway",danger:true,cancel:"Cancel"}))return;}
+  }
   var b=$("impRevGo");b.disabled=true;b.textContent="Adding…";var msg=$("impMsg");msg.className="msg";
   var committed=0;
   try{
@@ -3766,9 +4288,9 @@ function wireAccordions(){
   });
 }
 function renderSettings(){
-  var has=!!lsGet(GKEY).trim();
-  $("scanStatus").innerHTML=has?'<span class="bpos">✓ Ready. Tap 📷 on the Expense screen</span>':'<span style="color:var(--ink2)">Not set up yet. Paste a key below</span>';
-  $("geminiKey").value="";
+  var has=!!lsGet(GKEY).trim();var shared=!!(state.meta&&state.meta.gkey);
+  $("scanStatus").innerHTML=has?('<span class="bpos">✓ Ready. Tap 📷 on the Expense screen</span>'+(shared?'<span style="display:block;font-size:11px;color:var(--ink2);margin-top:2px">Shared with this Nest — anyone with Editor access can scan.</span>':'<span style="display:block;font-size:11px;color:var(--ink2);margin-top:2px">On this device only.</span>')):'<span style="color:var(--ink2)">Not set up yet. Paste a key below</span>';
+  $("geminiKey").value="";if($("keyShare"))$("keyShare").checked=shared;
   $("who2").textContent=$("who")?$("who").textContent:"";
   if($("openSheet2")&&$("openSheet")&&$("openSheet").href)$("openSheet2").href=$("openSheet").href;
   var p=remPrefs();Array.prototype.forEach.call(document.querySelectorAll("[data-rem]"),function(cb){cb.checked=!!p[cb.getAttribute("data-rem")];});
@@ -4105,9 +4627,25 @@ async function wipeGoals(){
   try{state.meta.goals=[];await writeMeta();loadGoals();renderAll();msg.textContent="All goals removed ✓";setTimeout(function(){if(msg.textContent.indexOf("✓")>=0)msg.textContent="";},2500);}
   catch(e){msg.textContent="Could not remove: "+(e.message||e);msg.className="msg bad";}
 }
+// One-tap backup: copy the whole workbook to the user's Drive (drive.file scope can copy a file the app created).
+async function backupNest(){
+  var stamp=new Date().toISOString().slice(0,16).replace("T"," ");
+  return api("https://www.googleapis.com/drive/v3/files/"+sheetId+"/copy?fields=id,name,webViewLink",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:(SHEET_NAME||"NestWorth Budget")+" — backup "+stamp})});
+}
+async function runBackup(btnId,msgId){
+  var btn=$(btnId),msg=$(msgId);if(btn){btn.disabled=true;btn.textContent="Backing up…";}if(msg){msg.textContent="Copying your workbook to Drive…";msg.className="msg";}
+  try{var r=await backupNest();if(msg){msg.textContent="Backed up ✓ — a dated copy is now in your Drive.";msg.className="msg";}if(btn){btn.disabled=false;btn.textContent="💾 Back up this Nest — copy to Drive";}return r;}
+  catch(e){if(msg){msg.textContent="Couldn't back up: "+((e.message||e)+"").slice(0,80)+".";msg.className="msg bad";}if(btn){btn.disabled=false;btn.textContent="💾 Back up this Nest — copy to Drive";}throw e;}
+}
 async function wipeData(){
-  if(!await askConfirm({title:"Erase all data?",msg:"This permanently clears your <b>transactions</b>, <b>goals</b>, and <b>net-worth history</b>. Your categories, budgets, and income stay. This can't be undone.",ok:"Erase everything",danger:true}))return;
-  if(!await askConfirm({title:"Are you sure?",msg:"Last check — this really does erase every logged transaction and cannot be undone.",ok:"Yes, erase it all",danger:true,cancel:"Keep my data"}))return;
+  if(!await askConfirm({title:"Erase all data?",msg:"This permanently clears your <b>transactions</b>, <b>goals</b>, and <b>net-worth history</b>. Your categories, budgets, and income stay. This can't be undone.",ok:"Continue",danger:true}))return;
+  // Offer a backup first — it's the undo for an irreversible action.
+  if(await askConfirm({title:"Back up first?",msg:"Save a dated copy of your whole workbook to Google Drive before erasing? Recommended — it's your undo.",ok:"Yes, back up first",cancel:"Skip backup"})){
+    try{await runBackup("wipeDataBtn","wipeMsg");}catch(e){if(!await askConfirm({title:"Backup didn't finish",msg:"The backup couldn't complete. Erase anyway, without a backup?",ok:"Erase without backup",danger:true,cancel:"Cancel"}))return;}
+  }
+  // Final friction: type ERASE to confirm (financial-data deletion deserves more than a tap).
+  var typed=await askText({title:"Type ERASE to confirm",label:"Confirm",placeholder:"ERASE",ok:"Erase everything"});
+  if(!typed||(""+typed).trim().toUpperCase()!=="ERASE"){var m0=$("wipeMsg");if(m0){m0.textContent="Cancelled — nothing was erased.";m0.className="msg";}return;}
   var msg=$("wipeMsg");msg.className="msg";msg.textContent="Erasing…";
   try{
     // Clear ONLY the ledger's transaction rows — by tab NAME, clearing values (never deleting rows or touching any other tab,
@@ -4164,6 +4702,7 @@ function renderMonth(){
   ts=r2(ts+extra);
   var ti=incomeThisMonth();
   $("mTot").innerHTML='<div class="totrow"><span>Income</span><b>'+money(ti)+'</b></div><div class="totrow" style="margin-top:6px"><span>Spent</span><b>'+money(ts)+(tb>0?(" / "+money(tb)):"")+'</b></div><div class="totrow" style="border-top:1px solid var(--line);margin-top:9px;padding-top:9px"><span>Net this month</span><b style="color:'+((ti-ts)>=0?"var(--green)":"var(--bad)")+'">'+money(ti-ts)+'</b></div>';
+  try{var _rv=buildNestReview(),_rc=$("reviewCard");if(_rc){if(_rv&&(_rv.spending.actual>0.5||_rv.income.actual>0.5)){$("reviewBtnLabel").textContent=_rv.label+" in review";_rc.style.display="";}else _rc.style.display="none";}}catch(e){}
   var body=$("mBody");
   if(!cats.length){body.innerHTML='<div class="empty">No categories yet. Add one in <b>Budget</b>, or in the spreadsheet.</div>';return;}
   var html="";
@@ -4409,8 +4948,12 @@ function conTypeUI(){
   $("conMonthRow").style.display=(t==="onetime")?"flex":"none";
   $("conCustom").style.display=(t==="custom")?"block":"none";
   $("conAmtLbl").textContent=(t==="paycheck")?"Take-home per check":(t==="onetime")?"Amount":(t==="weekly")?"Amount per week":(t==="biweekly")?"Amount every 2 weeks":"Amount per month";
+  var canCal=(t==="weekly"||t==="biweekly");
+  $("conCalRow").style.display=canCal?"flex":"none";
+  $("conAnchorRow").style.display=(canCal&&$("conCalendar")&&$("conCalendar").checked)?"flex":"none";
   var fw={52:"weekly",26:"every 2 weeks",24:"twice a month",12:"monthly",1:"yearly"}[Number($("conFreq").value)]||"";
-  var hints={paycheck:"Enter one paycheck; the app averages it across the year ("+fw+").",weekly:"Same amount every week — the app spreads it evenly across the months (×52 ÷ 12).",biweekly:"Same amount every 2 weeks — the app spreads it evenly across the months (×26 ÷ 12).",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
+  var realOn=canCal&&$("conCalendar")&&$("conCalendar").checked;
+  var hints={paycheck:"Enter one paycheck; the app averages it across the year ("+fw+").",weekly:realOn?"Real paydays on: enter your next payday and the app counts the actual weekly checks each month (some months get an extra one).":"Same amount every week — the app spreads it evenly across the months (×52 ÷ 12). Turn on real paydays to model the actual weeks.",biweekly:realOn?"Real paydays on: enter your next payday and the app maps the actual every-2-weeks checks — so the two 3-paycheck months show up in your cash-flow forecast.":"Same amount every 2 weeks — spread evenly across the months (×26 ÷ 12). Turn on real paydays to show the two 3-paycheck months.",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
   $("conHint").textContent=hints[t]||"";
   if(t==="custom"&&!$("nm0"))buildMGrid("conGrid","nm");
 }
@@ -4430,7 +4973,7 @@ function renderCats(){
   el.innerHTML=cats.map(function(c){
     var cfg=catCfg(c.name);var lbl=cfg?typeLabel(cfg):"Monthly";var m=catRoll(c.name);
     var stats='<span>'+money(c.mbud)+' this month</span>';
-    if(m!=="none"&&bYear()===curYear()){var bal=catBalance(c);stats+='<span class="'+(bal<-0.005?"bneg":"bpos")+'">'+money(bal)+' banked</span>';}
+    if(m!=="none"&&bYear()===curYear()){var bal=catBalance(c);stats+='<span class="'+(bal<-0.005?"bneg":"bpos")+'" title="Banked through '+lastCompletedMon()+' — this month isn\'t counted until it closes.">'+money(bal)+' banked thru '+lastCompletedMon()+'</span>';}
     var bills='';
     if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length){
       bills='<div class="cc-bills">'+cfg.items.map(function(it){
@@ -4459,6 +5002,7 @@ function renderStress(){
   if(!hasBud){card.style.display="none";return;}
   card.style.display="block";
   var inp=$("stStart");if(inp&&document.activeElement!==inp){var sc=(state.meta&&state.meta.startCash)||0;inp.value=sc?String(sc):"";}
+  var fInp=$("stFloor");if(fInp&&document.activeElement!==fInp){var fv=(state.meta&&state.meta.floor)||0;fInp.value=fv?String(fv):"";}
   var start=(state.meta&&Number(state.meta.startCash))||0;
   var mode=state._stMode||"plan",bnd=curMonth();
   Array.prototype.forEach.call(document.querySelectorAll("#stModeSeg button"),function(b){b.classList.toggle("on",b.getAttribute("data-sm")===mode);});
@@ -4467,12 +5011,16 @@ function renderStress(){
   state.cats.forEach(function(c){(c.bud12||[]).forEach(function(v,m){exp[m]+=Number(v)||0;});});
   var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0],y=curYear();
   state.rows.forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
+  var gh=fixedGoalMonthly(state.goals); // fixed goal contributions leave spendable cash each month — one model with the Decision Engine
   var bal=start,low=start,lowM=-1,rows="";
   for(var m=0;m<12;m++){
-    var useAct=(mode==="actual"&&(m+1)<bnd);
-    var im=useAct?ai[m]:inc[m],em=useAct?ae[m]:exp[m];
-    var net=r2(im-em);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}
-    var tag=(mode==="actual")?('<span class="sttag">'+((m+1)<bnd?"actual":"plan")+'</span>'):"";
+    var im,em,tag="";
+    if(mode==="actual"){
+      if((m+1)<bnd){im=ai[m];em=ae[m];tag='<span class="sttag">actual</span>';}                       // past months: what actually happened
+      else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);tag='<span class="sttag">so far + plan</span>';} // current month: actual-to-date, but never less than the plan (so an over-budget month shows up now, not next month)
+      else{im=inc[m];em=exp[m];tag='<span class="sttag">plan</span>';}                                  // future months: still planned
+    }else{im=inc[m];em=exp[m];}
+    var net=r2(im-em-gh);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}
     rows+='<div class="strow sttap" data-mo="'+(m+1)+'"><span class="stm">'+MONTHS[m]+tag+'</span><span class="stn '+(net<0?"neg":"pos")+'">'+(net<0?"-":"+")+money(Math.abs(net))+'</span><span class="stb '+(bal<-0.005?"neg":"")+'">'+money(bal)+'</span></div>';}
   $("stGrid").innerHTML='<div class="strow sthead"><span class="stm">Month</span><span class="stn">Net</span><span class="stb">Balance</span></div>'+rows;
   Array.prototype.forEach.call($("stGrid").querySelectorAll(".sttap"),function(row){row.addEventListener("click",function(){openMonthDetail(Number(this.getAttribute("data-mo")));});});
@@ -4480,6 +5028,8 @@ function renderStress(){
   if(low<-0.005)v='<span class="neg">⚠ Your savings run dry — dipping to '+money(low)+' around '+MONTHS[lowM]+'.</span> Add income, trim a category, or spread big bills with "split per month".';
   else if(end<start-0.005)v='✓ Covered — you draw '+money(start-end)+' from savings across the year, ending near '+money(end)+'.';
   else v='<span class="pos">✓ Covered — savings grow by '+money(end-start)+' this year, ending near '+money(end)+'.</span>';
+  var _floor=nestFloor();
+  if(_floor>0&&low>=-0.005){if(low<_floor-0.005)v='<span class="neg">⚠ Dips to '+money(low)+(lowM>=0?(' around '+MONTHS[lowM]):'')+' — '+money(r2(_floor-low))+' below your '+money(_floor)+' Nest Egg Floor.</span> '+v;else v+=' <span style="color:var(--ink2);font-size:12px">Lowest point stays above your '+money(_floor)+' floor ✓</span>';}
   if(mode==="actual"){
     // drift: how actual spending through the past months compares to what was planned
     var aSpent=0,pSpent=0;for(var mm=0;mm<bnd-1;mm++){aSpent+=ae[mm];pSpent+=exp[mm];}
@@ -4540,7 +5090,7 @@ function renderFeas(){
   if(blended){
     var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];
     state.rows.forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
-    income=0;budget=0;for(var m=0;m<12;m++){var useAct=(m+1)<bnd;income+=useAct?ai[m]:incP[m];budget+=useAct?ae[m]:expP[m];}
+    income=0;budget=0;for(var m=0;m<12;m++){if((m+1)<bnd){income+=ai[m];budget+=ae[m];}else if((m+1)===bnd){income+=Math.max(ai[m],incP[m]);budget+=Math.max(ae[m],expP[m]);}else{income+=incP[m];budget+=expP[m];}} // current month: actual-to-date, but at least the plan
     income=r2(income);budget=r2(budget);
   } else {income=r2(planInc);budget=r2(planExp);}
   var diff=r2(income-budget-goalSave),mo2=r2(diff/12),ok=diff>=-0.005;
@@ -4548,7 +5098,7 @@ function renderFeas(){
   var big=ok?('✓ Feasible — '+money(diff)+' /yr surplus'):('⚠ Short — '+money(-diff)+' /yr gap');
   var sub='Income '+money(income)+' − budget '+money(budget)+(goalSave>0?(' − goals '+money(goalSave)):'')+'  ·  '+money(Math.abs(mo2))+'/mo '+(ok?'free':'over');
   if(blended&&bnd>1)sub+=' · blended with actuals through '+MONTHS[bnd-2];
-  el.innerHTML='<div class="feas-big">'+big+'</div><div class="feas-sub">'+sub+'</div>';
+  el.innerHTML='<div class="feas-big">'+big+'</div><div class="feas-sub">'+sub+'</div><div class="feas-sub" style="margin-top:4px;opacity:.8">This is your <b>annual plan</b> — whether the whole year balances. For month-to-month timing (can a big bill land before you\'ve saved for it?), see <b>Cash flow through the year</b> below.</div>';
 }
 var showArchivedGoals=false;
 function goalShortfall(g){var plan=g.residual?(g._resMo||0):(g.monthly||0);return r2(Math.max(0,plan-Math.max(0,g.mtd||0)));}
@@ -4588,7 +5138,7 @@ function renderGoals(){
     var badge=done?'<span class="gbadge done">Funded ✓</span>':(g.locked?'<span class="gbadge lock">Locked</span>':'');
     var pace="";
     if(done){pace='<span class="pos">Goal reached 🎉</span>';}
-    else if(g.target>0){var n=monthsUntil(g.targetDate);if(n>0){var need=r2((g.target-g.balance)/n);var behind=(g.monthly>0&&need>g.monthly+0.005);pace='Save <b>'+money(need)+'/mo</b> to reach by '+fmtYM(g.targetDate);if(g.monthly>0&&Math.abs(need-g.monthly)>0.005)pace+=' · <span class="'+(behind?"neg":"pos")+'">planning '+money(g.monthly)+'/mo'+(behind?' (behind)':' (ahead)')+'</span>';if(behind){var room=residualPool();if(room>=(need-g.monthly)-0.005)pace+='<br><span style="color:var(--gold)">💡 You have room — bump to '+money(need)+'/mo to finish on time.</span>';else pace+='<br><span style="color:var(--ink2)">Bumping to '+money(need)+'/mo would go past your leftover budget.</span>';}}else if(g.monthly>0){pace='Planning <b>'+money(g.monthly)+'/mo</b>';}}
+    else if(g.target>0){var n=goalFundMonths(g.targetDate);if(n>0){var need=r2((g.target-g.balance)/n);var behind=(g.monthly>0&&need>g.monthly+0.005);pace='Save <b>'+money(need)+'/mo</b> to reach by '+fmtYM(g.targetDate);if(g.monthly>0&&Math.abs(need-g.monthly)>0.005)pace+=' · <span class="'+(behind?"neg":"pos")+'">planning '+money(g.monthly)+'/mo'+(behind?' (behind)':' (ahead)')+'</span>';if(behind){var room=residualPool();if(room>=(need-g.monthly)-0.005)pace+='<br><span style="color:var(--gold)">💡 Your annual budget has room — bump to '+money(need)+'/mo to finish on time.</span>';else pace+='<br><span style="color:var(--ink2)">Bumping to '+money(need)+'/mo would go past your leftover budget.</span>';}}else if(g.monthly>0){pace='Planning <b>'+money(g.monthly)+'/mo</b>';}}
     else if(g.monthly>0){pace='Planning <b>'+money(g.monthly)+'/mo</b>';}
     if(g.residual&&!done)pace='From leftover · <b>'+money(g._resMo||0)+'/mo</b> ('+(g._resMode||"even split")+')'; // don't overwrite "Goal reached" for a completed residual goal
     var tags="";
@@ -4668,7 +5218,7 @@ async function archiveGoal(name,val){
 }
 function updateLYBtn(){var b=$("cLYBtn");if(!b)return;var v=lastYearActual($("cName").value);if(v>0.005){b.style.display="block";b.textContent="Use last year: "+money(v)+" (~"+money(r2(v/12))+"/mo)";b.setAttribute("data-v",v);}else{b.style.display="none";}}
 function applyLY(){var v=Number($("cLYBtn").getAttribute("data-v"))||0;if(v<=0)return;$("cType").value="monthly";catTypeUI();$("cAmt").value=r2(v/12).toFixed(2);}
-function goalAutoHint(){var t=parseFloat($("gTarget").value.replace(/[^0-9.\-]/g,""))||0;var n=monthsUntil($("gDate").value||"");$("gMonthly").placeholder=(t>0&&n>0)?("auto: "+money(r2(t/n))+"/mo"):"auto from target + date";}
+function goalAutoHint(){var t=parseFloat($("gTarget").value.replace(/[^0-9.\-]/g,""))||0;var n=goalFundMonths($("gDate").value||"");$("gMonthly").placeholder=(t>0&&n>0)?("auto: "+money(r2(t/n))+"/mo"):"auto from target + date";}
 var gEdit=null;
 function fillGoalAccount(cur){var sel=$("gAccount");if(!sel)return;var h='<option value="">Its own savings</option>';(state.assets||[]).forEach(function(a){h+='<option'+(a.name.toLowerCase()===(""+(cur||"")).toLowerCase()?" selected":"")+'>'+esc(a.name)+'</option>';});if(cur&&!(state.assets||[]).some(function(a){return a.name.toLowerCase()===(""+cur).toLowerCase();}))h+='<option selected>'+esc(cur)+'</option>';sel.innerHTML=h;if(cur)sel.value=cur;else sel.value="";}
 function fillGoalCategory(cur){var sel=$("gCategory");if(!sel)return;var h='<option value="">Its own line</option>';(state.cats||[]).forEach(function(c){h+='<option'+(c.name.toLowerCase()===(""+(cur||"")).toLowerCase()?" selected":"")+'>'+esc(c.name)+'</option>';});sel.innerHTML=h;sel.value=cur||"";}
@@ -4692,7 +5242,7 @@ async function addGoal(){
   var target=parseFloat($("gTarget").value.replace(/[^0-9.\-]/g,""))||0;
   var ym=$("gDate").value||"";
   var monthly=parseFloat($("gMonthly").value.replace(/[^0-9.\-]/g,""))||0;
-  if(!monthly&&target>0&&ym){var n=monthsUntil(ym);if(n>0)monthly=r2(target/n);}
+  if(!monthly&&target>0&&ym){var n=goalFundMonths(ym);if(n>0)monthly=r2(target/n);}
   var note=$("gNote").value.trim(),locked=$("gLocked").checked;
   var debt=($("gDebt").value||"").trim();
   // Debt-payoff goal with no target set → default the target to the debt's current balance.
@@ -4886,6 +5436,51 @@ function renderDepTbl(){
   el.innerHTML=h;
 }
 function companyMap(){var cnt={};state.rows.forEach(function(r){var co=(""+((r&&r[5])||"")).trim(),cat=(""+((r&&r[4])||"")).trim();var e=cat.toLowerCase();if(!co||!cat||e==="deposit"||isGoalName(cat))return;var k=co.toLowerCase();cnt[k]=cnt[k]||{};cnt[k][cat]=(cnt[k][cat]||0)+1;});var m={};for(var k in cnt){var best="",bn=-1;for(var c in cnt[k]){if(cnt[k][c]>bn){bn=cnt[k][c];best=c;}}m[k]=best;}return m;}
+/* ===== Effortless: merchant normalization + auto-categorization (deterministic, learns from your own history). Card and
+   bank exports write noisy merchant strings ("SQ *BLUE BOTTLE 0123", "TST* CHIPOTLE 445 FL", "AMZN MKTP US*R8"). We clean
+   them to a canonical name, and match that name against how YOU'VE categorized the same merchant before. No LLM. ===== */
+// The heavy-abbreviation offenders on statements — matched first so "AMZN MKTP" and "amazon.com" agree.
+var MERCHANT_BRANDS=[
+  [/amzn|amazon/,"Amazon"],[/wal[- ]?mart|wm superc|\bwmt\b/,"Walmart"],[/\btarget\b|\btgt\b/,"Target"],[/\bcostco\b/,"Costco"],
+  [/\bkroger\b/,"Kroger"],[/\bpublix\b/,"Publix"],[/whole ?foods|wholefds|\bwfm\b/,"Whole Foods"],[/trader ?joe/,"Trader Joe's"],
+  [/\bsafeway\b/,"Safeway"],[/\baldi\b/,"Aldi"],[/starbucks|\bsbux\b/,"Starbucks"],[/\bchipotle\b/,"Chipotle"],[/mcdonald/,"McDonald's"],
+  [/\bdunkin\b/,"Dunkin'"],[/uber ?eats/,"Uber Eats"],[/\buber\b/,"Uber"],[/\blyft\b/,"Lyft"],[/\bnetflix\b/,"Netflix"],[/\bspotify\b/,"Spotify"],
+  [/\bhulu\b/,"Hulu"],[/\bdisney\+?\b|disney plus/,"Disney+"],[/doordash|\bdd \*/,"DoorDash"],[/grubhub/,"Grubhub"],[/instacart/,"Instacart"],
+  [/\bvenmo\b/,"Venmo"],[/paypal/,"PayPal"],[/\bcvs\b/,"CVS"],[/walgreens/,"Walgreens"],[/home ?depot/,"Home Depot"],[/lowe'?s/,"Lowe's"],
+  [/\bshell\b/,"Shell"],[/chevron/,"Chevron"],[/exxon|\bmobil\b/,"Exxon"],[/comcast|xfinity/,"Xfinity"],[/verizon/,"Verizon"],
+  [/at&?t|\batt\b/,"AT&T"],[/t-?mobile/,"T-Mobile"],[/\bapple\.com|apple store|itunes\b/,"Apple"],[/google \*|\bgoogle\b/,"Google"]
+];
+function normalizeMerchant(raw){
+  var orig=(""+(raw||"")).trim();if(!orig)return "";
+  var low=" "+orig.toLowerCase()+" ";
+  for(var i=0;i<MERCHANT_BRANDS.length;i++){if(MERCHANT_BRANDS[i][0].test(low))return MERCHANT_BRANDS[i][1];}
+  var s=orig;
+  // strip card-processor / bank prefixes
+  s=s.replace(/^(purchase authorized on|recurring payment|pre-?auth|debit card purchase|checkcard|pos debit|pos|ach|sq|tst|sp|pp|dd|visa|mastercard|amex)\b[\s*#:.-]*/i,"");
+  s=s.replace(/^(paypal|square|toast|stripe|clover|google|apl)\s*[\*#:. -]+/i,"");
+  s=s.replace(/[\*#]+/g," ");
+  s=s.replace(/\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b.*$/,"");   // trailing date and everything after it
+  s=s.replace(/\b\d{3}[- ]?\d{3}[- ]?\d{4}\b/g," ");        // phone numbers
+  s=s.replace(/#?\s*\d{3,}\b/g," ");                         // store / ref numbers
+  s=s.replace(/\b(us|usa)\b/ig," ");
+  s=s.replace(/\s+[A-Z]{2}\s*$/,"");                         // trailing state code (e.g. " FL")
+  s=s.replace(/[^A-Za-z0-9&'\- ]+/g," ").replace(/\s+/g," ").trim();
+  if(!s)return orig;
+  return s.split(" ").map(function(w){if(!w)return w;if(w.length<=3&&w===w.toUpperCase())return w;return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();}).join(" ");
+}
+function merchantKey(raw){return normalizeMerchant(raw).toLowerCase().replace(/[^a-z0-9]+/g,"");}
+// merchant→category from ledger history, keyed by NORMALIZED merchant so raw variants of one store vote together.
+function merchantCatIndex(){
+  var cnt={};(state.rows||[]).forEach(function(r){var co=(""+((r&&r[5])||"")).trim(),cat=(""+((r&&r[4])||"")).trim();var e=cat.toLowerCase();if(!co||!cat||e==="deposit"||isGoalName(cat))return;var k=merchantKey(co);if(!k)return;cnt[k]=cnt[k]||{};cnt[k][cat]=(cnt[k][cat]||0)+1;});
+  var m={};for(var k in cnt){var best="",bn=-1;for(var c in cnt[k]){if(cnt[k][c]>bn){bn=cnt[k][c];best=c;}}m[k]=best;}return m;
+}
+function suggestCatFor(raw,idx){
+  var k=merchantKey(raw);if(!k)return "";idx=idx||merchantCatIndex();
+  if(idx[k])return idx[k];
+  // Prefix fallback: statements append store tails ("bluebottlecoffeesf" vs learned "bluebottle"). Match when one key
+  // starts with the other (both ≥5 chars, so no spurious short collisions); the longest such match wins.
+  if(k.length>=5){var bestLen=0,best="";for(var kk in idx){if(kk.length>=5&&(k.indexOf(kk)===0||kk.indexOf(k)===0)&&kk.length>bestLen){bestLen=kk.length;best=idx[kk];}}if(best)return best;}
+  return "";}
 function fillCompanyList(){var dl=$("complist2");if(!dl)return;var seen={},out=[];for(var i=state.rows.length-1;i>=0;i--){var co=(""+((state.rows[i]&&state.rows[i][5])||"")).trim();if(!co)continue;var k=co.toLowerCase();if(seen[k])continue;seen[k]=1;out.push('<option value="'+esc(co)+'">');if(out.length>=60)break;}dl.innerHTML=out.join("");}
 function fillPayeeSource(){
   var cons=state.cons.map(function(c){return c.name;});
@@ -4899,9 +5494,116 @@ function fillPayeeSource(){
     src.innerHTML=opts;if(cur2&&cur2!=="__new__")src.value=cur2;}
   var esrc=$("edSource");if(esrc){var cur3=esrc.value;var h=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur3&&cons.indexOf(cur3)<0)h='<option>'+esc(cur3)+'</option>'+h;esrc.innerHTML=h;if(cur3)esrc.value=cur3;}
 }
-function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();maybeOfferPullIn();}
+function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();maybeOfferPullIn();maybeOfferReview();}
 // One-time-per-load offer to fix a ledger whose rows were stranded near the bottom of the sheet (by Google's append on a Table).
 var _tidyOffered=false;
+/* ===== Monthly Nest Review — a deterministic recap of the last completed month, with a "Why?" chain that reveals the
+   numbers behind each headline. Pure read of already-computed state (indexes, net-worth history, goals, cash flow); Wren
+   narrates, never calculates (§11). ===== */
+function nestReviewMonth(){
+  if(bYear()!==curYear())return null;   // only the live budget year is indexed in state.spend/dep
+  var m=curMonth()-1;                    // most recent completed month (1..12); January → none yet
+  if(m<1)return null;
+  return {y:curYear(),m:m};
+}
+function buildNestReview(){
+  var mm=nestReviewMonth();if(!mm)return null;
+  var mi=mm.m-1,label=MONF[mi]+" "+mm.y,reviewYm=mm.y*100+mm.m;
+  // income actual (deposits) vs plan (income sources' budget for that month)
+  var incA=0,dep=state.dep||{};for(var k in dep)incA+=(dep[k]&&dep[k][mi])||0;incA=r2(incA);
+  var incP=0;(state.cons||[]).forEach(function(c){incP+=(c.bud12&&c.bud12[mi])||0;});incP=r2(incP);
+  // spending per category (folds itemized bills into parents via catSpend12)
+  var cats=[],spA=0,spP=0;
+  (state.cats||[]).forEach(function(c){var sp=catSpend12(c.name)[mi]||0,bud=(c.bud12&&c.bud12[mi])||0;spA+=sp;spP+=bud;cats.push({name:c.name,spent:r2(sp),bud:r2(bud),diff:r2(sp-bud)});});
+  spA=r2(spA);spP=r2(spP);
+  var over=cats.filter(function(c){return c.diff>0.5&&c.bud>0.005;}).sort(function(a,b){return b.diff-a.diff;});
+  var under=cats.filter(function(c){return c.diff<-0.5&&c.bud>0.005;}).sort(function(a,b){return a.diff-b.diff;});
+  // net worth change: latest snapshot at/before the review month vs the latest strictly before it (attribution from detail)
+  var h=state.nwHist||[],atAfter=null,before=null;
+  for(var i=0;i<h.length;i++){if(h[i].ym<=reviewYm)atAfter=h[i];}
+  for(var j=0;j<h.length;j++){if(h[j].ym<reviewYm)before=h[j];}
+  var net=null;
+  if(atAfter&&before&&atAfter.ym!==before.ym)net={now:r2(atAfter.net),prev:r2(before.net),change:r2(atAfter.net-before.net),dAssets:r2((atAfter.assets||0)-(before.assets||0)),dDebts:r2((atAfter.debts||0)-(before.debts||0))};
+  // goals: contributed that month (category-tagged movements land in the spend index under the goal name) + pace
+  var goals=[];
+  (state.goals||[]).forEach(function(g){if(!g||!g.name||g.archived)return;
+    var added=r2(((state.spend&&state.spend[g.name.toLowerCase()])||_z12())[mi]||0);
+    var behind=false,need=0;if(g.target>0){var n=goalFundMonths(g.targetDate);if(n>0){need=r2((g.target-g.balance)/n);behind=(g.monthly>0&&need>g.monthly+0.005);}}
+    if(added>0.5||behind)goals.push({name:g.name,added:added,balance:r2(g.balance),target:r2(g.target||0),behind:behind,pace:need});});
+  goals.sort(function(a,b){return b.added-a.added;});
+  // cash heads-up (forward-looking, from the shared engine)
+  var pm=planMetrics(currentPlan()),floor=nestFloor();
+  var cash={low:pm.low,lowMonth:pm.lowMonth,floor:floor,passes:(floor<=0)||(pm.low>=floor-0.005)};
+  return {ym:reviewYm,label:label,mi:mi,income:{actual:incA,plan:incP},spending:{actual:spA,plan:spP,diff:r2(spA-spP),over:over,under:under},net:net,goals:goals,cash:cash};
+}
+// Headlines + the "Why?" chain. Each card: {icon, tone, head, why:[lines]}.
+function nestReviewCards(rv){
+  var out=[];
+  if(rv.spending.plan>0.5||rv.spending.actual>0.5){
+    var d=rv.spending.diff,under0=(d<=0.5),tone=under0?"good":(d<=rv.spending.plan*0.05?"flat":"warn");
+    var head=under0?("You spent "+money(rv.spending.actual)+" — "+money(-d)+" under plan."):("You spent "+money(rv.spending.actual)+" — "+money(d)+" over plan.");
+    var why=[];rv.spending.over.slice(0,3).forEach(function(c){why.push("“"+esc(c.name)+"” ran "+money(c.diff)+" over — "+money(c.spent)+" of "+money(c.bud)+".");});
+    rv.spending.under.slice(0,2).forEach(function(c){why.push("“"+esc(c.name)+"” came in "+money(-c.diff)+" under.");});
+    if(!why.length)why.push("Every budgeted category landed within a few dollars of plan.");
+    out.push({icon:under0?"✅":"📊",tone:tone,head:head,why:why});
+  }
+  if(rv.net){
+    var c=rv.net.change;
+    var nHead=(c>=0?"Your net worth grew ":"Your net worth slipped ")+money(Math.abs(c))+", to "+money(rv.net.now)+".";
+    var nwhy=[];
+    if(Math.abs(rv.net.dAssets)>0.5)nwhy.push((rv.net.dAssets>=0?"Assets rose ":"Assets fell ")+money(Math.abs(rv.net.dAssets))+".");
+    if(Math.abs(rv.net.dDebts)>0.5)nwhy.push((rv.net.dDebts<=0?"You paid down ":"Debt rose ")+money(Math.abs(rv.net.dDebts))+" in debt.");
+    if(!nwhy.length)nwhy.push("Balances held steady — the shift was small.");
+    out.push({icon:c>=0?"📈":"📉",tone:c>=0?"good":"warn",head:nHead,why:nwhy});
+  }
+  var added=0;rv.goals.forEach(function(g){added+=g.added;});added=r2(added);
+  if(added>0.5){
+    var gwhy=rv.goals.filter(function(g){return g.added>0.5;}).map(function(g){return "“"+esc(g.name)+"”: +"+money(g.added)+(g.target>0?(" — now "+money(g.balance)+" of "+money(g.target)):"")+(g.behind?" (still behind pace)":"");});
+    rv.goals.filter(function(g){return g.added<=0.5&&g.behind;}).slice(0,2).forEach(function(g){gwhy.push("“"+esc(g.name)+"” didn't get a contribution and is behind — "+money(g.pace)+"/mo keeps it on time.");});
+    out.push({icon:"🎯",tone:"good",head:"You moved "+money(added)+" toward your goals.",why:gwhy});
+  }else if(rv.goals.some(function(g){return g.behind;})){
+    out.push({icon:"🎯",tone:"warn",head:"No goal contributions last month.",why:rv.goals.filter(function(g){return g.behind;}).slice(0,3).map(function(g){return "“"+esc(g.name)+"” needs "+money(g.pace)+"/mo to finish on time.";})});
+  }
+  if(rv.income.actual>0.5||rv.income.plan>0.5){
+    var idf=r2(rv.income.actual-rv.income.plan);
+    var iwhy=[Math.abs(idf)<=0.5?"Right on your plan.":(idf>0?(money(idf)+" more than you planned for.") : (money(-idf)+" short of plan — a lighter-earning month."))];
+    out.push({icon:"💵",tone:idf>=-0.5?"good":"flat",head:"You brought in "+money(rv.income.actual)+".",why:iwhy});
+  }
+  var cwhy=[rv.cash.floor>0?(rv.cash.passes?("That's "+money(r2(rv.cash.low-rv.cash.floor))+" above your Nest Egg Floor."):("That dips "+money(r2(rv.cash.floor-rv.cash.low))+" below your Nest Egg Floor — worth a look.")):"Set a Nest Egg Floor on the Budget tab to get a heads-up when a month runs tight."];
+  out.push({icon:"🔮",tone:rv.cash.passes?"good":"warn",head:"Looking ahead: "+(rv.cash.lowMonth?(rv.cash.lowMonth+" is your tightest month, at about "+money(rv.cash.low)):("your lowest projected cash is about "+money(rv.cash.low)))+".",why:cwhy});
+  return out;
+}
+function openNestReview(){
+  var rv=buildNestReview();
+  if(!rv){$("revTitle").textContent="Monthly Nest Review";$("revBody").innerHTML='<div class="empty">Once a month wraps up with some activity logged, I\'ll have a review ready for you here.</div>';openOv("revOv");return;}
+  $("revTitle").textContent=rv.label+" in review";
+  var cards=nestReviewCards(rv);
+  $("revBody").innerHTML='<div class="rev-hi"><span class="sw-hi wren-insights" aria-hidden="true"></span><div class="rev-lead">Here\'s how '+esc(rv.label)+' went. Tap <b>Why?</b> on any line to see the numbers behind it.</div></div>'+
+    cards.map(function(c,i){return '<div class="rev-card rev-'+c.tone+'"><div class="rev-head"><span class="rev-ic">'+c.icon+'</span><span class="rev-htx">'+c.head+'</span></div>'+(c.why&&c.why.length?('<button type="button" class="rev-why" data-i="'+i+'">Why?</button><div class="rev-detail" id="revD'+i+'" style="display:none">'+c.why.map(function(w){return '<div class="rev-line">'+w+'</div>';}).join("")+'</div>'):'')+'</div>';}).join("");
+  Array.prototype.forEach.call($("revBody").querySelectorAll(".rev-why"),function(bt){bt.addEventListener("click",function(){var dd=$("revD"+this.getAttribute("data-i")),open=(dd.style.display!=="none");dd.style.display=open?"none":"";this.textContent=open?"Why?":"Hide";});});
+  openOv("revOv");
+}
+var _reviewOffered=false;
+function maybeOfferReview(){
+  if(_reviewOffered||window.__tour||document.getElementById("revBar"))return;
+  try{
+    var rv=buildNestReview();if(!rv)return;
+    // Only worth surfacing once there's real activity to review (some spending or income logged last month).
+    if(rv.spending.actual<0.5&&rv.income.actual<0.5)return;
+    var key="nw_review_"+(sheetId||"x");
+    if(lsGet(key)===String(rv.ym))return;   // already delivered this month's review on this device
+    _reviewOffered=true;showReviewBar(rv,key);
+  }catch(e){}
+}
+function showReviewBar(rv,key){
+  if(document.getElementById("revBar"))return;
+  var bar=document.createElement("div");bar.id="revBar";
+  bar.innerHTML='<span class="rcm">🪺 Your '+esc(rv.label)+' Nest Review is ready.</span><button id="revOpen" type="button">See it</button><button id="revX" type="button" aria-label="Dismiss">✕</button>';
+  document.body.appendChild(bar);
+  try{var _tb=document.getElementById("tabbar");if(_tb&&$("appScreen")&&$("appScreen").classList.contains("on"))bar.style.bottom=_tb.offsetHeight+"px";}catch(e){}
+  document.getElementById("revOpen").addEventListener("click",function(){lsSet(key,String(rv.ym));var bb=document.getElementById("revBar");if(bb)bb.remove();openNestReview();});
+  document.getElementById("revX").addEventListener("click",function(){lsSet(key,String(rv.ym));var bb=document.getElementById("revBar");if(bb)bb.remove();});
+}
 function maybeOfferTidy(){
   if(_tidyOffered||document.getElementById("tidyBar"))return;
   try{
@@ -5030,7 +5732,7 @@ async function addEntry(){
   if(!credit&&hasDupExpense(co,amt,y,m)&&!await askConfirm({title:"Log it again?",msg:"You already logged "+money(amt)+(co?(" at <b>"+esc(co)+"</b>"):"")+" this month.",ok:"Add anyway"}))return;
   var signed=credit?-Math.abs(amt):amt; // a credit is stored as a negative row so it lowers the category's spending
   var d=new Date(date+"T00:00:00"),b=$("addBtn");b.disabled=true;b.textContent=credit?"Adding credit…":"Adding…";
-  try{var vals=[d.getFullYear(),d.getMonth()+1,date,payee,cat,co,signed,(credit&&!desc?"Credit / money received":desc),reimb];var res=await vappend(LEDGER+"!A:I",[vals]);var row=appendedRow(res);if(row)setYMFormula(row);$("fCompany").value="";updateCatBtn();$("fAmount").value="";$("fDesc").value="";$("fReimb").checked=false;/* keep the category selected so you can log several in a row and the filtered list stays put */if($("fCredit")){$("fCredit").checked=false;applyCreditUI();}localRowPush(vals);await syncAfterWrite(y);showAddedUndo(credit?("Credit of "+money(amt)+" added ✓"):"Added ✓",row);}
+  try{var vals=[d.getFullYear(),d.getMonth()+1,date,payee,cat,co,signed,(credit&&!desc?"Credit / money received":desc),reimb];var res=await vappend(LEDGER+"!A:I",[vals]);var row=appendedRow(res);if(row)setYMFormula(row);$("fCompany").value="";if($("fCatHint"))$("fCatHint").style.display="none";updateCatBtn();$("fAmount").value="";$("fDesc").value="";$("fReimb").checked=false;/* keep the category selected so you can log several in a row and the filtered list stays put */if($("fCredit")){$("fCredit").checked=false;applyCreditUI();}localRowPush(vals);await syncAfterWrite(y);showAddedUndo(credit?("Credit of "+money(amt)+" added ✓"):"Added ✓",row);}
   catch(e){msg.textContent="Could not add: "+(e.message||e);msg.className="msg bad";}
   b.disabled=false;b.textContent="Add expense";if($("fCredit"))applyCreditUI();
 }
@@ -5065,6 +5767,7 @@ function readConCfg(){
   if(t==="custom"){cfg.months=[];for(var i=0;i<12;i++){cfg.months.push(parseFloat(($("nm"+i)&&$("nm"+i).value||"").replace(/[^0-9.\-]/g,""))||0);}}
   else{cfg.amount=parseFloat($("conAmt").value.replace(/[^0-9.\-]/g,""))||0;}
   if(t==="paycheck"){cfg.freq=Number($("conFreq").value)||26;cfg.mode=conPayMode;if(conPayMode==="keep"){cfg.keep=parseFloat($("conKeep").value.replace(/[^0-9.\-]/g,""))||0;}else{cfg.pct=parseFloat($("conPct").value.replace(/[^0-9.\-]/g,""));if(isNaN(cfg.pct)||cfg.pct<=0)cfg.pct=100;if(cfg.pct>100)cfg.pct=100;}}
+  if((t==="weekly"||t==="biweekly")&&$("conCalendar")&&$("conCalendar").checked&&$("conAnchor")&&$("conAnchor").value){cfg.calendar=true;cfg.payAnchor=$("conAnchor").value;} // model the real payday calendar
   if(t==="onetime")cfg.month=Number($("conMonth").value)||curMonth();
   return cfg;
 }
@@ -5075,6 +5778,7 @@ function prefillConForm(name,cfg){
   conPayMode=(cfg.mode==="keep")?"keep":"pct";
   $("conAmt").value=(cfg.type!=="custom"&&cfg.amount)?cfg.amount:"";
   if(cfg.type==="paycheck"){$("conFreq").value=String(cfg.freq||26);if(cfg.mode==="keep"){$("conKeep").value=cfg.keep||"";}else{$("conPct").value=(cfg.pct==null?100:cfg.pct);}}
+  if($("conCalendar"))$("conCalendar").checked=!!cfg.calendar;if($("conAnchor"))$("conAnchor").value=cfg.payAnchor||"";
   Array.prototype.forEach.call($("conMode").querySelectorAll(".chip"),function(x){x.classList.toggle("on",x.getAttribute("data-m")===conPayMode);});
   conTypeUI();
   if(cfg.type==="onetime")$("conMonth").value=cfg.month||curMonth();
@@ -5384,6 +6088,7 @@ var WREN_INTENTS=[
  {k:["private","privacy","secure","who can see","is my data safe","data safe","google see","anthropic","do you see my"],a:"Your data lives in your own Google Sheet. NestWorth only ever touches files it created, and nothing is sent to me or any server. I'm built-in help running right on your phone, so I never see your numbers.",mood:"privacy"},
  {k:["should i","advice","invest","pay off","financial advice","what to do with my money","recommend","good idea to","worth it"],a:"I'm your guide around the app, not a financial adviser, so I can't tell you what to do with your money. But I can show you the tools to see the picture and decide for yourself.",links:[{label:"Month view",go:{v:"month"}},{label:"Net worth",go:{v:"worth"}},{label:"Goals",go:{v:"goals"}}],mood:"glasses"},
  {k:["tour","walk me through","show me around","guide me","getting started","how do i use this","walkthrough"],a:"Happy to! I'll walk you through the essentials in about a minute.",tour:true,mood:"cheer"},
+ {k:["monthly review","nest review","month in review","how did last month go","last month recap","monthly recap","review last month","my review","how was last month","monthly summary","month recap"],a:"I put together a review of last month: what you spent against plan, how your net worth moved, your goal progress, and a heads-up on the month ahead. Tap “Why?” on any line to see the numbers behind it.",review:true,mood:"insights"},
  {k:["feature guide","list of features","everything it does","what can you do","what can i do","all the features","full guide"],a:"Here's the full list, every tool in NestWorth, grouped by what you're trying to do.",guide:true,mood:"happy"},
  {k:["hi","hello","hey","yo","hiya","good morning","good evening"],a:"Hi there! What are you trying to do in NestWorth? Tap a topic below, or just type your question.",mood:"happy"},
  {k:["thanks","thank you","thx","ty","appreciate","awesome"],a:"Anytime. I'm here whenever you need a hand around the Nest.",mood:"cheer"}
@@ -5408,18 +6113,344 @@ function wrenRespond(it){var bub=wrenBubble("wren",it.a,it.mood||"happy");var ac
   if(it.links)it.links.forEach(function(l){acts.push({label:l.label+" →",fn:_wShow(l.go)});});
   if(it.tour)acts.push({label:"Start the tour",primary:true,fn:function(){closeOv("wrenOv");switchView("add");startTour(0);}});
   if(it.guide)acts.push({label:"Open the guide",primary:true,fn:function(){closeOv("wrenOv");openGuide();}});
+  if(it.review)acts.push({label:"See my review",primary:true,fn:function(){closeOv("wrenOv");openNestReview();}});
   wrenActions(bub,acts);}
 function wrenTyping(){var m=_wel("div","wmsg");m.appendChild(_wel("div","av wren-search"));var bub=_wel("div","wbub");var t=_wel("div","wtype");t.appendChild(_wel("i"));t.appendChild(_wel("i"));t.appendChild(_wel("i"));bub.appendChild(t);m.appendChild(bub);$("wrenLog").appendChild(m);$("wrenLog").scrollTop=$("wrenLog").scrollHeight;return m;}
+// ---- Analytics helpers (deterministic; drive Wren's Layer-2/3 answers) ----
+function _wmKey(r){return Number(r&&r[0])*100+Number(r&&r[1]);}
+function _isExp(r){var c=(""+((r&&r[4])||"")).trim().toLowerCase();return c&&c!=="deposit"&&!isGoalName(r&&r[4])&&!isGoalName(r&&r[5]);}
+function anMonths(){var s={};(state.rows||[]).forEach(function(r){if(r&&r[0]&&r[1])s[_wmKey(r)]=1;});return Object.keys(s).map(Number).sort(function(a,b){return a-b;});}
+function anCatByMonth(nameL){var bills=catBills(nameL).map(function(x){return (""+x).toLowerCase();});var out={};(state.rows||[]).forEach(function(r){if(!_isExp(r))return;var c=(""+((r[4])||"")).trim().toLowerCase(),co=(""+((r[5])||"")).trim().toLowerCase();if(c!==nameL&&bills.indexOf(c)<0&&bills.indexOf(co)<0)return;var k=_wmKey(r);out[k]=(out[k]||0)+(Number(r[6])||0);});return out;}
+function anExpByMonth(){var out={};(state.rows||[]).forEach(function(r){if(!_isExp(r))return;var k=_wmKey(r);out[k]=(out[k]||0)+(Number(r[6])||0);});return out;}
+function anIncomeByMonth(){var out={};(state.rows||[]).forEach(function(r){if(!r||(""+((r[4])||"")).trim().toLowerCase()!=="deposit")return;var k=_wmKey(r);out[k]=(out[k]||0)+(Number(r[6])||0);});return out;}
+function anYearFrac(){var n=new Date(),s=new Date(n.getFullYear(),0,0),diff=(n-s)/86400000,dy=(new Date(n.getFullYear(),11,31)-new Date(n.getFullYear(),0,0))/86400000;return Math.max(.02,Math.min(1,diff/dy));}
+function anMoney(v){return money(r2(v));}
+// Free, on-device analytics: Wren answers real questions about your money by computing from state.rows — no API, nothing
+// leaves the phone. Layer 1: totals, per-category, biggest, income, kept. Layer 2: variance, pace, comparisons, merchant,
+// goal ETA, net-worth attribution. Layer 3: forecasting, what-if, baselines, recurring, unusual, member split, debt, recs.
+// Turn a Decision Engine result into Wren's words. She reads the computed diff; she never derives the numbers.
+function wrenDecisionMsg(res){
+  var b=res.before,d=res.after,parts=[];
+  parts.push(res.feasible?"You can do it.":"This one would stretch you.");
+  if(res.batch&&res.changes&&res.changes.length){
+    var bits=[];res.changes.forEach(function(c){
+      if(c.type==='expenseMonthly')bits.push(anMoney(Math.abs(c.amount))+"/mo "+(c.amount<0?"less spending":"in new costs"));
+      else if(c.type==='purchase')bits.push("a one-time "+anMoney(c.amount));
+      else if(c.type==='income')bits.push(anMoney(Math.abs(c.amount))+"/mo "+(c.amount<0?"less income":"more income"));
+      else if(c.type==='goalMonthly')bits.push("the goal at "+anMoney(c.monthly)+"/mo");
+    });
+    if(bits.length)parts.push("Together that's "+(bits.length>1?(bits.slice(0,-1).join(", ")+" and "+bits[bits.length-1]):bits[0])+".");
+  }
+  if(res.goal&&res.goal.before&&res.goal.after&&res.goal.before!==res.goal.after)parts.push("Your “"+res.goal.name+"” finish moves from "+res.goal.before+" to "+res.goal.after+".");
+  var sc=(Math.abs(b.surplus-d.surplus)>0.5)?(" — surplus goes from "+anMoney(b.surplus)+" to "+anMoney(d.surplus)):(" — surplus about "+anMoney(d.surplus));
+  parts.push("Your annual plan "+(d.surplus>=-0.005?("stays positive"+sc):("would run a "+anMoney(-d.surplus)+" deficit"))+".");
+  var where=d.lowMonth?(d.lowMonth+" becomes your tightest month, at about "):"Your lowest projected cash is about ";
+  var cushion=(res.floor>0)?(res.passesFloor?(" — still "+anMoney(r2(d.low-res.floor))+" above your "+anMoney(res.floor)+" Nest Egg Floor."):(" — "+anMoney(r2(res.floor-d.low))+" below your "+anMoney(res.floor)+" floor. ⚠️")):".";
+  parts.push(where+anMoney(d.low)+cushion);
+  parts.push("(Assumes the rest of the year tracks your plan.)");
+  return parts.join(" ");
+}
+function wrenAnalyze(text){
+  var t=(""+text).toLowerCase();
+  if(!state.rows||!state.rows.length)return null;
+  // ===== Decisions: run the whole model on a hypothetical (fires before the read-only analytics) =====
+  var _amt=(function(){var m=t.match(/\$?\s?([0-9][0-9,]*(?:\.[0-9]+)?)\s?(k|thousand)?/);if(!m)return 0;var v=parseFloat((m[1]||"").replace(/,/g,""))||0;return m[2]?v*1000:v;})();
+  var _mon=(function(){var mm=null;["january","february","march","april","may","june","july","august","september","october","november","december"].forEach(function(nm,i){if(t.indexOf(nm)>=0)mm=i+1;});return mm;})();
+  var _dgoal=null;(state.goals||[]).forEach(function(g){if(!g||!g.name||g.archived)return;var gl=g.name.toLowerCase();if(t.indexOf(gl)>=0||gl.split(/[^a-z0-9]+/).some(function(w){return w.length>=3&&t.indexOf(w)>=0;})){if(!_dgoal||gl.length>_dgoal.name.length)_dgoal=g;}});
+  if(_amt>0&&!/how much|how long|when (can|could|will)/.test(t)){
+    // SET a goal's monthly contribution to a specific amount ("increase Renovation to $1,500"). Additive "put $X toward"
+    // and reallocation "cut Food and move to goal" stay with the net-neutral what-if handler below.
+    if(_dgoal&&/(increase|bump|raise|set|change|make).{0,20}\bto\b/.test(t)&&!/(cut|trim|reduce|spend less)/.test(t)){
+      try{return {answer:wrenDecisionMsg(evaluateDecision({type:"goalMonthly",goal:_dgoal.name,monthly:_amt})),go:{v:"goals"}};}catch(e){}
+    }
+    // afford a purchase (recurring payment vs one-time)
+    if(/(afford|can (we|i)|could (we|i)|handle|swing|take a|buy|go on a|put (down|toward))/.test(t)){
+      var recurring=/(payment|monthly|\/mo|a month|per month|each month|every month)/.test(t);
+      try{
+        if(recurring)return {answer:"Adding a "+anMoney(_amt)+"/month payment: "+wrenDecisionMsg(evaluateDecision({type:"expenseMonthly",amount:_amt})),go:{v:"budget"}};
+        var whenTxt=_mon?(" in "+MONTHS[_mon-1]):(" this month");
+        return {answer:"A one-time "+anMoney(_amt)+whenTxt+": "+wrenDecisionMsg(evaluateDecision({type:"purchase",amount:_amt,month:_mon})),go:{v:"budget"}};
+      }catch(e){}
+    }
+  }
+  // instructional phrasings are how-to questions, not data questions — let the guide intents handle them
+  if(/\bhow (do|to|can|should|would|does)\b/.test(t))return null;
+  if(/\bwhere (do|can) (i|you)\b/.test(t))return null;
+  if(/\b(set up|add a |add an |add my |log a |log an |create |make a |start a )\b/.test(t))return null;
+  var Y=curYear(),M=curMonth(),cm=M-1;
+  var mName=new Date(Y,cm,1).toLocaleString("en-US",{month:"long"});
+  var scope=/\b(year|ytd|annual|this year|so far|to date)\b/.test(t)?"year":"month";
+  var when=(scope==="year")?("in "+Y):("in "+mName);
+  var rows=(state.rows||[]).filter(function(r){return r&&Number(r[0])===Y&&(scope==="year"||Number(r[1])===M);});
+  var isDep=function(r){return (""+((r[4])||"")).trim().toLowerCase()==="deposit";};
+  var exp=rows.filter(function(r){var c=(""+((r[4])||"")).trim().toLowerCase();return c&&c!=="deposit"&&!isGoalName(r[4])&&!isGoalName(r[5]);});
+  var sum=function(rs){return rs.reduce(function(a,r){return a+(Number(r[6])||0);},0);};
+  var wantsSpend=/\b(spent|spend|spending|cost|costs|paid|expenses?)\b/.test(t);
+  var wantsBiggest=/\b(biggest|top|most|largest|highest|worst)\b/.test(t)||/where.*(most|go)\b/.test(t)&&/spend|money/.test(t);
+  var wantsIncome=/\b(income|earn|earned|make|made|paycheck|paychecks|deposits?|take home|took in)\b/.test(t);
+  var wantsSave=/\b(save|saved|saving|savings|left over|leftover|surplus|kept|come out ahead|ahead|net)\b/.test(t);
+  var wantsMerchant=/\b(merchant|merchants|store|stores|shop|shops|vendor|vendors|places?|companies|company)\b/.test(t);
+  // a category named in the question (longest match wins), from budget + this-year ad-hoc
+  var cats={};(state.cats||[]).forEach(function(c){cats[c.name.toLowerCase()]=c.name;});
+  try{ledgerCatsUsed(Y).forEach(function(n){cats[n.toLowerCase()]=n;});}catch(e){}
+  var found=null;Object.keys(cats).forEach(function(k){if(k&&t.indexOf(k)>=0&&(!found||k.length>found.length))found=k;});
+  var now=new Date(),dom=now.getDate(),dim=new Date(Y,M,0).getDate();
+  var expOf=function(rs){return rs.filter(function(r){var c=(""+((r[4])||"")).trim().toLowerCase();return c&&c!=="deposit"&&!isGoalName(r[4])&&!isGoalName(r[5]);});};
+  var monthRows=(state.rows||[]).filter(function(r){return r&&Number(r[0])===Y&&Number(r[1])===M;});
+  var overCats=function(){var o=[];(state.cats||[]).forEach(function(c){if(catRoll(c.name)==="envelope")return;if(c.mbud>0.005&&c.mspent>c.mbud+0.005)o.push({n:c.name,over:r2(c.mspent-c.mbud)});});return o.sort(function(a,b){return b.over-a.over;});};
+  var findCat=function(n){return (state.cats||[]).filter(function(c){return c.name.toLowerCase()===n;})[0];};
+
+  // A) Net-worth change attribution
+  if(/net worth/.test(t)&&/(why|change|changed|go up|went up|grew|grow|increase|increased|drop|dropped|decrease|decreased|down|up|move|moved)/.test(t)){
+    var H=state.nwHist||[];
+    if(H.length<2)return {answer:"I need at least two months of net-worth history to explain a change. Update your balances over a couple of months and I'll break down what moved.",go:{v:"worth"}};
+    var a=H[H.length-1],p0=H[H.length-2];
+    var dA=r2((a.assets||0)-(p0.assets||0)),dD=r2((p0.debts||0)-(a.debts||0)),dN=r2((a.net||0)-(p0.net||0));
+    var parts=[];if(Math.abs(dA)>=0.005)parts.push((dA>=0?"+":"−")+money(Math.abs(dA))+" in assets");
+    if(Math.abs(dD)>=0.005)parts.push((dD>=0?"+":"−")+money(Math.abs(dD))+(dD>=0?" from paying down debt":" from added debt"));
+    return {answer:"Your net worth "+(dN>=0?"grew ":"dipped ")+money(Math.abs(dN))+" from "+fmtYmNum(p0.ym)+" to "+fmtYmNum(a.ym)+(parts.length?(" — "+parts.join(", ")+"."):"."),go:{v:"worth"}};
+  }
+  // B) Goal on-track / ETA (match a goal by name or any of its words)
+  var goal=null;(state.goals||[]).forEach(function(g){if(!g||!g.name||g.archived)return;var gl=g.name.toLowerCase();var hit=t.indexOf(gl)>=0||gl.split(/[^a-z0-9]+/).some(function(w){return w.length>=3&&t.indexOf(w)>=0;});if(hit&&(!goal||gl.length>goal.name.length))goal=g;});
+  if(goal&&/(on track|on pace|reach|when|make it|hit|goal|target|pace for)/.test(t)&&!/afford|down ?payment/.test(t)){
+    if(goal.target<=0)return {answer:"“"+goal.name+"” doesn't have a target set, so I can't project a date. Add one on the Goals tab and I'll estimate.",go:{v:"goals"}};
+    if(goal.balance>=goal.target-0.005)return {answer:"You've already reached “"+goal.name+"” — "+money(goal.balance)+" of "+money(goal.target)+".",go:{v:"goals"}};
+    var need=r2(goal.target-goal.balance);
+    if(goal.monthly>0.005){var mo=Math.ceil(need/goal.monthly),d=new Date(now.getFullYear(),now.getMonth()+mo,1),eta=d.toLocaleString("en-US",{month:"long",year:"numeric"});
+      return {answer:"“"+goal.name+"”: "+money(goal.balance)+" of "+money(goal.target)+", "+money(need)+" to go. At "+money(goal.monthly)+"/month you're on pace to reach it around "+eta+".",go:{v:"goals"}};}
+    return {answer:"“"+goal.name+"”: "+money(goal.balance)+" of "+money(goal.target)+", "+money(need)+" to go. Set a monthly amount on the Goals tab and I'll estimate when you'll get there.",go:{v:"goals"}};
+  }
+  // C) Over budget / variance (this month)
+  if(/(over budget|over my budget|overspent|over on|over the line|exceeded|blown)/.test(t)){
+    var ov=overCats();
+    if(!ov.length)return {answer:"Nothing's over budget this month — every category is at or under its monthly amount.",go:{v:"month"}};
+    var list=ov.slice(0,4).map(function(x){return x.n+" by "+money(x.over);}).join(", ");
+    return {answer:(ov.length===1?"One category is over this month: ":ov.length+" categories are over this month: ")+list+".",go:{v:"month"}};
+  }
+  // D) How am I doing this month (a short narrative)
+  if(/(how am i doing|how are we doing|how('?s| is) (my|this|the) (month|budget|spending)|how'?s it going|where do i stand|how'?s my money)/.test(t)){
+    var spentM=r2(expOf(monthRows).reduce(function(a,r){return a+(Number(r[6])||0);},0));
+    var incM=r2(monthRows.filter(isDep).reduce(function(a,r){return a+(Number(r[6])||0);},0));
+    var ov2=overCats();
+    var msg="So far in "+mName+" you've spent "+money(spentM)+(incM>0.005?(" and brought in "+money(incM)):"")+". ";
+    if(ov2.length)msg+=(ov2.length===1?"You're over on ":("You're over on "+ov2.length+" categories, led by "))+ov2.slice(0,2).map(function(x){return x.n+" (+"+money(x.over)+")";}).join(" and ")+". ";
+    else msg+="Nothing's over budget — nicely done. ";
+    var room=(state.cats||[]).filter(function(c){return catRoll(c.name)!=="envelope"&&c.mbud>0.005&&(c.mbud-c.mspent)>0.005;}).map(function(c){return {n:c.name,left:r2(c.mbud-c.mspent)};}).sort(function(a,b){return b.left-a.left;});
+    if(room.length)msg+=room[0].n+" has the most room left ("+money(room[0].left)+").";
+    return {answer:msg.trim(),go:{v:"month"}};
+  }
+  // E) Remaining in a category (this month)
+  if(found&&/(left|remaining|room|budget left|have left|still have)/.test(t)){
+    var c=findCat(found);
+    if(c){if(c.mbud>0.005){var left=r2(c.mbud-c.mspent);return {answer:(left>=0?("You have "+money(left)+" left in "+c.name+" this month ("+money(c.mspent)+" of "+money(c.mbud)+")."):("You're "+money(-left)+" over on "+c.name+" this month ("+money(c.mspent)+" of "+money(c.mbud)+").")),go:{v:"month"}};}
+      return {answer:c.name+" doesn't have a monthly budget set. You've spent "+money(c.mspent)+" on it this month.",go:{v:"budget"}};}
+  }
+  // F) On pace / projection to month-end
+  if(/(on pace|on track to stay|stay under|at this rate|at my current pace|keep spending|projected|go over budget|finish (the )?month|end the month)/.test(t)&&!/\byear\b/.test(t)){
+    var frac=Math.max(0.03,dom/dim),cF=found?findCat(found):null;
+    if(cF&&cF.mbud>0.005){var proj=r2(cF.mspent/frac),df=r2(proj-cF.mbud);
+      return {answer:"On "+cF.name+" you've spent "+money(cF.mspent)+" of "+money(cF.mbud)+" with "+(dim-dom)+" days left. At this pace you'd finish about "+money(Math.abs(df))+(df>0?" over.":" under."),go:{v:"month"}};}
+    var sM=r2(expOf(monthRows).reduce(function(a,r){return a+(Number(r[6])||0);},0)),tB=0;(state.cats||[]).forEach(function(c){if(c.mbud>0)tB+=c.mbud;});
+    var pT=r2(sM/frac);
+    if(tB>0.005){var d3=r2(pT-tB);return {answer:"You've spent "+money(sM)+" of your "+money(r2(tB))+" monthly budget. At this pace you'd finish around "+money(pT)+" — "+money(Math.abs(d3))+(d3>0?" over.":" under."),go:{v:"month"}};}
+    return {answer:"At your current pace you're trending toward about "+money(pT)+" in spending this month.",go:{v:"month"}};
+  }
+  // G) This month vs last month, at the same point
+  if(/(than last month|vs last month|versus last month|compared to last month|last month)/.test(t)&&/(spend|spent|spending|more|less|compare|compared)/.test(t)){
+    var ly=(M>1?Y:Y-1),lm=(M>1?M-1:12),lmName=new Date(ly,lm-1,1).toLocaleString("en-US",{month:"long"});
+    var lastRows=(state.rows||[]).filter(function(r){return r&&Number(r[0])===ly&&Number(r[1])===lm;});
+    var dayOf=function(r){var d=Number((""+((r[2])||"")).slice(8,10));return d||99;};
+    var thisSoFar=r2(expOf(monthRows).reduce(function(a,r){return a+(Number(r[6])||0);},0));
+    var lastSame=r2(expOf(lastRows).filter(function(r){return dayOf(r)<=dom;}).reduce(function(a,r){return a+(Number(r[6])||0);},0));
+    var lastFull=r2(expOf(lastRows).reduce(function(a,r){return a+(Number(r[6])||0);},0));
+    if(lastSame<=0.005)return {answer:"You've spent "+money(thisSoFar)+" so far in "+mName+". I don't have enough "+lmName+" history to compare the same point in the month.",go:{v:"month"}};
+    var dd=r2(thisSoFar-lastSame),pct=Math.round(Math.abs(dd)/lastSame*100);
+    return {answer:"By day "+dom+" you've spent "+money(thisSoFar)+" this month vs "+money(lastSame)+" at the same point in "+lmName+" — "+(dd>=0?(pct+"% more"):(pct+"% less"))+". ("+lmName+" finished at "+money(lastFull)+".)",go:{v:"month"}};
+  }
+  // H) Merchant search — a company/payee named in the question
+  var merch=null,merchName=null;
+  (function(){var seen={};(state.rows||[]).forEach(function(r){var s=(""+((r&&r[5])||"")).trim(),sl=s.toLowerCase();if(sl.length>=3&&sl!=="deposit"&&!cats[sl]&&!seen[sl])seen[sl]=s;});
+    Object.keys(seen).forEach(function(sl){if(t.indexOf(sl)>=0&&(!merch||sl.length>merch.length)){merch=sl;merchName=seen[sl];}});})();
+  if(merch&&/how much|spend|spent|total/.test(t)){
+    var mScope=(/this month|\bmonth\b/.test(t)&&!/this year|ytd|\byear\b/.test(t))?"month":"year";
+    var rm=(state.rows||[]).filter(function(r){var comp=(""+((r[5])||"")).trim().toLowerCase();if(comp!==merch)return false;return Number(r[0])===Y&&(mScope==="year"||Number(r[1])===M);});
+    var tot=r2(rm.reduce(function(a,r){return a+(Number(r[6])||0);},0)),n=rm.length,wq=(mScope==="year"?("in "+Y):("in "+mName));
+    if(!n)return {answer:"I don't see any transactions at "+merchName+" "+wq+".",go:{v:"add"}};
+    return {answer:"You spent "+money(tot)+" at "+merchName+" across "+n+" transaction"+(n===1?"":"s")+" "+wq+" (about "+money(r2(tot/Math.max(1,n)))+" each).",go:{v:"add"}};
+  }
+
+  // ===== Layer 3: forecasting, what-if, baselines, recurring, unusual, member, debt, recommendations, narrative =====
+  var MOS=["january","february","march","april","may","june","july","august","september","october","november","december"];
+  var Cap=function(s){return s.charAt(0).toUpperCase()+s.slice(1);};
+  var expByM=anExpByMonth(),incByM=anIncomeByMonth(),ymNow=Y*100+M;
+  var amtMatch=t.match(/\$?\s?([0-9][0-9,]*(?:\.[0-9]+)?)\s?(k|thousand)?/);
+  var parseAmt=function(m){if(!m)return 0;var v=parseFloat((m[1]||"").replace(/,/g,""))||0;if(m[2])v*=1000;return v;};
+  var monthExp=function(){return r2(expOf(monthRows).reduce(function(a,r){return a+(Number(r[6])||0);},0));};
+  var monthInc=function(){return r2(monthRows.filter(isDep).reduce(function(a,r){return a+(Number(r[6])||0);},0));};
+
+  // S) Narrative — "where did our money go?"
+  if(/where did (our|my|the) money go/.test(t)){
+    var sM=monthExp(),iM=monthInc(),byc={};
+    expOf(monthRows).forEach(function(r){var nm=(""+((r[4])||"")).trim();if(nm)byc[nm]=(byc[nm]||0)+(Number(r[6])||0);});
+    var topc=Object.keys(byc).map(function(nm){return {n:nm,v:byc[nm]};}).sort(function(a,b){return b.v-a.v;}).slice(0,3),ov=overCats();
+    var msg=(iM>0.005?("You brought in "+anMoney(iM)+" and have spent "+anMoney(sM)+" so far in "+mName+", leaving "+anMoney(iM-sM)):("You've spent "+anMoney(sM)+" so far in "+mName))+". ";
+    if(topc.length)msg+="Your biggest areas were "+topc.map(function(x){return x.n;}).join(", ")+". ";
+    if(ov.length)msg+=ov[0].n+" is the one I'd keep an eye on — it's already "+anMoney(ov[0].over)+" over budget.";
+    return {answer:msg.trim(),go:{v:"month"}};
+  }
+  // K) Affordability — "when could I afford $X?"
+  if(/(afford|when can i|when could i|save up for|down ?payment)/.test(t)){
+    var amtA=parseAmt(amtMatch),perMoA=0;try{perMoA=residualPool();}catch(e){}
+    if(amtA<=0)return {answer:"Tell me the amount — like “when could I afford a $12,000 car?” — and I'll estimate from your monthly leftover.",go:{v:"budget"}};
+    if(perMoA<=0.005)return {answer:"Your plan doesn't have a monthly surplus right now, so I can't project a date for "+anMoney(amtA)+". Freeing up room in a category would change that.",go:{v:"budget"}};
+    var moA=Math.ceil(amtA/perMoA),dA=new Date(now.getFullYear(),now.getMonth()+moA,1);
+    var availM=0;try{availM=availableThisMonth();}catch(e){}
+    return {answer:"Your plan averages about "+anMoney(perMoA)+"/month of leftover, so "+anMoney(amtA)+" would take roughly "+moA+" month"+(moA===1?"":"s")+" — around "+dA.toLocaleString("en-US",{month:"long",year:"numeric"})+" — if that pace holds. ("+mName+" specifically has about "+anMoney(availM)+" free in your plan; the rest is an average, not a monthly guarantee.)",go:{v:"budget"}};
+  }
+  // L) What-if scenarios (deterministic; never changes the real budget)
+  if(/(what if|what happens if|suppose i|if i (cut|save|add|move|put|increase|reduce|spend))/.test(t)){
+    var amtL=parseAmt(amtMatch),wgoal=null;
+    (state.goals||[]).forEach(function(g){if(!g||!g.name||g.archived)return;var gl=g.name.toLowerCase();if(t.indexOf(gl)>=0||gl.split(/[^a-z0-9]+/).some(function(w){return w.length>=3&&t.indexOf(w)>=0;})){if(!wgoal||gl.length>wgoal.name.length)wgoal=g;}});
+    if(/(cut|reduce|spend less|trim)/.test(t)&&amtL>0){
+      var yr=r2(amtL*12),base="Trimming "+anMoney(amtL)+"/month frees up "+anMoney(yr)+"/year";
+      if(wgoal&&wgoal.target>0){var newMo=(wgoal.monthly||0)+amtL,need=r2(wgoal.target-wgoal.balance);if(newMo>0){var moNow=wgoal.monthly>0?Math.ceil(need/wgoal.monthly):Infinity,moNew=Math.ceil(need/newMo),saved=isFinite(moNow)?(moNow-moNew):null;return {answer:base+". Put toward “"+wgoal.name+"”, that's "+anMoney(newMo)+"/month — reaching your "+anMoney(wgoal.target)+" target"+(saved!==null&&saved>0?(" about "+saved+" month"+(saved===1?"":"s")+" sooner."):" sooner."),go:{v:"goals"}};}}
+      return {answer:base+" — money you could redirect to a goal, debt, or savings.",go:{v:"budget"}};
+    }
+    if(wgoal&&wgoal.target>0&&amtL>0&&/(add|put|save|move|increase|contribute)/.test(t)){
+      var need2=r2(wgoal.target-wgoal.balance),newMo2=(wgoal.monthly||0)+amtL,moNew2=Math.ceil(need2/newMo2),d2=new Date(now.getFullYear(),now.getMonth()+moNew2,1);
+      return {answer:"Adding "+anMoney(amtL)+"/month to “"+wgoal.name+"” (now "+anMoney(newMo2)+"/month) would reach your "+anMoney(wgoal.target)+" target around "+d2.toLocaleString("en-US",{month:"long",year:"numeric"})+".",go:{v:"goals"}};
+    }
+    if(/income|raise|paycheck|earn/.test(t)&&amtL>0){var base3=0;try{base3=residualPool();}catch(e){}return {answer:"An extra "+anMoney(amtL)+"/month would lift your monthly leftover to about "+anMoney(base3+amtL)+" — money for goals, debt, or savings.",go:{v:"budget"}};}
+    return {answer:"I can run what-ifs like “what if I cut Food by $200 and put it toward the Car Fund?” or “what if I add $300/month to a goal?” Tell me an amount and where it goes — I'll work it out without touching your real budget.",go:{v:"goals"}};
+  }
+  // I) Year-end forecast
+  if(/(end of the year|rest of the year|where (will|do) (we|i) (end|land)|finish the year|whole year|trending toward|on pace.*year|annual spending|year[- ]?end|by december)/.test(t)){
+    var yfrac=anYearFrac(),ytd=0;Object.keys(expByM).forEach(function(k){if(Math.floor(k/100)===Y)ytd+=expByM[k];});
+    var proj=r2(ytd/yfrac),totBud=0;(state.cats||[]).forEach(function(c){totBud+=(c.annual||0);});
+    var overs=[];(state.cats||[]).forEach(function(c){if((c.annual||0)<=0)return;var cm2=anCatByMonth(c.name.toLowerCase()),y2=0;Object.keys(cm2).forEach(function(k){if(Math.floor(k/100)===Y)y2+=cm2[k];});var ovr=y2/yfrac-(c.annual||0);if(ovr>0.005)overs.push({n:c.name,over:r2(ovr)});});
+    overs.sort(function(a,b){return b.over-a.over;});
+    var msg="Through "+mName+" you've spent "+anMoney(ytd)+". At this pace you're trending toward about "+anMoney(proj)+" for the year";
+    if(totBud>0.005){var d4=r2(proj-totBud);msg+=(Math.abs(d4)<1?(" — right on your "+anMoney(totBud)+" plan."):(d4>0?(" — about "+anMoney(d4)+" over your "+anMoney(totBud)+" plan."):(" — about "+anMoney(-d4)+" under your "+anMoney(totBud)+" plan.")));}else msg+=".";
+    if(overs.length)msg+=" Most of the overage is "+overs.slice(0,3).map(function(x){return x.n+" (+"+anMoney(x.over)+")";}).join(", ")+".";
+    return {answer:msg,go:{v:"budget"}};
+  }
+  // J) Cash-flow / will we run out
+  if(/(run out|cash ?flow|within our means|living within|deplete|drain|savings last|go negative|shortfall|sustainable)/.test(t)){
+    var incA=0;(state.cons||[]).forEach(function(c){incA+=(c.annual||0);});
+    var budA=0;(state.cats||[]).forEach(function(c){budA+=(c.annual||0);});
+    var gsa=0;try{gsa=goalSaveAnnual();}catch(e){}
+    var perMoJ=r2((incA-budA-gsa)/12);
+    if(perMoJ>=-0.005)return {answer:"Your plan is sustainable — planned income covers your budget"+(gsa>0?" and goal savings":"")+", leaving about "+anMoney(perMoJ)+"/month of cushion.",go:{v:"budget"}};
+    return {answer:"Your current "+Y+" plan runs a deficit of about "+anMoney(-perMoJ)+"/month — planned spending"+(gsa>0?" plus goal savings":"")+" exceeds planned income, so starting savings would slowly decline. Trimming a recurring category would close the gap.",go:{v:"budget"}};
+  }
+  // N) Recurring / subscriptions
+  if(/(subscription|subscriptions|recurring|auto-?pay)/.test(t)){
+    var byMerch={};(state.rows||[]).forEach(function(r){if(!_isExp(r))return;var mn=(""+((r[5])||"")).trim();if(!mn)return;var k=mn.toLowerCase();(byMerch[k]=byMerch[k]||{name:mn,months:{},amts:[]});byMerch[k].months[_wmKey(r)]=1;byMerch[k].amts.push(Number(r[6])||0);});
+    var subs=[];Object.keys(byMerch).forEach(function(k){var o=byMerch[k],nm=Object.keys(o.months).length;if(nm<3)return;var avg=o.amts.reduce(function(a,b){return a+b;},0)/o.amts.length;if(avg>0&&o.amts.every(function(a){return Math.abs(a-avg)<=Math.max(3,avg*0.25);}))subs.push({n:o.name,avg:r2(avg),months:nm});});
+    subs.sort(function(a,b){return b.avg-a.avg;});
+    if(!subs.length)return {answer:"I don't see clear recurring charges yet — I look for the same place hitting a similar amount across several months. A few more months of history and I'll spot them.",go:{v:"add"}};
+    return {answer:"Likely recurring: "+subs.slice(0,6).map(function(x){return x.n+" (~"+anMoney(x.avg)+"/mo)";}).join(", ")+".",go:{v:"add"}};
+  }
+  // O) Unusual spending vs your own trailing average
+  if(/(weird|unusual|anything (odd|off)|out of the ordinary|spike|abnormal|stand out|higher than usual)/.test(t)){
+    var pri=[];(function(){var yy=Y,mm=M;for(var i=0;i<6;i++){mm--;if(mm<1){mm=12;yy--;}pri.push(yy*100+mm);}})();
+    var flags=[];(state.cats||[]).forEach(function(c){var cm3=anCatByMonth(c.name.toLowerCase()),thisV=cm3[ymNow]||0;if(thisV<=0)return;var vals=pri.map(function(k){return cm3[k];}).filter(function(v){return v!=null;});if(vals.length<2)return;var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;if(avg>0&&thisV>avg*1.4)flags.push({n:c.name,pct:Math.round((thisV/avg-1)*100),avg:r2(avg),now:r2(thisV)});});
+    flags.sort(function(a,b){return b.pct-a.pct;});
+    if(!flags.length)return {answer:"Nothing looks out of the ordinary this month — your categories are close to their usual levels.",go:{v:"month"}};
+    var f0=flags[0];return {answer:f0.n+" stands out — "+anMoney(f0.now)+" this month vs a "+anMoney(f0.avg)+" average, about "+f0.pct+"% higher"+(flags.length>1?(". "+(flags.length-1)+" other "+(flags.length-1===1?"category is":"categories are")+" up too."):"."),go:{v:"month"}};
+  }
+  // P) Member / who spent
+  if(/(each (spend|spent)|who spent|per person|by person|between us|and i (spend|spent)|split between|by contributor|by member)/.test(t)){
+    var byP={};(scope==="year"?exp:expOf(monthRows)).forEach(function(r){var p=(""+((r[3])||"")).trim();if(!p)return;byP[p]=(byP[p]||0)+(Number(r[6])||0);});
+    var arrP=Object.keys(byP).map(function(nm){return {n:nm,v:r2(byP[nm])};}).sort(function(a,b){return b.v-a.v;});
+    if(!arrP.length)return {answer:"I don't see spending tagged by person "+when+" yet — each entry's contributor drives this.",go:{v:"month"}};
+    return {answer:"Spending by person "+when+": "+arrP.map(function(x){return x.n+" "+anMoney(x.v);}).join(", ")+".",go:{v:"month"}};
+  }
+  // Q) Debt progress
+  if(/((debt|loan|card|mortgage).*(progress|paying (off|down)|payoff|most|fastest|best))|paying (off|down).*(debt|loan)/.test(t)){
+    var prog=[];(state.debts||[]).forEach(function(d){var tr=null;try{tr=acctTrend("debt",d.name);}catch(e){}if(tr&&Math.abs(tr.chg)>0.005)prog.push({n:d.name,chg:r2(tr.chg)});});
+    if(!prog.length)return {answer:"I need a couple of net-worth updates to compare debt balances over time. Update balances on Worth and I'll show which debt is moving fastest.",go:{v:"worth"}};
+    prog.sort(function(a,b){return a.chg-b.chg;});var best=prog[0];
+    return {answer:best.chg<0?("You're paying down "+best.n+" fastest — down "+anMoney(-best.chg)+" recently."):(best.n+" moved "+anMoney(best.chg)+" recently."),go:{v:"worth"}};
+  }
+  // R) Budget recommendations from your own history
+  if(/(what should i change|budget recommendation|recommend|adjust my budget|suggestions?|what to change|where can i cut|help me budget)/.test(t)){
+    var chronic=[];(state.cats||[]).forEach(function(c){if((c.mbud||0)<=0)return;var cm4=anCatByMonth(c.name.toLowerCase()),over=0,under=0,tot2=0;Object.keys(cm4).forEach(function(k){tot2++;if(cm4[k]>c.mbud*1.05)over++;else if(cm4[k]<c.mbud*0.6)under++;});if(tot2>=2){if(over>=Math.ceil(tot2*0.5))chronic.push({n:c.name,kind:"over"});else if(under>=Math.ceil(tot2*0.6))chronic.push({n:c.name,kind:"under"});}});
+    var ov5=chronic.filter(function(x){return x.kind==="over";}),un5=chronic.filter(function(x){return x.kind==="under";});
+    if(!ov5.length&&!un5.length)return {answer:"Your budgets look well-calibrated — no category is chronically over or under based on your history. Nice.",go:{v:"budget"}};
+    var msg2="A couple of ideas from your own history: ";
+    if(ov5.length)msg2+=ov5.slice(0,2).map(function(x){return x.n;}).join(" and ")+" run over most months — worth nudging up. ";
+    if(un5.length)msg2+=un5.slice(0,2).map(function(x){return x.n;}).join(" and ")+" usually finish with room — you could trim "+(un5.length>1?"those":"that")+" and redirect it.";
+    return {answer:msg2.trim(),go:{v:"budget"}};
+  }
+  // M) Personal baselines
+  if(found&&/(realistic|reasonable|typical|normal).{0,20}budget|budget.{0,20}(realistic|reasonable)/.test(t)){
+    var cm5=anCatByMonth(found),keys5=Object.keys(cm5).map(Number).sort(function(a,b){return a-b;}),last6=keys5.slice(-6).map(function(k){return cm5[k];});
+    if(last6.length){var avg=last6.reduce(function(a,b){return a+b;},0)/last6.length,mn5=Math.min.apply(null,last6),mx5=Math.max.apply(null,last6),cc=findCat(found);
+      return {answer:"You normally spend about "+anMoney(avg)+"/month on "+cats[found]+" (roughly "+anMoney(mn5)+"–"+anMoney(mx5)+")"+(cc&&cc.mbud>0?(". Your current budget is "+anMoney(cc.mbud)+"."):"."),go:{v:"budget"}};}
+  }
+  if(found&&/(most|highest|largest|biggest).{0,20}(ever|spent|spend)|ever.{0,20}(spent|spend)/.test(t)){
+    var cm6=anCatByMonth(found),keys6=Object.keys(cm6).map(Number);
+    if(keys6.length){var maxK=keys6[0];keys6.forEach(function(k){if(cm6[k]>cm6[maxK])maxK=k;});return {answer:"The most you've spent on "+cats[found]+" in a month was "+anMoney(cm6[maxK])+" in "+Cap(MOS[maxK%100-1])+" "+Math.floor(maxK/100)+".",go:{v:"month"}};}
+  }
+  var monHit=null;MOS.forEach(function(nm,i){if(t.indexOf(nm)>=0)monHit=i+1;});
+  if(monHit&&/(normally|usually|typically|average|spend in|do we spend|how much.{0,20}in)/.test(t)){
+    var vals=[];Object.keys(expByM).forEach(function(k){if(Number(k)%100===monHit)vals.push(expByM[k]);});
+    if(vals.length){var avg7=vals.reduce(function(a,b){return a+b;},0)/vals.length;return {answer:"You normally spend about "+anMoney(avg7)+" in "+Cap(MOS[monHit-1])+(vals.length>1?(", based on "+vals.length+" years"):"")+".",go:{v:"month"}};}
+    return {answer:"I don't have "+Cap(MOS[monHit-1])+" history yet to average.",go:{v:"month"}};
+  }
+  if(/(average|typical|normal).{0,20}(leftover|left over|surplus)|leftover.{0,20}month|average.{0,20}(save|left)/.test(t)){
+    var mks=anMonths(),diffs=mks.filter(function(k){return (incByM[k]||0)>0;}).map(function(k){return (incByM[k]||0)-(expByM[k]||0);});
+    if(diffs.length){var avg8=diffs.reduce(function(a,b){return a+b;},0)/diffs.length;return {answer:"On an average month you keep about "+anMoney(avg8)+" after spending"+(diffs.length>1?(", across "+diffs.length+" months"):"")+".",go:{v:"month"}};}
+  }
+  if(/((money left|left over|under budget|room).{0,20}(every|most|each) month)|which categories.{0,20}(left|under|room)/.test(t)){
+    var roomy=[];(state.cats||[]).forEach(function(c){if((c.mbud||0)<=0)return;var cm7=anCatByMonth(c.name.toLowerCase()),keys7=Object.keys(cm7);if(keys7.length<2)return;if(keys7.filter(function(k){return cm7[k]<c.mbud*0.9;}).length>=Math.ceil(keys7.length*0.6))roomy.push(c.name);});
+    if(!roomy.length)return {answer:"No category consistently finishes with room based on your history.",go:{v:"budget"}};
+    return {answer:"Usually has room to spare: "+roomy.slice(0,5).join(", ")+".",go:{v:"budget"}};
+  }
+  if(/(underestimate|consistently over|always over|keep going over|constantly over)/.test(t)){
+    var chr=[];(state.cats||[]).forEach(function(c){if((c.mbud||0)<=0)return;var cm8=anCatByMonth(c.name.toLowerCase()),keys8=Object.keys(cm8);if(keys8.length<2)return;if(keys8.filter(function(k){return cm8[k]>c.mbud*1.05;}).length>=Math.ceil(keys8.length*0.5))chr.push(c.name);});
+    if(!chr.length)return {answer:"Good news — no category is consistently over its budget in your history.",go:{v:"budget"}};
+    return {answer:"You tend to go over on: "+chr.slice(0,5).join(", ")+". Nudging those budgets up would make the plan more realistic.",go:{v:"budget"}};
+  }
+  // T) Find money / uncommitted
+  if(/(find money|find me money|free up|spare money|extra money|uncommitted|where can i find)/.test(t)){
+    var iT=monthInc(),sT=monthExp(),committed=0;(state.cats||[]).forEach(function(c){if((c.mbud||0)>0)committed+=Math.max(0,(c.mbud||0)-(c.mspent||0));});
+    var freeNow=r2(iT-sT-committed);
+    return {answer:"So far this month you've taken in "+anMoney(iT)+" and spent "+anMoney(sT)+", leaving "+anMoney(iT-sT)+". About "+anMoney(committed)+" of that is still earmarked for the rest of your budgeted categories, so roughly "+anMoney(Math.max(0,freeNow))+" isn't committed"+(freeNow<0?" (you're leaning on earlier months or savings)":"")+".",go:{v:"budget"}};
+  }
+
+  if(found&&(wantsSpend||/how much/.test(t))&&!wantsIncome){
+    var nm=cats[found],amt;
+    if((state.cats||[]).some(function(c){return c.name.toLowerCase()===found;})){var sp=catSpend12(nm);amt=(scope==="year")?sp.reduce(function(a,b){return a+b;},0):(sp[cm]||0);}
+    else{amt=sum(exp.filter(function(r){return (""+((r[4])||"")).trim().toLowerCase()===found;}));}
+    return {answer:"You spent "+money(r2(amt))+" on "+nm+" "+when+".",go:{v:"month"}};
+  }
+  if(wantsIncome){var inc=sum(rows.filter(isDep));return {answer:"Your income "+when+" was "+money(r2(inc))+".",go:{v:"budget"}};}
+  if(wantsSave){var i2=sum(rows.filter(isDep)),s2=sum(exp),net=r2(i2-s2);
+    return {answer:(net>=0?("You kept "+money(net)):("You spent "+money(-net)+" more than came in"))+" "+when+" — "+money(r2(i2))+" in, "+money(r2(s2))+" out.",go:{v:"month"}};}
+  if(wantsBiggest||wantsMerchant){var key=wantsMerchant?5:4,by={};
+    exp.forEach(function(r){var n=(""+((r[key])||"")).trim();if(!n)return;by[n]=(by[n]||0)+(Number(r[6])||0);});
+    var arr=Object.keys(by).map(function(n){return {n:n,v:by[n]};}).sort(function(a,b){return b.v-a.v;});
+    if(!arr.length)return {answer:"I don't see any spending "+when+" yet.",go:{v:"month"}};
+    var top=arr.slice(0,3).map(function(x){return x.n+" ("+money(r2(x.v))+")";}).join(", ");
+    return {answer:"Your top "+(wantsMerchant?"places":"categories")+" "+when+": "+top+".",go:{v:"month"}};
+  }
+  if(wantsSpend&&/how much|total|altogether|so far/.test(t)){return {answer:"You spent "+money(r2(sum(exp)))+" total "+when+".",go:{v:"month"}};}
+  return null;
+}
 function wrenAsk(text){text=(text||"").trim();if(!text)return;wrenBubble("me",text);
-  var it=wrenMatch(text);var typ=wrenTyping();
+  var ana=null;try{ana=wrenAnalyze(text);}catch(e){}
+  var it=ana?null:wrenMatch(text);var typ=wrenTyping();
   setTimeout(function(){try{if(typ)typ.remove();}catch(e){}
-    if(it){wrenRespond(it);}
+    if(ana){var ab=wrenBubble("wren",ana.answer,"glasses");if(ana.go)wrenActions(ab,[{label:"Show me",primary:true,fn:_wShow(ana.go)}]);}
+    else if(it){wrenRespond(it);}
     else{var b=wrenBubble("wren","Hmm, I couldn't find that. Try a different wording, or tell me what you're looking for. You can also tap a topic below or open the full guide.","confused");
       wrenActions(b,[{label:"Open the guide",primary:true,fn:function(){closeOv("wrenOv");openGuide();}},{label:"Take the tour",fn:function(){closeOv("wrenOv");switchView("add");startTour(0);}}]);
       wrenRenderChips();}
   },560);}
 function wrenRenderChips(){var c=$("wrenChips");if(!c)return;c.innerHTML="";WREN_CHIPS.forEach(function(q){var ch=_wel("button","wchip",q);ch.type="button";ch.addEventListener("click",function(){wrenAsk(q);});c.appendChild(ch);});}
-function openWren(){var log=$("wrenLog");if(log&&!log.childNodes.length){wrenBubble("wren","Hi! I'm Wren, your guide around the Nest. What can I help you with? Tap a topic below, or just type your question.","happy");wrenRenderChips();}openOv("wrenOv");}
+function openWren(){var log=$("wrenLog");if(log&&!log.childNodes.length){wrenBubble("wren","Hi! I'm Wren, your guide around the Nest. Ask me how to do something, or a question about your money like “how much did I spend on groceries this month?” Tap a topic below, or just type.","happy");wrenRenderChips();}openOv("wrenOv");}
 
 // The floating helper: a small "?" at rest. Tap it and it opens into the "Ask Wren" pill; tap that to open the chat.
 // Swipe it toward the edge to dismiss it for this session; the Settings toggle hides it for good (per device).
@@ -5514,8 +6545,14 @@ function wire(){
   $("recurOpen").addEventListener("click",function(ev){ev.preventDefault();openOv("recurOv",renderRecur);});
   $("scanBtn").addEventListener("click",function(){if(!lsGet(GKEY).trim()){$("addMsg").textContent="Add a free Gemini key in Settings first.";$("addMsg").className="msg bad";switchView("settings");return;}$("receiptFile").click();});
   $("receiptFile").addEventListener("change",onReceiptFile);
-  $("keySave").addEventListener("click",function(){var k=$("geminiKey").value.trim();var msg=$("keyMsg");msg.className="msg";if(!k){msg.textContent="Paste a key first.";msg.className="msg bad";return;}lsSet(GKEY,k);lsDel(GMODEL);lsDel(GMODELS);state.meta.gkey=k;msg.textContent="Saved ✓";renderSettings();try{writeMeta();}catch(e){}});
-  $("keyClear").addEventListener("click",function(){lsDel(GKEY);lsDel(GMODEL);lsDel(GMODELS);state.meta.gkey="";$("keyMsg").textContent="Key cleared.";$("keyMsg").className="msg";renderSettings();try{writeMeta();}catch(e){}});
+  $("keySave").addEventListener("click",function(){var k=$("geminiKey").value.trim();var msg=$("keyMsg");msg.className="msg";if(!k){msg.textContent="Paste a key first.";msg.className="msg bad";return;}
+    lsSet(GKEY,k);lsDel(GMODEL);lsDel(GMODELS); // always kept on THIS device
+    var share=$("keyShare")&&$("keyShare").checked;
+    state.meta.gkey=share?k:""; // only stored in the shared budget when the user opts in
+    msg.textContent=share?"Saved ✓ — shared with this Nest.":"Saved ✓ — on this device only.";renderSettings();try{writeMeta();}catch(e){}});
+  $("keyClear").addEventListener("click",function(){lsDel(GKEY);lsDel(GMODEL);lsDel(GMODELS);state.meta.gkey="";if($("keyShare"))$("keyShare").checked=false;$("keyMsg").textContent="Key cleared from this device"+((state.meta&&"gkey"in state.meta)?" and this Nest.":".");$("keyMsg").className="msg";renderSettings();try{writeMeta();}catch(e){}});
+  if($("keyShare"))$("keyShare").addEventListener("change",function(){ // toggling share re-saves the current key to match the choice, immediately
+    var k=lsGet(GKEY).trim();if(!k)return;state.meta.gkey=this.checked?k:"";var m=$("keyMsg");if(m){m.className="msg";m.textContent=this.checked?"Now shared with this Nest ✓":"No longer shared — on this device only ✓";}try{writeMeta();}catch(e){}});
   $("keyTest").addEventListener("click",keyTest);
   Array.prototype.forEach.call(document.querySelectorAll("[data-rem]"),function(cb){cb.addEventListener("change",function(){setRemPref(this.getAttribute("data-rem"),this.checked);renderReminders();});});
   if($("prefPayee"))$("prefPayee").addEventListener("change",function(){setFormPref("payee",this.checked);applyFormPrefs();});
@@ -5523,6 +6560,7 @@ function wire(){
   if($("prefFab"))$("prefFab").addEventListener("change",function(){if(this.checked)lsDel("nw_help_off");else lsSet("nw_help_off","1");applyFabPref();});
   if($("startMon"))$("startMon").addEventListener("change",setStartYM);
   if($("startYr"))$("startYr").addEventListener("change",setStartYM);
+  if($("backupBtn"))$("backupBtn").addEventListener("click",function(){runBackup("backupBtn","backupMsg").catch(function(){});});
   if($("wipeGoalsBtn"))$("wipeGoalsBtn").addEventListener("click",wipeGoals);
   if($("wipeDataBtn"))$("wipeDataBtn").addEventListener("click",wipeData);
   if($("trimLedgerBtn"))$("trimLedgerBtn").addEventListener("click",runOptimize);
@@ -5570,7 +6608,12 @@ function wire(){
   if($("pullInOv"))$("pullInOv").addEventListener("click",function(ev){if(ev.target===this)closeOv("pullInOv");});
   if($("combineGo"))$("combineGo").addEventListener("click",doCombine);
   $("budNewBtn").addEventListener("click",function(){var n=$("budNewName").value.trim();var msg=$("budMsg");msg.className="msg";if(!n){msg.textContent="Name the new budget.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Creating…";askConfirm({title:"Create “"+n+"”?",msg:"A new private budget spreadsheet is created and the app reloads into it.",ok:"Create"}).then(function(ok){if(!ok){b.disabled=false;b.textContent="＋ Create budget";return;}budgetCreate(n).catch(function(e){msg.textContent="Could not create: "+(e.message||e);msg.className="msg bad";b.disabled=false;b.textContent="＋ Create budget";});});});
-  $("budInviteBtn").addEventListener("click",function(){var email=$("budEmail").value.trim();var msg=$("budShareMsg");msg.className="msg";if(!email){msg.textContent="Enter an email address.";msg.className="msg bad";return;}var b=this;b.disabled=true;b.textContent="Sending…";budgetInvite(sheetId,email).then(function(){msg.innerHTML="Invite sent to <b>"+esc(email)+"</b> ✓ Now tap <b>Copy the app invite link</b> and text it to them so they open it in the app.";$("budEmail").value="";}).catch(function(e){msg.textContent="Could not invite: "+(e.message||e);msg.className="msg bad";}).then(function(){b.disabled=false;b.textContent="Send invite (Editor)";});});
+  if($("budWizBtn"))$("budWizBtn").addEventListener("click",openShareWiz);
+  if($("swGrantBtn"))$("swGrantBtn").addEventListener("click",swGrant);
+  if($("swEmail"))$("swEmail").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();swGrant();}});
+  if($("swShareBtn"))$("swShareBtn").addEventListener("click",swShareLink);
+  if($("swInviteMoreBtn"))$("swInviteMoreBtn").addEventListener("click",openShareWiz);
+  if($("swDoneBtn"))$("swDoneBtn").addEventListener("click",function(){closeOv("shareWizOv");});
   $("budJoinBtn").addEventListener("click",function(){var url=joinLink();var msg=$("budShareMsg");msg.className="msg";try{navigator.clipboard.writeText(url);msg.innerHTML="App invite link copied ✓ &nbsp; <span style=\"color:var(--ink2);word-break:break-all\">"+esc(url)+"</span>";}catch(e){msg.innerHTML="Send them this link: <span style=\"word-break:break-all\">"+esc(url)+"</span>";}});
   $("budShareBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";budgetShareLink(sheetId).then(function(url){try{navigator.clipboard.writeText(url);$("budShareMsg").textContent="Raw spreadsheet link (Editor) copied ✓ — this opens the sheet itself, not the app.";}catch(e){$("budShareMsg").textContent=url;}$("budShareMsg").className="msg";}).catch(function(e){$("budShareMsg").textContent="Could not create link: "+(e.message||e);$("budShareMsg").className="msg bad";}).then(function(){b.disabled=false;b.textContent="Get the raw spreadsheet link";});});
   if($("starterCopyBtn"))$("starterCopyBtn").addEventListener("click",function(){var b=this;b.disabled=true;b.textContent="Preparing…";shareStarterCopy().then(function(){b.disabled=false;b.textContent="Share a blank starter copy (my categories, no data)";});});
@@ -5588,7 +6631,15 @@ function wire(){
   $("askOv").addEventListener("click",function(ev){if(ev.target===this)_askResolve((_askMode==="amount"||_askMode==="text")?null:false);});
   $("askInput").addEventListener("keydown",function(ev){if(ev.key==="Enter"){ev.preventDefault();$("askOk").click();}});
   Array.prototype.forEach.call(document.querySelectorAll("#stModeSeg button"),function(b){b.addEventListener("click",function(){state._stMode=this.getAttribute("data-sm");renderStress();renderFeas();});});
+  if($("decOpenBtn"))$("decOpenBtn").addEventListener("click",openDecisions);
+  if($("decRun"))$("decRun").addEventListener("click",decRun);
+  if($("decBack"))$("decBack").addEventListener("click",function(){decShow(1);});
+  if($("decAnother"))$("decAnother").addEventListener("click",function(){decShow(1);});
+  if($("decDone"))$("decDone").addEventListener("click",function(){closeOv("decOv");});
+  if($("reviewOpenBtn"))$("reviewOpenBtn").addEventListener("click",openNestReview);
+  if($("revClose"))$("revClose").addEventListener("click",function(){closeOv("revOv");});
   $("stStart").addEventListener("input",function(){var v=parseFloat(this.value.replace(/[^0-9.\-]/g,""))||0;state.meta.startCash=v;renderStress();clearTimeout(window._stT);window._stT=setTimeout(function(){writeMeta();},800);});
+  if($("stFloor"))$("stFloor").addEventListener("input",function(){var v=parseFloat(this.value.replace(/[^0-9.\-]/g,""))||0;state.meta.floor=v;renderStress();clearTimeout(window._stFT);window._stFT=setTimeout(function(){writeMeta();},800);});
   Array.prototype.forEach.call(document.querySelectorAll("#themeSeg button"),function(b){b.addEventListener("click",function(){applyTheme(this.getAttribute("data-th"));Array.prototype.forEach.call(document.querySelectorAll("#themeSeg button"),function(x){x.classList.toggle("on",x===b);});});});
   ["fAmount","dAmount","cAmt","gTarget","cCarry"].forEach(function(id){var el=$(id);if(el)el.addEventListener("blur",function(){fmtAmtBlur(this);});});
   $("nwUpdateOpen").addEventListener("click",openNWUpdate);
@@ -5613,12 +6664,13 @@ function wire(){
   $("cName").addEventListener("input",updateLYBtn);
   $("cLYBtn").addEventListener("click",applyLY);
   $("conFreq").addEventListener("change",conTypeUI);
+  if($("conCalendar"))$("conCalendar").addEventListener("change",conTypeUI);
   Array.prototype.forEach.call($("conMode").querySelectorAll(".chip"),function(b){b.addEventListener("click",function(){conPayMode=this.getAttribute("data-m");Array.prototype.forEach.call($("conMode").querySelectorAll(".chip"),function(x){x.classList.toggle("on",x===b);});conTypeUI();});});
   catTypeUI();conTypeUI();
   $("aAdd").addEventListener("click",function(){addNW("asset",$("aName"),$("aBal"),$("aAdd"),$("aMsg"),ASSET_START,ASSET_END,"account");});
   $("dbAdd").addEventListener("click",function(){addNW("debt",$("dbName"),$("dbBal"),$("dbAdd"),$("dbMsg"),DEBT_START,DEBT_END,"debt");});
   Array.prototype.forEach.call($("addMode").querySelectorAll("button"),function(b){b.addEventListener("click",function(){setMode(this.getAttribute("data-m"));});});
-  if($("fCatBtn"))$("fCatBtn").addEventListener("click",openCatPicker);
+  if($("fCatBtn"))$("fCatBtn").addEventListener("click",function(){if($("fCatHint"))$("fCatHint").style.display="none";openCatPicker();});
   if($("tourStartBtn"))$("tourStartBtn").addEventListener("click",function(){switchView("add");startTour(0);});
   if($("guideOpenBtn"))$("guideOpenBtn").addEventListener("click",openGuide);
   if($("guideClose"))$("guideClose").addEventListener("click",function(){closeOv("guideOv");});
@@ -5652,7 +6704,12 @@ function wire(){
   });
   $("fAmount").addEventListener("input",debounce(renderCatTbl,160));
   $("fDate").addEventListener("change",function(){renderCatTbl();try{renderRecent();}catch(e){}});
-  $("fCompany").addEventListener("input",debounce(function(){var v=($("fCompany").value||"").trim().toLowerCase();var cat=companyMap()[v];if(cat&&!$("fCategory").value&&state.cats.some(function(c){return c.name.toLowerCase()===cat.toLowerCase();})){setCategory(cat);}},200));
+  $("fCompany").addEventListener("input",debounce(function(){
+    var raw=($("fCompany").value||"").trim();if(!raw){if($("fCatHint"))$("fCatHint").style.display="none";return;}
+    if($("fCategory").value)return;                                  // never override a category you already chose
+    var cat=companyMap()[raw.toLowerCase()]||suggestCatFor(raw);     // exact match, then normalized ("Blue Bottle" ↔ "SQ *BLUE BOTTLE")
+    if(cat&&state.cats.some(function(c){return c.name.toLowerCase()===cat.toLowerCase();})){setCategory(cat);if($("fCatHint"))$("fCatHint").style.display="";}
+  },200));
   $("dAmount").addEventListener("input",debounce(renderDepTbl,160));
   if($("dDate"))$("dDate").addEventListener("change",function(){renderDepTbl();try{renderRecent();}catch(e){}});
   $("signout").addEventListener("click",function(){
