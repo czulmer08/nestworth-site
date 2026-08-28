@@ -92,6 +92,11 @@ try{
   .psub:first-child{border-top:0;margin-top:0;padding-top:0}
   .psub .eyebrow{margin:0 0 10px}
   .psub .hintline{margin-top:6px}
+  /* hide (✕) a used-but-unbudgeted category from the picker; restore chips bring it back */
+  .tilewrap{position:relative;display:block}
+  .tilewrap .picktile{width:100%}
+  .tilehide{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);font-size:15px;line-height:20px;text-align:center;padding:0;cursor:pointer;box-shadow:var(--shadow);z-index:2}
+  .pick-unhide{opacity:.72}
   /* the current budget row shows its spreadsheet actions inline as links */
   .budcur{padding:2px 0}
   .budcur .cn{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
@@ -975,6 +980,18 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.13.2 — Aug 28, 2026 · Build 20260828.2
+//     • Selecting an itemized bill on the Add screen: the table below filters to that bill (name-matched, so it catches
+//       both bill-tagged rows and legacy parent+company rows), and the feedback line shows the BILL's own budget vs spent.
+//   v0.13.1 — Aug 28, 2026 · Build 20260828.1
+//     • Itemized bill logging: picking a bill (e.g. Utilities: Phone Bill) now tags the row with the BILL as its category
+//       (it still rolls up to the parent via name-matching), leaving Company free for the merchant — instead of forcing
+//       the parent as the category and stuffing the bill into Company.
+//     • Month view folds bill-tagged spend into its parent, so bills no longer show as separate $0-budget lines.
+//   v0.13.0 — Aug 27, 2026 · Build 20260827.27
+//     • Hide categories from the picker: tap the ✕ on any used-but-unbudgeted category to stop suggesting it (in the app
+//       picker AND the sheet dropdown). Transactions/history are untouched; a "Hidden · tap to restore" row brings it back.
+//       Hidden list is saved per budget (meta.hiddenCats) and never resets on a new year.
 //   v0.12.12 — Aug 27, 2026 · Build 20260827.26
 //     • Removed "Copy sheet link" from the current budget's actions (link-copying is for sharing, which lives under Share
 //       this budget). Current budget now shows: Open spreadsheet, Export entries (CSV), Tidy company names.
@@ -1059,8 +1076,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.12.12"; // SemVer — what changed functionally (display only)
-var BUILD="20260827.26"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.13.2"; // SemVer — what changed functionally (display only)
+var BUILD="20260828.2"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
 var CAT_START=5, CAT_END=34, CON_START=39, CON_END=43; // CAT_END/CON_START/CON_END are re-detected from the sheet on each load (see detectLayout)
 var LAYOUT_SCAN=400, GROW_BY=10; // how far down column A to scan for section markers; how many rows to add when a section fills
@@ -1744,9 +1761,10 @@ function normMeta(o){o=o||{};
   var carry=isObj(o.carry)?o.carry:{}; // per-category "banked before this year" overrides (lowercased name → number)
   var gkey=(o&&typeof o.gkey==="string")?o.gkey:""; // optional: Gemini receipt-scanning key, saved with the budget so it survives device storage being cleared
   var prefs=isObj(o.prefs)?o.prefs:{}; // per-profile Add-form field prefs (e.g. show Payee / Reimbursed) — travels with the budget
-  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
+  var hiddenCats=Array.isArray(o.hiddenCats)?o.hiddenCats.filter(function(x){return x!=null&&(""+x).trim();}):[]; // categories hidden from the picker (still in history)
+  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:""};}
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -1787,6 +1805,7 @@ async function writeMeta(){
       goals:_mergeArr(_metaBase.goals,state.meta.goals,remote.goals),
       payees:_mergeArr(_metaBase.payees,state.meta.payees,remote.payees,function(x){return (""+x).toLowerCase();}),
       prefs:_mergeMap(_metaBase.prefs||{},state.meta.prefs||{},remote.prefs||{}),
+      hiddenCats:_mergeArr(_metaBase.hiddenCats||[],state.meta.hiddenCats||[],remote.hiddenCats||[],function(x){return (""+x).toLowerCase();}),
       gkey:(state.meta.gkey!==_metaBase.gkey)?state.meta.gkey:remote.gkey,
       startCash:(state.meta.startCash!==_metaBase.startCash)?state.meta.startCash:remote.startCash,
       startYM:(state.meta.startYM!==_metaBase.startYM)?state.meta.startYM:remote.startYM,
@@ -2461,8 +2480,8 @@ function ddList(){
   var seen={},cats=["Deposit"];seen.deposit=1;
   function addCat(nm){nm=(""+nm).trim();if(nm&&!seen[nm.toLowerCase()]){seen[nm.toLowerCase()]=1;cats.push(nm);}}
   (state.cats||[]).forEach(function(c){addCat(c.name);catBills(c.name).forEach(addCat);});
-  // Also every category already typed into the ledger (ad-hoc, not yet budgeted) so the SHEET's own dropdown matches the app's.
-  try{ledgerCatsUsed().forEach(addCat);}catch(e){}
+  // Also every category already typed into the ledger (ad-hoc, not yet budgeted) so the SHEET's own dropdown matches the app's — minus any you've hidden.
+  try{ledgerCatsUsed().forEach(function(n){if(!catHidden(n.toLowerCase()))addCat(n);});}catch(e){}
   var cs={},cons=[];
   function addCon(nm){nm=(""+nm).trim();if(nm&&!cs[nm.toLowerCase()]){cs[nm.toLowerCase()]=1;cons.push(nm);}}
   (state.cons||[]).forEach(function(c){addCon(c.name);});
@@ -3620,6 +3639,11 @@ function showPullBar(){
   document.getElementById("pullNow").addEventListener("click",function(){var bb=document.getElementById("pullInBar");if(bb)bb.remove();openPullIn();});
   document.getElementById("pullX").addEventListener("click",function(){_pullDismissed[bYear()]=1;var bb=document.getElementById("pullInBar");if(bb)bb.remove();});
 }
+// Hide a used-but-unbudgeted category from the picker/dropdown suggestions (the transactions + history stay; it's just not
+// suggested). Per budget, synced via meta. Reversible from the "Hidden" row in the picker.
+function catHidden(nl){var h=(state.meta&&state.meta.hiddenCats)||[];for(var i=0;i<h.length;i++)if((""+h[i]).toLowerCase()===nl)return true;return false;}
+function hideCat(name){try{if(!state.meta)return;if(!state.meta.hiddenCats)state.meta.hiddenCats=[];if(!catHidden((""+name).toLowerCase()))state.meta.hiddenCats.push(name);}catch(e){}try{writeMeta();}catch(e){}try{syncDropdowns(true);}catch(e){}try{renderCatPicker(($("catPickSearch")&&$("catPickSearch").value)||"");}catch(e){}}
+function unhideCat(name){try{if(!state.meta||!state.meta.hiddenCats)return;var nl=(""+name).toLowerCase();state.meta.hiddenCats=state.meta.hiddenCats.filter(function(x){return (""+x).toLowerCase()!==nl;});}catch(e){}try{writeMeta();}catch(e){}try{syncDropdowns(true);}catch(e){}try{renderCatPicker(($("catPickSearch")&&$("catPickSearch").value)||"");}catch(e){}}
 function renderCatPicker(q){
   var raw=(""+(q||"")).trim();q=raw.toLowerCase();var body=$("catPickBody");if(!body)return;
   var match=function(s){return !q||(""+s).toLowerCase().indexOf(q)>=0;};
@@ -3628,7 +3652,7 @@ function renderCatPicker(q){
   // names that are itemized bills already get their own "<parent> bills" section below — don't also clutter Frequent/All with them
   var billNames={};state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items)cfg.items.forEach(function(it){if(it&&it.name)billNames[it.name.toLowerCase()]=1;});});
   var names=state.cats.map(function(c){return c.name;}).filter(function(n){return !billNames[n.toLowerCase()];});
-  ledgerCatsUsed().forEach(function(n){var nl=n.toLowerCase();if(!budgeted[nl]&&!billNames[nl])names.push(n);});
+  ledgerCatsUsed().forEach(function(n){var nl=n.toLowerCase();if(!budgeted[nl]&&!billNames[nl]&&!catHidden(nl))names.push(n);});
   var h="";var any=false;
   // Shortcut: log this spend as money pulled FROM a savings goal (a goal withdrawal), like the old app.
   var goals=(state.goals||[]).filter(function(g){return g&&g.name;});
@@ -3641,9 +3665,18 @@ function renderCatPicker(q){
   var top=topCats().filter(function(n){return names.indexOf(n)>=0&&match(n);});
   if(top.length){any=true;h+='<div class="picksec">Frequent</div><div class="pickchips">';top.forEach(function(n){h+='<button type="button" class="pickchip pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button>';});h+='</div>';}
   var all=names.slice().sort(function(a,b){return a.toLowerCase()<b.toLowerCase()?-1:1;}).filter(match);
-  if(all.length){any=true;h+='<div class="picksec">All</div><div class="pickgrid">';all.forEach(function(n){h+='<button type="button" class="picktile pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button>';});h+='</div>';}
+  if(all.length){any=true;h+='<div class="picksec">All</div><div class="pickgrid">';all.forEach(function(n){
+    if(!budgeted[n.toLowerCase()]){ // from your history, not in the budget → offer an ✕ to hide it from suggestions
+      h+='<span class="tilewrap"><button type="button" class="picktile pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button><button type="button" class="tilehide" data-n="'+esc(n)+'" aria-label="Hide from list">×</button></span>';
+    }else{
+      h+='<button type="button" class="picktile pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button>';
+    }
+  });h+='</div>';}
   state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items){var bills=cfg.items.filter(function(it){return it.name&&match(it.name);});if(bills.length){any=true;h+='<div class="picksec">'+esc(c.name)+' bills</div><div class="pickgrid">';bills.forEach(function(it){h+='<button type="button" class="picktile bill pick-bill" data-c="'+esc(c.name)+'" data-b="'+esc(it.name)+'">'+esc(it.name)+'</button>';});h+='</div>';}}});
   if(!any&&!raw)h+='<div class="pickempty">No categories yet.</div>';
+  // Hidden categories — tap to bring one back into the suggestions
+  var hid=((state.meta&&state.meta.hiddenCats)||[]).filter(match).sort(function(a,b){return (""+a).toLowerCase()<(""+b).toLowerCase()?-1:1;});
+  if(hid.length){h+='<div class="picksec">Hidden · tap to restore</div><div class="pickchips">'+hid.map(function(n){return '<button type="button" class="pickchip pick-unhide" data-n="'+esc(n)+'">'+esc(n)+' ↩</button>';}).join("")+'</div>';}
   h+='<div style="height:10px"></div><button type="button" class="pickchip" id="pickToBudget" style="width:100%">➕ Add / manage in Budget</button>';
   body.innerHTML=h;wirePicker();
 }
@@ -3651,7 +3684,9 @@ function wirePicker(){
   var body=$("catPickBody");if(!body)return;
   Array.prototype.forEach.call(body.querySelectorAll(".pick-cat"),function(b){b.addEventListener("click",function(){setCategory(this.getAttribute("data-n"));closeOv("catPickOv");});});
   Array.prototype.forEach.call(body.querySelectorAll(".pick-new"),function(b){b.addEventListener("click",function(){setCategory(this.getAttribute("data-n"));closeOv("catPickOv");});});
-  Array.prototype.forEach.call(body.querySelectorAll(".pick-bill"),function(b){b.addEventListener("click",function(){var c=this.getAttribute("data-c"),bl=this.getAttribute("data-b");if($("fCompany")&&!$("fCompany").value.trim())$("fCompany").value=bl||"";setCategory(c);closeOv("catPickOv");});});
+  Array.prototype.forEach.call(body.querySelectorAll(".tilehide"),function(b){b.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();hideCat(this.getAttribute("data-n"));});});
+  Array.prototype.forEach.call(body.querySelectorAll(".pick-unhide"),function(b){b.addEventListener("click",function(){unhideCat(this.getAttribute("data-n"));});});
+  Array.prototype.forEach.call(body.querySelectorAll(".pick-bill"),function(b){b.addEventListener("click",function(){var bl=this.getAttribute("data-b");setCategory(bl);closeOv("catPickOv");});});// tag the row with the BILL itself; it rolls up to its parent via name-matching, and Company stays free for the merchant
   var pb=$("pickToBudget");if(pb)pb.addEventListener("click",function(){closeOv("catPickOv");switchView("budget");});
   var gb=$("pickGoalBtn");if(gb)gb.addEventListener("click",renderGoalSubPicker);
 }
@@ -3884,6 +3919,9 @@ function renderRecent(){
   var fCat=depMode?"":((($("fCategory")&&$("fCategory").value)||"").trim());if(fCat==="__budget__")fCat="";
   var fSrc=depMode?((($("dSource")&&$("dSource").value)||"").trim()):"";if(fSrc==="__budget__")fSrc="";
   var filt=fCat||fSrc;
+  // if the picked category is actually an itemized bill, match by name so the table catches every entry for that bill
+  var fCatL=fCat?fCat.toLowerCase():"", billParentL="";
+  if(fCat){(state.cats||[]).forEach(function(c){if(catBills(c.name).some(function(bn){return (""+bn).toLowerCase()===fCatL;}))billParentL=c.name.toLowerCase();});}
   // When a category/source is picked, this list matches the feedback line above it — scoped to that entry's MONTH (from the
   // date field), so it doesn't show other months. With nothing picked, it's the general all-time recent list.
   var fy=curYear(),fm=curMonth();
@@ -3901,7 +3939,8 @@ function renderRecent(){
       if(_re4!=="deposit")continue;
       if(fSrc&&(""+((r&&r[3])||"")).trim().toLowerCase()!==fSrc.toLowerCase())continue;
     }else if(fCat){
-      if(_re4!==fCat.toLowerCase())continue;
+      if(billParentL){if(!_billRowMatch(r,billParentL,fCatL))continue;} // itemized bill → include parent+company & "↳" tags too
+      else if(_re4!==fCatL)continue;
     }
     if(filt&&(Number(r[0])!==fy||Number(r[1])!==fm))continue; // scope to the feedback line's month
     var iso=serialToISO(r&&r[2])||((Number(r&&r[0])||0)+"-"+pad2(Number(r&&r[1])||0)+"-00");
@@ -4106,7 +4145,9 @@ function renderMonthDetail(mo,yr){
   var incP=0;if(hasBudget)state.cons.forEach(function(c){incP+=(c.bud12&&c.bud12[mo-1])||0;});
   var expP=0;if(hasBudget)state.cats.forEach(function(c){expP+=(c.bud12&&c.bud12[mo-1])||0;});
   var lines=[];
-  if(hasBudget)state.cats.forEach(function(c){var b=(c.bud12&&c.bud12[mo-1])||0;var lk=c.name.toLowerCase();var a=actExp[lk]||0;if(b<=0.005&&a<=0.005)return;lines.push({name:c.name,bud:r2(b),act:r2(a),over:r2(a-b)});delete actExp[lk];});
+  if(hasBudget)state.cats.forEach(function(c){var b=(c.bud12&&c.bud12[mo-1])||0;var lk=c.name.toLowerCase();var a=actExp[lk]||0;delete actExp[lk];
+    catBills(c.name).forEach(function(bn){var bl=(""+bn).toLowerCase();a+=(actExp[bl]||0)+(actExp["↳ "+bl]||0);delete actExp[bl];delete actExp["↳ "+bl];}); // fold itemized bill spend (tagged as the bill name) into its parent so bills don't show as separate $0-budget lines
+    if(b<=0.005&&a<=0.005)return;lines.push({name:c.name,bud:r2(b),act:r2(a),over:r2(a-b)});});
   // leftover unbudgeted categories that had spend
   for(var k in actExp){if(actExp[k]>0.005)lines.push({name:actDisp[k]||k,bud:0,act:r2(actExp[k]),over:r2(actExp[k])});}
   lines.sort(function(x,z){return z.over-x.over;});
@@ -4423,14 +4464,25 @@ function renderCatTbl(){
   var cat=(($("fCategory")&&$("fCategory").value)||"").trim();
   if(!cat||cat==="__budget__"){el.innerHTML="";return;}
   var c=state.cats.filter(function(x){return x.name.toLowerCase()===cat.toLowerCase();})[0];
+  // itemized bill? find its parent + item so the feedback shows the BILL's own budget/spent (matched by name)
+  var billParent=null,billItem=null;
+  if(!c){(state.cats||[]).forEach(function(pc){var cfg=catCfg(pc.name);if(cfg&&cfg.type==="itemized"&&cfg.items)cfg.items.forEach(function(it){if(it&&it.name&&it.name.toLowerCase()===cat.toLowerCase()){billParent=pc.name;billItem=it;}});});}
   var y=curYear(),m=curMonth(),dv=($("fDate")&&$("fDate").value)||"";var offMonth=false,offYear=false;
   if(/^\d{4}-\d{2}/.test(dv)){var dy=+dv.slice(0,4),dm=+dv.slice(5,7);if(dm>=1&&dm<=12&&(dy!==y||dm!==m)){y=dy;m=dm;offMonth=true;offYear=(dy!==curYear());}}
   var when=offMonth?("in "+MONTHS[m-1]+(offYear?(" "+y):"")):"this month";
-  var rows=state.rows.filter(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();return e===cat.toLowerCase()&&e!=="deposit"&&Number(r[0])===y&&Number(r[1])===m;});
-  var spent=(c&&!offMonth)?c.mspent:rows.reduce(function(a,r){return a+(Number(r[6])||0);},0);
-  var bud=(c&&!offYear)?(offMonth?((c.bud12&&c.bud12[m-1])||0):c.mbud):0;
+  var spent,bud,bk=0,annualRem=0,annualTot=0;
+  if(billItem){
+    spent=billSpentMonth(billParent,cat,y,m);
+    bud=offYear?0:(billMonths([billItem])[m-1]||0);
+    annualTot=billAnnual(billItem);annualRem=r2(annualTot-billSpentYr(billParent,cat));
+  }else{
+    var rows=state.rows.filter(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();return e===cat.toLowerCase()&&e!=="deposit"&&Number(r[0])===y&&Number(r[1])===m;});
+    spent=(c&&!offMonth)?c.mspent:rows.reduce(function(a,r){return a+(Number(r[6])||0);},0);
+    bud=(c&&!offYear)?(offMonth?((c.bud12&&c.bud12[m-1])||0):c.mbud):0;
+    bk=(c&&!offMonth&&catRoll(c.name)==="envelope")?catBalance(c):0;
+    annualRem=c?c.remaining:0;annualTot=c?c.annual:0;
+  }
   var typed=typedAmt("fAmount");
-  var bk=(c&&!offMonth&&catRoll(c.name)==="envelope")?catBalance(c):0;
   var h='<div class="ch"><span>'+esc(cat)+' · '+when+'</span><b>'+money(spent)+(bud>0?(" / "+money(bud)):"")+'</b></div>';
   var fb="";
   if(bud>0){
@@ -4439,11 +4491,11 @@ function renderCatTbl(){
     if(typed>0){var base=lft+bk;var after=base-typed;fb='<b>'+money(base)+'</b> → <span class="'+(after<-0.005?"neg":"pos")+'">'+money(after)+'</span> '+(after<-0.005?"over in ":"left in ")+esc(cat)+(bkTxt?(' ('+bkTxt+')'):(' '+when));}
     else if(Math.abs(bk)>0.005){var av=lft+bk;fb=(av>=-0.005?('<span class="pos">'+money(av)+'</span> available in '+esc(cat)):('<span class="neg">'+money(-av)+'</span> over in '+esc(cat)))+' · '+bkTxt;}
     else fb=(lft>=-0.005?('<span class="pos">'+money(lft)+'</span> left in '+esc(cat)+' '+when+' (of '+money(bud)+')'):('<span class="neg">'+money(-lft)+'</span> over in '+esc(cat)+' '+when));
-    fb+=' &nbsp;·&nbsp; annual left '+money(c?c.remaining:0);
-  } else if(c&&c.annual>0.005){
-    var yleft=c.remaining;
+    fb+=' &nbsp;·&nbsp; annual left '+money(annualRem);
+  } else if(annualTot>0.005){
+    var yleft=annualRem;
     if(typed>0){var ya=yleft-typed;fb='<b>'+money(yleft)+'</b> → <span class="'+(ya<-0.005?"neg":"pos")+'">'+money(ya)+'</span> left in '+esc(cat)+' this year';}
-    else fb=(yleft>=-0.005?('<span class="pos">'+money(yleft)+'</span> left in '+esc(cat)+' this year (of '+money(c.annual)+')'):('<span class="neg">'+money(-yleft)+'</span> over in '+esc(cat)+' this year'));
+    else fb=(yleft>=-0.005?('<span class="pos">'+money(yleft)+'</span> left in '+esc(cat)+' this year (of '+money(annualTot)+')'):('<span class="neg">'+money(-yleft)+'</span> over in '+esc(cat)+' this year'));
   } else { fb=(spent>0?(money(spent)+' spent · no budget set '+when):'No budget set for '+esc(cat)+' '+when); }
   h+='<div class="fbline">'+fb+'</div>';
   // (the per-category transaction list lives in the filtered "Recent" card below — no need to duplicate it here)
