@@ -283,7 +283,7 @@ try{
   .goal-hit .gh-txt b{font-style:normal}
   .rem-note{font-size:13.5px;line-height:1.45;color:var(--ink2);margin:2px 0 12px;padding-bottom:11px;border-bottom:1px solid var(--line)}
   .wren-nest{background-image:url("wren/nest.png");background-size:contain;background-position:center bottom;background-repeat:no-repeat}
-  .tour-wren{width:44px;height:44px;flex:0 0 auto}
+  .tour-wren{width:44px;height:44px;flex:0 0 auto;background-size:contain;background-position:center bottom;background-repeat:no-repeat}
   .wren-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:18px 16px 22px;color:var(--ink2)}
   .wren-empty .wf{width:150px;height:124px}
   .wren-empty .wm{font-family:"Wren Body",-apple-system,system-ui,sans-serif;font-style:italic;font-size:15.5px;color:var(--ink2);line-height:1.45;max-width:250px}
@@ -295,7 +295,7 @@ try{
   #wrenFab.open .wf-q{display:none}
   #wrenFab .wf-q{font-size:23px;font-weight:800;line-height:1}
   #wrenFab .wf-ic{width:42px;height:42px;flex:0 0 auto}
-  #wrenFab.gone{transform:translateX(120px);opacity:0;pointer-events:none}
+  #wrenFab.gone{pointer-events:none}
   #wrenFab:active{transform:translateY(1px)}
   .wrencard{display:flex;flex-direction:column;max-height:88vh;padding:0;overflow:hidden;background:var(--wren-bg);font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   .wrencard .ovhdr{margin:0;background:var(--wren-head);color:#fff;padding:15px 16px;display:flex;align-items:center;gap:11px;border-radius:18px 18px 0 0}
@@ -306,7 +306,13 @@ try{
   .wren-x{background:transparent;border:0;color:#fff;font-size:19px;font-weight:600;line-height:1;cursor:pointer;padding:6px;opacity:.9}
   .wren-x:active{transform:scale(.9)}
   #wrenFab .wf-tx{font-family:"Wren Script","Segoe Script",cursive;font-weight:700;font-size:17px;line-height:1;padding-right:3px;white-space:nowrap}
-  #wrenOpenBtn{font-family:"Wren Script","Segoe Script",cursive;font-weight:700;font-size:28px;line-height:1;letter-spacing:0}
+  #wrenOpenBtn{font-family:"Wren Script","Segoe Script",cursive;font-weight:700;font-size:23px;line-height:1;letter-spacing:0;background:linear-gradient(180deg,#EAD3A0,#DCBE85);color:#3A4A38;padding:8px 14px;margin-top:10px}
+  .gs-actions{display:flex;gap:8px;margin-top:8px}
+  .gs-mini{flex:1;background:transparent;border:1px solid var(--line);color:var(--green);border-radius:11px;padding:9px 8px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .gs-mini:active{transform:translateY(1px)}
+  .gs-tog{margin-top:12px}
+  .gs-tog label:first-child{flex:1 1 auto;white-space:nowrap}
+  .gs-hi{width:34px;height:34px;flex:0 0 auto;background-size:contain;background-position:center bottom;background-repeat:no-repeat}
   .wrenlog{flex:1;overflow:auto;padding:16px 16px 6px;display:flex;flex-direction:column;gap:14px;min-height:200px}
   .wmsg{display:flex;gap:9px;align-items:flex-end;max-width:86%;animation:wrise .28s cubic-bezier(.22,1,.36,1) both}
   @keyframes wrise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
@@ -553,7 +559,7 @@ try{
 
   <div class="view on" id="view-add">
     <div class="card" id="firstRunCard" style="display:none">
-      <p class="eyebrow">Welcome to NestWorth 👋</p>
+      <p class="eyebrow">Welcome to NestWorth</p>
       <div class="hintline" style="text-align:left;margin-top:0">Start by setting up a budget — pick a few categories and add your income. It takes about a minute, and then logging expenses here will track against it.</div>
       <button class="addbtn" id="firstRunSetup" style="margin-top:12px">✨ Set up my budget</button>
       <button type="button" class="gbtn" id="firstRunImport" style="margin-top:8px;width:100%">📥 I've been tracking already — import it</button>
@@ -664,16 +670,18 @@ try{
 
   <div class="view" id="view-settings">
     <div class="setsec"><span class="settitle">Getting started</span><span class="hr"></span></div>
-    <div class="card setintro">
-      <div class="gs-head"><div class="guide-wren wren-guiding" aria-hidden="true"></div><div class="gs-txt">
-      <div class="eyebrow" style="margin:0">Meet Wren, your guide around the Nest</div>
-      <div class="hintline" style="text-align:left;margin:6px 0 2px">Ask Wren how to do anything in NestWorth and she'll explain it and take you right there. Prefer to explore on your own? Take the quick tour or browse the full <b>Feature guide</b>.</div>
-      </div></div>
+    <div class="card setintro acc">
+      <button type="button" class="acc-hd" data-acc="getting-started" aria-expanded="false"><span class="gs-hi wren-guiding" aria-hidden="true"></span><span class="eyebrow" style="margin:0;flex:1">Meet Wren, your guide around the Nest</span><span class="acc-chev">&#8250;</span></button>
+      <div class="acc-bd" hidden>
+      <div class="hintline" style="text-align:left;margin:2px 0 2px">Ask Wren how to do anything in NestWorth and she'll explain it and take you right there. Prefer to explore on your own? Take the quick tour or browse the full <b>Feature guide</b>.</div>
       <button class="addbtn" id="wrenOpenBtn">Ask Wren</button>
-      <button class="addbtn" id="tourStartBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">▶ Take the guided tour</button>
-      <button class="addbtn" id="guideOpenBtn" style="background:transparent;border:1px solid var(--line);color:var(--green)">📖 Open the Feature guide</button>
-      <div class="row" style="margin-top:12px"><label>Show the floating <b>?</b> helper</label><label class="tog"><input type="checkbox" id="prefFab"><span class="tog-t"></span></label></div>
-      <div class="hintline" style="text-align:left">The little <b>?</b> in the corner opens Wren. Swipe it away to hide it for now, or turn it off here to keep it hidden.</div>
+      <div class="gs-actions">
+        <button class="gs-mini" id="tourStartBtn">▶ Guided tour</button>
+        <button class="gs-mini" id="guideOpenBtn">📖 Feature guide</button>
+      </div>
+      <div class="row gs-tog"><label>Show the floating <b>?</b> helper</label><label class="tog"><input type="checkbox" id="prefFab"><span class="tog-t"></span></label></div>
+      <div class="hintline" style="text-align:left;margin-top:6px">Swipe it away to hide it for now, or turn it off to keep it hidden.</div>
+      </div>
     </div>
     <div class="setsec"><span class="settitle">Budgets & sharing</span><span class="hr"></span></div>
     <div class="card acc">
@@ -833,7 +841,7 @@ try{
 
 <div id="tourWrap"><div id="tourHole"></div><div id="tourTip">
   <button type="button" class="tskip" id="tourSkip">Skip tour</button>
-  <div class="tour-hd"><span class="tour-wren wren-full" aria-hidden="true"></span><span class="teye" id="tourEye">Wren</span></div>
+  <div class="tour-hd"><span class="tour-wren wren-full" id="tourWren" aria-hidden="true"></span><span class="teye" id="tourEye">Wren</span></div>
   <h4 id="tourTitle"></h4>
   <p id="tourBody"></p>
   <div class="tourfoot">
@@ -1144,6 +1152,19 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.30.0 — Aug 28, 2026 · Build 20260828.45
+//     • Category picker: ad-hoc/history categories now appear only if they were used THIS year — old one-off categories
+//       from prior years no longer clutter the list. Your set-up budget categories always show (even before their first
+//       transaction of the year). "Frequent" reflects this year's activity too. (Itemized parents/bills were already de-duped.)
+//     • Settings › Getting started card is now collapsible (opens by default the first time, then remembers) — shorter
+//       "Ask Wren" button, and the "Show the floating ? helper" toggle sits on one line. Overall a much tighter card.
+//   v0.29.0 — Aug 28, 2026 · Build 20260828.44
+//     • Settings › Getting started: the "Ask Wren" button now wears the honey color; the tour + guide buttons are a
+//       compact side-by-side pair. Dropped the 👋 from the Welcome copy (here and in the tour).
+//     • Guided tour: Wren now changes pose on every step, and there's a new "Profiles: share & switch" step covering
+//       sharing your sheet with family and switching between profiles.
+//     • Fixed the floating ? swipe-to-dismiss — it now tracks the drag on the document (so it keeps working once your
+//       finger leaves the small button) and dismisses with a flick in either direction.
 //   v0.28.0 — Aug 28, 2026 · Build 20260828.43
 //     • Slimmed the small-display Wren art (chat avatars, the ? / Ask Wren button, guide + celebration poses) to ~4x their
 //       on-screen size — visually identical on retina, but ~1MB less to cache on first install (~3.5M → ~2.5M). The full-size
@@ -1389,8 +1410,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.28.0"; // SemVer — what changed functionally (display only)
-var BUILD="20260828.43"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.30.0"; // SemVer — what changed functionally (display only)
+var BUILD="20260828.45"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 var BUDCOLS=["E","G","I","K","M","O","Q","S","U","W","Y","AA"];
@@ -3738,7 +3759,8 @@ function wireAccordions(){
   Array.prototype.forEach.call(hds,function(h){
     var bd=h.nextElementSibling;if(!bd||!bd.classList.contains("acc-bd"))return;
     var key=h.getAttribute("data-acc");
-    var open=false;try{open=localStorage.getItem("nw_acc_"+key)==="1";}catch(e){}
+    var stored=null;try{stored=localStorage.getItem("nw_acc_"+key);}catch(e){}
+    var open=(stored===null)?(key==="getting-started"):(stored==="1"); // Getting started opens by default the first time, then remembers
     accSet(h,bd,open);
     h.addEventListener("click",function(){var o=h.getAttribute("aria-expanded")!=="true";accSet(h,bd,o);try{localStorage.setItem("nw_acc_"+key,o?"1":"0");}catch(e){}});
   });
@@ -3842,7 +3864,7 @@ async function deleteEdit(){
     }catch(err){msg.textContent="Could not delete: "+(err.message||err);msg.className="msg bad";b.disabled=false;b.textContent="Delete entry";}
   }finally{deleteEdit._busy=false;}
 }
-function topCats(){var cnt={};state.rows.forEach(function(r){var c=(""+((r&&r[4])||"")).trim();if(c&&c.toLowerCase()!=="deposit"&&!isGoalName(c))cnt[c]=(cnt[c]||0)+1;});return Object.keys(cnt).map(function(k){return {name:k,n:cnt[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,5).map(function(x){return x.name;});}
+function topCats(year){var cnt={};state.rows.forEach(function(r){if(year&&Number(r&&r[0])!==year)return;var c=(""+((r&&r[4])||"")).trim();if(c&&c.toLowerCase()!=="deposit"&&!isGoalName(c))cnt[c]=(cnt[c]||0)+1;});return Object.keys(cnt).map(function(k){return {name:k,n:cnt[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,5).map(function(x){return x.name;});}
 function incomeThisMonth(){var y=curYear(),m=curMonth(),t=0;state.rows.forEach(function(r){if((""+((r&&r[4])||"")).trim().toLowerCase()==="deposit"&&Number(r[0])===y&&Number(r[1])===m)t+=Number(r[6])||0;});return t;}
 // The Category field is a tap-to-open picker (search + Frequent chips + All grid + bills grouped under each itemized category).
 function fillCatSelect(){updateCatBtn();} // called by renderAll — just refresh the button label to the current selection
@@ -3981,7 +4003,7 @@ function renderCatPicker(q){
   // the title) — so neither clutters Frequent/All.
   var billNames={},parents={};state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.length){parents[c.name.toLowerCase()]=1;cfg.items.forEach(function(it){if(it&&it.name)billNames[it.name.toLowerCase()]=1;});}});
   var names=state.cats.map(function(c){return c.name;}).filter(function(n){var nl=n.toLowerCase();return !billNames[nl]&&!parents[nl];});
-  ledgerCatsUsed().forEach(function(n){var nl=n.toLowerCase();if(!budgeted[nl]&&!billNames[nl]&&!parents[nl]&&!catHidden(nl))names.push(n);});
+  ledgerCatsUsed(curYear()).forEach(function(n){var nl=n.toLowerCase();if(!budgeted[nl]&&!billNames[nl]&&!parents[nl]&&!catHidden(nl))names.push(n);}); // ad-hoc/history categories only if used THIS year (budget categories always show, above)
   var h="";var any=false;
   // Shortcut: log this spend as money pulled FROM a savings goal (a goal withdrawal), like the old app.
   var goals=(state.goals||[]).filter(function(g){return g&&g.name;});
@@ -3991,7 +4013,7 @@ function renderCatPicker(q){
   var exact=names.some(function(n){return n.toLowerCase()===q;})||!!parents[q]||isBill||q==="deposit"||goals.some(function(g){return g.name.toLowerCase()===q;});
   if(raw&&!exact)h+='<button type="button" class="pickchip pick-new" data-n="'+esc(raw)+'" style="width:100%;margin-bottom:10px">➕ Use &ldquo;'+esc(raw)+'&rdquo; as a new category</button>';
   if(!names.length&&!Object.keys(parents).length){body.innerHTML=h+(raw?'':'<div class="pickempty">Type a category name to start — you can build its budget later.</div>');wirePicker();return;}
-  var top=topCats().filter(function(n){return names.indexOf(n)>=0&&match(n);});
+  var top=topCats(curYear()).filter(function(n){return names.indexOf(n)>=0&&match(n);});
   if(top.length){any=true;h+='<div class="picksec">Frequent</div><div class="pickchips">';top.forEach(function(n){h+='<button type="button" class="pickchip pick-cat" data-n="'+esc(n)+'">'+esc(n)+'</button>';});h+='</div>';}
   var all=names.slice().sort(function(a,b){return a.toLowerCase()<b.toLowerCase()?-1:1;}).filter(match);
   if(all.length){any=true;h+='<div class="picksec">All</div><div class="pickgrid">';all.forEach(function(n){
@@ -5243,13 +5265,14 @@ function setMode(m){Array.prototype.forEach.call($("addMode").querySelectorAll("
 
 /* ===== Guided tour (first-run coach marks) + Feature guide ===== */
 var TOUR=[
- {eye:"Welcome",v:"add",sel:null,title:"Welcome to NestWorth 👋",body:"A private budget backed by your own Google Sheet — nothing leaves your account. Here's a 60-second tour of the essentials."},
- {eye:"Add",v:"add",sel:'.tabbar button[data-v="add"]',title:"Log money in seconds",body:"The Add tab is home base. Log an expense or a deposit: pick a category, type the amount, tap Add. Your recent entries show right below so a slip is easy to fix."},
- {eye:"Categories",v:"add",sel:"#fCatBtn",scroll:true,title:"Categories & itemized bills",body:"Tap here to choose a category. Big ones like Utilities can hold itemized bills (Phone, Water…) tucked underneath — pick the bill and it's tracked on its own while still rolling up to the parent."},
- {eye:"Month",v:"month",sel:'.tabbar button[data-v="month"]',title:"See where the money went",body:"The Month tab shows every category's spending against its budget — itemized bills folded neatly into their parent — so what's over the line is obvious at a glance."},
- {eye:"Budget",v:"budget",sel:'.tabbar button[data-v="budget"]',title:"Plan what you'll spend & earn",body:"Set a monthly amount per category, and add income — including weekly or every-2-weeks paychecks. Save-up goals and envelope carryover live here too."},
- {eye:"Net worth",v:"worth",sel:'.tabbar button[data-v="worth"]',title:"Watch your net worth grow",body:"Track balances across your accounts over time, so the big picture — not just this month — stays in view."},
- {eye:"Settings",v:"settings",sel:'.tabbar button[data-v="settings"]',title:"Everything else lives here",body:"Share with family, import past expenses, scan receipts, optimize the sheet — and reopen this tour or the full Feature guide anytime from the top of Settings. That's it — enjoy!"}
+ {eye:"Welcome",v:"add",sel:null,pose:"wren-happy",title:"Welcome to NestWorth",body:"A private budget backed by your own Google Sheet — nothing leaves your account. Here's a 60-second tour of the essentials."},
+ {eye:"Add",v:"add",sel:'.tabbar button[data-v="add"]',pose:"wren-full",title:"Log money in seconds",body:"The Add tab is home base. Log an expense or a deposit: pick a category, type the amount, tap Add. Your recent entries show right below so a slip is easy to fix."},
+ {eye:"Categories",v:"add",sel:"#fCatBtn",scroll:true,pose:"wren-study",title:"Categories & itemized bills",body:"Tap here to choose a category. Big ones like Utilities can hold itemized bills (Phone, Water…) tucked underneath — pick the bill and it's tracked on its own while still rolling up to the parent."},
+ {eye:"Month",v:"month",sel:'.tabbar button[data-v="month"]',pose:"wren-search",title:"See where the money went",body:"The Month tab shows every category's spending against its budget — itemized bills folded neatly into their parent — so what's over the line is obvious at a glance."},
+ {eye:"Budget",v:"budget",sel:'.tabbar button[data-v="budget"]',pose:"wren-glasses",title:"Plan what you'll spend & earn",body:"Set a monthly amount per category, and add income — including weekly or every-2-weeks paychecks. Save-up goals and envelope carryover live here too."},
+ {eye:"Net worth",v:"worth",sel:'.tabbar button[data-v="worth"]',pose:"wren-cheer",title:"Watch your net worth grow",body:"Track balances across your accounts over time, so the big picture — not just this month — stays in view."},
+ {eye:"Profiles",v:"settings",sel:null,pose:"wren-privacy",title:"Profiles: share & switch",body:"Each budget is its own profile — a separate Google Sheet in your Drive. Share one with family so you all track together, and if you keep more than one (say personal and household), switch between them from the pill at the top or here in Settings."},
+ {eye:"Settings",v:"settings",sel:'.tabbar button[data-v="settings"]',pose:"wren-guiding",title:"Everything else lives here",body:"Import past expenses, scan receipts, optimize the sheet — and reopen this tour or the full Feature guide anytime from the top of Settings. That's it — enjoy!"}
 ];
 var _ti=0,_tourWired=false;
 function startTour(i){window.__tour=true;_ti=i||0;$("tourWrap").classList.add("on");
@@ -5260,6 +5283,7 @@ function _tourReposition(){if(window.__tour)positionStep(TOUR[_ti]);}
 function tourGo(){var s=TOUR[_ti];try{switchView(s.v);}catch(e){}
   Array.prototype.forEach.call($("tourDots").children,function(el,k){el.classList.toggle("on",k===_ti);});
   $("tourEye").textContent=s.eye||"NestWorth";$("tourTitle").textContent=s.title;$("tourBody").textContent=s.body;
+  if($("tourWren"))$("tourWren").className="tour-wren "+(s.pose||"wren-full"); // Wren changes pose per step
   $("tourBack").style.visibility=(_ti===0)?"hidden":"visible";
   $("tourNext").textContent=(_ti===TOUR.length-1)?"Done":"Next";
   requestAnimationFrame(function(){requestAnimationFrame(function(){positionStep(s);});});}
@@ -5403,15 +5427,16 @@ function fabDisabled(){return lsGet("nw_help_off")==="1";}
 function applyFabPref(){var f=$("wrenFab");if(!f)return;if(fabDisabled()){f.style.display="none";}else{f.classList.remove("gone","open");f.classList.add("rest");f.style.transform="";f.style.opacity="";f.style.display="";}}
 function setupWrenFab(){
   var fab=$("wrenFab");if(!fab)return;
-  var collapseT=null,sx=0,sy=0,down=false,swiping=false,maxdx=0,suppress=false;
+  var collapseT=null,sx=0,sy=0,down=false,swiping=false,suppress=false;
   function expand(){fab.classList.remove("rest");fab.classList.add("open");clearTimeout(collapseT);collapseT=setTimeout(collapse,4200);}
   function collapse(){clearTimeout(collapseT);fab.classList.remove("open");fab.classList.add("rest");}
   function tap(){if(fab.classList.contains("open")){collapse();openWren();}else{expand();}}
-  function dismiss(){clearTimeout(collapseT);fab.style.transition="transform .26s ease,opacity .26s ease";fab.classList.add("gone");setTimeout(function(){fab.style.display="none";},280);} // session-only; returns next launch unless the toggle is off
-  fab.addEventListener("pointerdown",function(e){down=true;swiping=false;maxdx=0;sx=e.clientX;sy=e.clientY;fab.style.transition="none";try{fab.setPointerCapture(e.pointerId);}catch(_){}});
-  fab.addEventListener("pointermove",function(e){if(!down)return;var dx=e.clientX-sx,dy=e.clientY-sy;if(dx>maxdx)maxdx=dx;if(!swiping&&Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy))swiping=true;if(swiping){var m=Math.max(0,dx);fab.style.transform="translateX("+m+"px)";fab.style.opacity=String(Math.max(.15,1-m/160));}});
-  fab.addEventListener("pointerup",function(e){if(!down)return;down=false;var dx=e.clientX-sx;fab.style.transition="";if(swiping){suppress=true;setTimeout(function(){suppress=false;},350);if(dx>58){dismiss();return;}fab.style.transform="";fab.style.opacity="";}});
-  fab.addEventListener("pointercancel",function(){down=false;swiping=false;fab.style.transition="";fab.style.transform="";fab.style.opacity="";});
+  function dismiss(dir){clearTimeout(collapseT);fab.style.transition="transform .26s ease,opacity .26s ease";fab.classList.add("gone");fab.style.transform="translateX("+(dir<0?-140:140)+"px)";fab.style.opacity="0";setTimeout(function(){fab.style.display="none";},280);} // session-only; returns next launch unless the toggle is off
+  // Drag tracking lives on the document so a swipe keeps working even once the finger leaves the small button.
+  function onMove(e){if(!down)return;var dx=e.clientX-sx,dy=e.clientY-sy;if(!swiping&&Math.abs(dx)>7&&Math.abs(dx)>Math.abs(dy))swiping=true;if(swiping){if(e.cancelable)e.preventDefault();fab.style.transform="translateX("+dx+"px)";fab.style.opacity=String(Math.max(.12,1-Math.abs(dx)/150));}}
+  function onUp(e){if(!down)return;down=false;document.removeEventListener("pointermove",onMove);document.removeEventListener("pointerup",onUp);document.removeEventListener("pointercancel",onCancel);var dx=(e&&e.clientX!=null)?e.clientX-sx:0;fab.style.transition="";if(swiping){suppress=true;setTimeout(function(){suppress=false;},380);if(Math.abs(dx)>46){dismiss(dx<0?-1:1);return;}fab.style.transform="";fab.style.opacity="";}}
+  function onCancel(){down=false;swiping=false;document.removeEventListener("pointermove",onMove);document.removeEventListener("pointerup",onUp);document.removeEventListener("pointercancel",onCancel);fab.style.transition="";fab.style.transform="";fab.style.opacity="";}
+  fab.addEventListener("pointerdown",function(e){down=true;swiping=false;sx=e.clientX;sy=e.clientY;fab.style.transition="none";document.addEventListener("pointermove",onMove,{passive:false});document.addEventListener("pointerup",onUp);document.addEventListener("pointercancel",onCancel);});
   fab.addEventListener("click",function(){if(suppress){suppress=false;return;}tap();}); // keyboard/Enter and non-swipe taps
   applyFabPref(); // honor the persistent on/off toggle at startup
 }
