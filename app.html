@@ -175,7 +175,9 @@ body.is-offline #offlineBar{display:block}
   .cc-stats{font-size:13.5px;margin-top:6px;display:flex;flex-wrap:wrap;gap:3px 14px}
   .cc-roll{margin-top:11px}
   .cc-bills{margin-top:9px;padding-left:11px;border-left:2px solid var(--line)}
-  .cc-bill{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink2);padding:2px 0}
+  .cc-bill{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:12.5px;color:var(--ink2);padding:2px 0}
+  .cc-bill>span:first-child{min-width:0}                                   /* the name may wrap/shrink… */
+  .cc-bill>span:last-child{flex:0 0 auto;white-space:nowrap;text-align:right}  /* …so the amount stays on one line, right-aligned, top-aligned with the name's first line */
   .billrow{padding:8px 0;border-bottom:1px solid var(--line)}
   .billrow .bi-name{width:100%;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-family:inherit;font-size:15px;padding:8px 9px;outline:none}
   .billr1{display:flex;gap:8px;align-items:center}
@@ -1612,8 +1614,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.48.0"; // SemVer — what changed functionally (display only)
-var BUILD="20260828.64"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.51.0"; // SemVer — what changed functionally (display only)
+var BUILD="20260828.70"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Offline awareness: the shell + Wren help load from cache, but live spreadsheet reads/writes need Google — so say so
@@ -1642,18 +1644,26 @@ function paydaysPerMonth(anchorISO,interval,year){
 };
 var META_SHEET="NestWorth Meta";
 function r2(n){return Math.round((Number(n)||0)*100)/100;}
+// Spread `total` across the given month indices, rounding each to cents but putting the leftover penny into the LAST
+// participating month, so the 12 monthly values always re-sum to exactly `total` (audit: $100/3 = 33.33+33.33+33.34, not 99.99).
+function _spread(total,idxs){var out=[0,0,0,0,0,0,0,0,0,0,0,0];var n=idxs.length;if(!n)return out;var per=r2(total/n),acc=0;for(var i=0;i<n;i++){if(i<n-1){out[idxs[i]]=per;acc=r2(acc+per);}else out[idxs[i]]=r2(total-acc);}return out;}
+function _all12(){return [0,1,2,3,4,5,6,7,8,9,10,11];}
 // Compute the 12 monthly budgeted amounts from a budget-type config.
 function monthsFor(cfg){
   cfg=cfg||{};var t=cfg.type||"monthly";var a=Number(cfg.amount)||0;var out=[0,0,0,0,0,0,0,0,0,0,0,0];var i;
   if(t==="custom"){var c=cfg.months||[];for(i=0;i<12;i++)out[i]=r2(c[i]);return out;}
-  if(t==="split"){var cov=cfg.cover;var sel=[];for(i=0;i<12;i++){if(!cov||cov[i])sel.push(i);}var cnt=sel.length||12;var per=r2(a/cnt);for(i=0;i<sel.length;i++)out[sel[i]]=per;return out;}
-  if(t==="onetime"&&cfg.saveup){var due=Number(cfg.month)||12,st=Number(cfg.start)||1;if(st<1)st=1;if(st>12)st=12;if(due<st)due=st;var per=r2(a/(due-st+1));for(i=st-1;i<=due-1;i++)out[i]=per;return out;}
+  if(t==="split"){var cov=cfg.cover;var sel=[];for(i=0;i<12;i++){if(!cov||cov[i])sel.push(i);}if(!sel.length)sel=_all12();return _spread(a,sel);}
+  if(t==="onetime"&&cfg.saveup){var due=Number(cfg.month)||12,st=Number(cfg.start)||1;if(st<1)st=1;if(st>12)st=12;if(due<st)due=st;var sidx=[];for(i=st-1;i<=due-1;i++)sidx.push(i);return _spread(a,sidx);}
   if(t==="annual"||t==="onetime"){var mi=(Number(cfg.month)||1)-1;if(mi<0||mi>11)mi=0;out[mi]=r2(a);return out;}
-  if(t==="paycheck"){var checks=Number(cfg.freq)||26;var take=a*checks/12;var mo;if(cfg.mode==="keep"){mo=take-(Number(cfg.keep)||0);}else{var pct=(cfg.pct==null?100:Number(cfg.pct))/100;mo=take*pct;}if(mo<0)mo=0;mo=r2(mo);for(i=0;i<12;i++)out[i]=mo;return out;}
+  if(t==="paycheck"){var checks=Number(cfg.freq)||26;var pctF=(cfg.mode==="keep")?1:((cfg.pct==null?100:Number(cfg.pct))/100);
+    // Real payday calendar (weekly/biweekly salaries): each month gets its ACTUAL number of checks, so the extra-paycheck
+    // months show up. Set-aside ($/mo) is a fixed monthly hold; % budgets that share of every real check. Same annual total.
+    if(cfg.calendar&&cfg.payAnchor&&(checks===52||checks===26)){var iv=(checks===52)?7:14,cnt=paydaysPerMonth(cfg.payAnchor,iv,bYear()),keepM=(cfg.mode==="keep")?(Number(cfg.keep)||0):0;for(i=0;i<12;i++){var mc=a*cnt[i]*pctF-keepM;out[i]=r2(mc>0?mc:0);}return out;}
+    var annual=(cfg.mode==="keep")?(a*checks-(Number(cfg.keep)||0)*12):(a*checks*pctF);if(annual<0)annual=0;return _spread(r2(annual),_all12());} // flat: annual spread across 12 with exact-cent remainder
   if(t==="itemized"){return billMonths(cfg.items);}
   if(t==="weekly"||t==="biweekly"){var iv=(t==="weekly")?7:14;
     if(cfg.calendar&&cfg.payAnchor){var cnt=paydaysPerMonth(cfg.payAnchor,iv,bYear());for(i=0;i<12;i++)out[i]=r2(a*cnt[i]);return out;} // real payday calendar: actual checks per month (3-paycheck months show up)
-    var mf=r2(a*(t==="weekly"?52:26)/12);for(i=0;i<12;i++)out[i]=mf;return out;} // flat: spread evenly across the year
+    return _spread(r2(a*(t==="weekly"?52:26)),_all12());} // flat: annual spread evenly across the year (exact-cent remainder)
   for(i=0;i<12;i++)out[i]=r2(a);return out; // monthly
 }
 // ---- Update check: pull the deployed app.html, read its BUILD, and offer a refresh if it's newer than what's running.
@@ -1727,7 +1737,7 @@ function detectCadence(m){
   if(contig&&same&&a===0)return {cadence:"AnnualSaveUp",amount:r2((Number(m[a])||0)*(b+1)),month:b+1};
   var tot=0;for(var k=0;k<12;k++)tot+=Number(m[k])||0;return {cadence:"Custom",amount:r2(tot),month:1,months:m.slice()};
 }
-function billMonths(items){var m=[0,0,0,0,0,0,0,0,0,0,0,0];(items||[]).forEach(function(it){var a=Number(it.amount)||0,mo=Number(it.month)||1;if(mo<1)mo=1;if(mo>12)mo=12;var cad=it.cadence;if(cad==="Custom"&&it.months){for(var j=0;j<12;j++)m[j]+=Number(it.months[j])||0;}else if(cad==="AnnualSaveUp"){var per=a/mo;for(var k=0;k<mo;k++)m[k]+=per;}else if(cad==="Annual"){m[mo-1]+=a;}else{for(var q=0;q<12;q++)m[q]+=a;}});for(var z=0;z<12;z++)m[z]=r2(m[z]);return m;}
+function billMonths(items){var m=[0,0,0,0,0,0,0,0,0,0,0,0];(items||[]).forEach(function(it){var a=Number(it.amount)||0,mo=Number(it.month)||1;if(mo<1)mo=1;if(mo>12)mo=12;var cad=it.cadence;if(cad==="Custom"&&it.months){for(var j=0;j<12;j++)m[j]+=Number(it.months[j])||0;}else if(cad==="AnnualSaveUp"){var st=Number(it.start)||1;if(st<1)st=1;if(st>mo)st=mo;var sidx=[];for(var k=st-1;k<mo;k++)sidx.push(k);var sp=_spread(a,sidx);for(var k2=0;k2<12;k2++)m[k2]+=sp[k2];} /* save-up spreads from its start month (default Jan) through the due month — so a mid-year bill funds over the months that remain, not a phantom Jan–Dec */else if(cad==="Annual"){m[mo-1]+=a;}else{for(var q=0;q<12;q++)m[q]+=a;}});for(var z=0;z<12;z++)m[z]=r2(m[z]);return m;}
 function billAnnual(it){return r2(billMonths([it]).reduce(function(s,z){return s+z;},0));}
 // How much has actually been spent on a single itemized bill this budget year — ledger rows tagged with the parent
 // category (col E) AND the bill's name in the Company column (col F), which is how logging/picking a bill tags them.
@@ -2279,12 +2289,15 @@ function decPick(type){
   var goalOpts=goals.map(function(g){return '<option value="'+esc(g.name)+'">'+esc(g.name)+'</option>';}).join("");
   var fromOpts='<option value="cash">Checking / Savings</option>'+goals.map(function(g){return '<option value="goal:'+esc(g.name)+'">From the '+esc(g.name)+' goal</option>';}).join("")+'<option value="cash">Not sure yet</option>';
   var amtRow=function(lbl){return '<div class="row"><label>'+lbl+'</label><span class="mfield">$<input id="decAmt" class="money" inputmode="decimal" placeholder="0.00"></span></div>';};
+  // Which months a recurring change applies to: "All year" = ongoing (full ×12 annual impact); "From <month> on" scopes it
+  // to the rest of the year (e.g. a payment that starts in September, or income that changes partway through).
+  var scopeRow='<div class="row"><label>Applies</label><select id="decScope"><option value="">All year (ongoing)</option>'+MONTHS.map(function(m,i){return '<option value="'+(i+1)+'">From '+m+' on</option>';}).join("")+'</select></div>';
   var forms={
     purchase:amtRow('How much?')+'<div class="row"><label>When?</label><select id="decMonth">'+monthOpts+'</select></div><div class="row"><label>Paid from</label><select id="decFrom">'+fromOpts+'</select></div>',
-    payment:amtRow('How much / month?')+'<div class="hintline" style="text-align:left">A new recurring cost — a car payment, a loan, a subscription.</div>',
+    payment:amtRow('How much / month?')+scopeRow+'<div class="hintline" style="text-align:left">A new recurring cost — a car payment, a loan, a subscription.</div>',
     goal:goals.length?('<div class="row"><label>Which goal?</label><select id="decGoal">'+goalOpts+'</select></div>'+amtRow('New amount / month')):'<div class="hintline" style="text-align:left">You don\'t have any savings goals yet — add one on the Goals tab first.</div>',
-    income:'<div class="row"><label>Direction</label><select id="decDir"><option value="1">More income</option><option value="-1">Less income</option></select></div>'+amtRow('How much / month?'),
-    expense:'<div class="row"><label>Direction</label><select id="decDir"><option value="1">Spend more</option><option value="-1">Spend less</option></select></div>'+amtRow('How much / month?')
+    income:'<div class="row"><label>Direction</label><select id="decDir"><option value="1">More income</option><option value="-1">Less income</option></select></div>'+amtRow('How much / month?')+scopeRow,
+    expense:'<div class="row"><label>Direction</label><select id="decDir"><option value="1">Spend more</option><option value="-1">Spend less</option></select></div>'+amtRow('How much / month?')+scopeRow
   };
   $("decForm").innerHTML=forms[type]||'';
   var titles={purchase:'A large purchase or trip',payment:'A monthly payment',goal:'Reach a goal sooner',income:'A change in income',expense:'Change monthly spending'};
@@ -2318,11 +2331,13 @@ function decRun(){
   var amt=decAmtVal(),change=null;
   if(_decType!=='goal'&&_decType!=='payment'&&_decType!=='income'&&_decType!=='expense'&&_decType!=='purchase')return;
   if(amt<=0){msg.textContent="Enter an amount.";msg.className="msg bad";return;}
+  // recurring-change month scope: "" = all year; a start month = that month through December
+  var decMonths=(function(){var e=$("decScope");if(!e||!e.value)return null;var s=Number(e.value)||1,a=[];for(var m=s;m<=12;m++)a.push(m);return a;})();
   if(_decType==='purchase')change={type:'purchase',amount:amt,month:Number($("decMonth").value)||curMonth(),from:$("decFrom").value};
-  else if(_decType==='payment')change={type:'expenseMonthly',amount:amt};
+  else if(_decType==='payment')change={type:'expenseMonthly',amount:amt,months:decMonths};
   else if(_decType==='goal'){var gn=$("decGoal")&&$("decGoal").value;if(!gn){msg.textContent="Pick a goal.";msg.className="msg bad";return;}change={type:'goalMonthly',goal:gn,monthly:amt};}
-  else if(_decType==='income')change={type:'income',amount:(Number($("decDir").value)||1)*amt};
-  else if(_decType==='expense')change={type:'expenseMonthly',amount:(Number($("decDir").value)||1)*amt};
+  else if(_decType==='income')change={type:'income',amount:(Number($("decDir").value)||1)*amt,months:decMonths};
+  else if(_decType==='expense')change={type:'expenseMonthly',amount:(Number($("decDir").value)||1)*amt,months:decMonths};
   var res;try{res=evaluateDecision(change);}catch(e){msg.textContent="Couldn't run that scenario.";msg.className="msg bad";return;}
   decRenderResult(res);
 }
@@ -2529,7 +2544,10 @@ function catCfg(name){var k=name.toLowerCase();return (state.meta.cats&&state.me
 function conCfg(name){var k=name.toLowerCase();return (state.meta.cons&&state.meta.cons[k])||null;}
 // ---- Contingency / rollover engine (live-computed, nothing written to the sheet) ----
 function catRoll(name){var c=catCfg(name);var m=c&&c.roll;if(m==="envelope"||m==="buffer")return m;if(c&&c.type==="itemized"&&c.items&&c.items.some(function(it){return it.cadence==="AnnualSaveUp";}))return "envelope";return "none";}
-async function setCatRoll(name,mode){var k=name.toLowerCase();var c=state.meta.cats[k]||{};if(mode==="envelope"||mode==="buffer")c.roll=mode;else delete c.roll;state.meta.cats[k]=c;await writeMeta();}
+async function setCatRoll(name,mode){var k=name.toLowerCase();var c=state.meta.cats[k]||{};
+  if(mode==="envelope"||mode==="buffer"){c.roll=mode;if(!Number(c.rollStart))c.rollStart=ymNow();} // stamp WHEN it became a rolling category, so prior under-spending isn't retroactively banked (audit #6)
+  else{delete c.roll;delete c.rollStart;}
+  state.meta.cats[k]=c;await writeMeta();await loadCarryIn();try{renderAll();}catch(e){}}
 function _z12(){return [0,0,0,0,0,0,0,0,0,0,0,0];}
 // Build a per-category (and per-deposit-source) monthly spend index for the viewed year in ONE pass over the ledger.
 // Turns the old O(categories × transactions) render cost into O(transactions) — essential with years of history.
@@ -2581,7 +2599,13 @@ function adoptionYM(){
 function adoptionFloor(year){var a=adoptionYM();if(!a)return 13;var ay=Math.floor(a/100),am=a%100;if(year<ay)return 13;if(year>ay)return 1;return am;}
 // Banked before this year: the user's saved override if they've set one, otherwise our computed carry-in.
 function carryInFor(name){var k=(""+name).toLowerCase();var ov=state.meta&&state.meta.carry;if(ov&&Object.prototype.hasOwnProperty.call(ov,k))return Number(ov[k])||0;return (state.carryIn&&state.carryIn[k])||0;}
-function catBalance(c){var cm=(bYear()===curYear())?curMonth():13,start=adoptionFloor(bYear());var sp=spentByMonth(c.name);var bal=carryInFor(c.name);for(var m=0;m<cm-1;m++){if((m+1)<start)continue;var b=(c.bud12&&c.bud12[m])||0;bal+=(b-sp[m]);}return r2(bal);}
+// The first month of `year` from which a category rolls over: 1 (all year) if it was already a rolling category before this
+// year, its designation month if it became one during this year, or 13 (no rollover yet) if that's still in the future.
+// No rollStart recorded → 1, i.e. existing envelopes keep their prior behavior.
+function rollStartFloor(name,year){var c=catCfg(name);var rs=c&&Number(c.rollStart);if(!rs)return 1;var ry=Math.floor(rs/100),rm=rs%100;if(year<ry)return 13;if(year>ry)return 1;return rm;}
+// Carry-in counts from the LATER of budget adoption and this category's rollover-start month.
+function catCarryStartYM(name){var a=adoptionYM();var c=catCfg(name);var rs=c&&Number(c.rollStart);return (rs&&rs>a)?rs:a;}
+function catBalance(c){var cm=(bYear()===curYear())?curMonth():13,start=Math.max(adoptionFloor(bYear()),rollStartFloor(c.name,bYear()));var sp=spentByMonth(c.name);var bal=carryInFor(c.name);for(var m=0;m<cm-1;m++){if((m+1)<start)continue;var b=(c.bud12&&c.bud12[m])||0;bal+=(b-sp[m]);}return r2(bal);}
 // Prior-year carry-in: leftover (budget − spent) from completed prior years rolls into this year's envelope balance.
 async function loadCarryIn(){
   state.carryIn={};
@@ -2592,7 +2616,7 @@ async function loadCarryIn(){
   // bank into the parent's envelope — same name-matching the summary's parent formula uses.
   var billToParent={};(state.cats||[]).forEach(function(c){var pl=c.name.toLowerCase();catBills(c.name).forEach(function(b){var bl=(""+b).toLowerCase();billToParent[bl]=pl;billToParent["↳ "+bl]=pl;});});
   // Only count spending from the adoption point forward (so pre-adoption imported history doesn't distort carry-in).
-  state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(!e||e==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;var y=Number(r[0]),m=Number(r[1]);if(y>=cy)return;if(y<ay||(y===ay&&m<am))return;var key=billToParent[e]||e;priorSpent[key]=(priorSpent[key]||0)+(Number(r[6])||0);});
+  state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(!e||e==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;var y=Number(r[0]),m=Number(r[1]);if(y>=cy)return;var key=billToParent[e]||e;var cs=catCarryStartYM(key),csY=Math.floor(cs/100),csM=cs%100;if(y<csY||(y===csY&&m<csM))return;priorSpent[key]=(priorSpent[key]||0)+(Number(r[6])||0);}); // count spend only from the category's carry-start (adoption or its later rollover-start)
   try{
     var meta=await api(ssBase()+"?fields=sheets.properties(title)");var years=[];
     (meta.sheets||[]).forEach(function(s){var mm=(""+s.properties.title).match(/^(\d{4}) Account Summary$/);if(mm){var y=+mm[1];if(y<cy&&y>=ay)years.push(y);}});
@@ -2603,12 +2627,14 @@ async function loadCarryIn(){
       var ranges=years.map(function(y){return "'"+y+" Account Summary'!A"+CAT_START+":AB"+(CAT_START+199);});
       var res=await vbatchGetU(ranges);var vr=res.valueRanges||[];
       for(var yi=0;yi<years.length;yi++){
-        var startK=(years[yi]===ay)?(am-1):0; // in the adoption year, only bank budget from the adoption month onward
         var rowsY=(vr[yi]&&vr[yi].values)||[];
         for(var ri=0;ri<rowsY.length;ri++){
           var r=rowsY[ri];var nm=(""+((r&&r[0])||"")).trim().toLowerCase();if(!nm)continue;
           if(nm==="total"||nm==="contributor"||nm.indexOf("contributions")===0||nm.indexOf("balance check")===0)break; // reached totals/income section
           if(nm.charAt(0)==="↳")continue; // ↳ bill rows are already inside the parent's budget — don't count them again
+          // Bank budget only from this category's carry-start month (adoption, or a later per-category rollover-start).
+          var cs=catCarryStartYM(nm),csY=Math.floor(cs/100),csM=cs%100,startK;
+          if(years[yi]<csY)continue;else if(years[yi]===csY)startK=csM-1;else startK=0;
           var sum=0;for(var k=startK;k<12;k++)sum+=Number(r[4+k*2])||0;priorBudget[nm]=(priorBudget[nm]||0)+sum;
         }
       }
@@ -2718,21 +2744,28 @@ async function foldCategory(sourceName,parentName){
 function lastYearActual(name){var y=curYear()-1,nl=(""+name).trim().toLowerCase(),t=0;if(!nl)return 0;state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(e!==nl||e==="deposit"||isGoalName(e))return;if(Number(r[0])===y)t+=Number(r[6])||0;});return r2(t);}
 function envUpcoming(name){
   var cfg=catCfg(name);if(!cfg||cfg.type!=="itemized"||!cfg.items)return null;
-  var cm=curMonth(),best=null;
+  var cm=curMonth(),best=null,count=0;
   cfg.items.forEach(function(it){
     if(it.cadence!=="AnnualSaveUp"&&it.cadence!=="Annual")return;
     var amt=Number(it.amount)||0;if(amt<=0)return;
+    count++;
     var mo=Number(it.month)||12;if(mo<1)mo=1;if(mo>12)mo=12;
     var mu=mo-cm;if(mu<0)mu+=12;
     if(!best||mu<best.mu){best={name:(it.name||name),amount:amt,dueMonth:mo,mu:mu};}
   });
+  // A pooled envelope balance can only be attributed to ONE bill when the category holds exactly one annual/save-up bill.
+  // With several ($1,500 banked toward Auto $1,200 AND Home $1,800), we can't know how much is reserved for which (audit #8/#21).
+  if(best)best.sole=(count===1);
   return best;
 }
 function computeRollover(){
   var envelopes=[],buffer=0;
   // Totals sum REAL balances (incl. negatives) so an overspent category draws the cushion down and the header matches the rows below it.
   // (Per-goal "banked toward upcoming" still floors at 0 — you can't have negative progress toward a save-up.)
-  state.cats.forEach(function(c){var mode=catRoll(c.name);if(mode==="none")return;var bal=catBalance(c);if(mode==="envelope"){var e={name:c.name,balance:bal};var u=envUpcoming(c.name);if(u){var banked=Math.max(0,bal);var gap=r2(u.amount-banked);var mLeft=Math.max(1,u.mu);e.upc={name:u.name,need:u.amount,banked:r2(banked),gap:gap,dueMonth:u.dueMonth,monthsUntil:u.mu,perMonth:gap>0.005?r2(gap/mLeft):0};}envelopes.push(e);}else if(mode==="buffer")buffer+=bal;});
+  state.cats.forEach(function(c){var mode=catRoll(c.name);if(mode==="none")return;var bal=catBalance(c);if(mode==="envelope"){var e={name:c.name,balance:bal};var u=envUpcoming(c.name);if(u){
+    if(u.sole){var banked=Math.max(0,bal);var gap=r2(u.amount-banked);var mLeft=Math.max(1,u.mu+1);e.upc={name:u.name,need:u.amount,banked:r2(banked),gap:gap,dueMonth:u.dueMonth,monthsUntil:u.mu,perMonth:gap>0.005?r2(gap/mLeft):0};}  /* catch-up spread over the current month THROUGH the due month, inclusive — matching the goal model (§9) */
+    else e.upc={name:u.name,dueMonth:u.dueMonth,monthsUntil:u.mu,multi:true}; // several annual bills share this envelope — show the next due date but don't attribute the pooled balance to one bill
+  }envelopes.push(e);}else if(mode==="buffer")buffer+=bal;});
   buffer=r2(buffer);envelopes.sort(function(a,b){return b.balance-a.balance;});
   var envTotal=0;envelopes.forEach(function(e){envTotal+=e.balance;});
   var goalsCommit=goalHold();
@@ -2751,6 +2784,14 @@ function loadGoals(){
   try{computeResidual();}catch(e){}
 }
 function isGoalName(name){return !!(state.goalSet&&state.goalSet[(""+name).trim().toLowerCase()]);}
+// ===== Canonical ledger-row classification (MODEL_SPEC §1). ONE definition every forecast model consumes, so cash flow,
+// net-worth trajectory, and annual feasibility can't drift apart. A goal movement is excluded via EITHER Category OR Company
+// (the audit found the forecast models were only checking Category, so a goal tagged by Company could leak into actual spend).
+function isDepositRow(r){return (""+((r&&r[4])||"")).trim().toLowerCase()==="deposit";}
+function isGoalMovementRow(r){return isGoalName((r&&r[4])||"")||isGoalName((r&&r[5])||"");}
+function isExpenseRow(r){return !isDepositRow(r)&&!isGoalMovementRow(r);}   // a real outflow (incl. uncategorized); credits (Amount<0) net down spend
+// Actual income / expense 12-month arrays for `y`, using the canonical classifier above.
+function actualIE(rows,y){var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];(rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var amt=Number(r[6])||0;if(isDepositRow(r))ai[mo-1]+=amt;else if(isExpenseRow(r))ae[mo-1]+=amt;});return {ai:ai,ae:ae};}
 // Category-linked goals are covered by their category budget; residual goals draw from leftover — neither adds to the separate goal hold/annual savings.
 function goalHold(){var h=0;(state.goals||[]).forEach(function(g){if(g.archived||g.category||g.residual)return;h+=Math.max(0,Math.max(g.monthly,g.mtd));});return r2(h);}
 function goalSaveAnnual(){var s=0;(state.goals||[]).forEach(function(g){if(g.archived||g.category||g.residual)return;s+=g.monthly*12;});return r2(s);}
@@ -2775,8 +2816,7 @@ function _cfArrays(plan){var inc=[0,0,0,0,0,0,0,0,0,0,0,0],exp=[0,0,0,0,0,0,0,0,
 // Month-by-month running spendable cash. Fixed goal contributions leave spendable cash each month (they stay in net worth,
 // but aren't cash you can spend), and a one-time outflow is applied in its month. Current month blends actual-to-date with plan.
 function computeCashflow(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=opts.year||curYear(),bnd=curMonth();
-  var a=_cfArrays(plan),inc=a.inc,exp=a.exp,ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];
-  (plan.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
+  var a=_cfArrays(plan),inc=a.inc,exp=a.exp,IE=actualIE(plan.rows,y),ai=IE.ai,ae=IE.ae;
   var gh=(opts.includeGoalHold===false)?0:(Number(plan.goalMonthlyFixed)||0);
   var start=Number(plan.startCash)||0,bal=start,low=start,lowM=-1,months=[];
   for(var m=0;m<12;m++){var im,em;
@@ -2784,7 +2824,14 @@ function computeCashflow(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=o
     else{im=inc[m];em=exp[m];}
     var one=(plan.oneTime&&plan.oneTime[m])||0,net=r2(im-em-gh-one);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}months.push({m:m+1,net:net,bal:bal});}
   return {months:months,end:bal,low:low,lowM:lowM,lowMonth:(lowM>=0?MONTHS[lowM]:"")};}
-function computeAnnualPlan(plan){var a=_cfArrays(plan),income=0,budget=0;a.inc.forEach(function(v){income+=v;});a.exp.forEach(function(v){budget+=v;});var goalSave=(Number(plan.goalMonthlyFixed)||0)*12;return {income:r2(income),budget:r2(budget),goalSave:r2(goalSave),surplus:r2(income-budget-goalSave)};}
+// Annual feasibility. In "actual" mode it uses the same Plan+Actual blend (§4) as the Budget screen (renderFeas) and the
+// cash-flow model: past months actual, current month max(actual, plan), future months planned — so the Decision Engine's
+// surplus baseline and the Budget screen can't disagree (audit #2).
+function computeAnnualPlan(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=opts.year||curYear(),bnd=curMonth();
+  var a=_cfArrays(plan),income=0,budget=0;
+  if(mode==="actual"){var IE=actualIE(plan.rows,y);for(var m=0;m<12;m++){if((m+1)<bnd){income+=IE.ai[m];budget+=IE.ae[m];}else if((m+1)===bnd){income+=Math.max(IE.ai[m],a.inc[m]);budget+=Math.max(IE.ae[m],a.exp[m]);}else{income+=a.inc[m];budget+=a.exp[m];}}}
+  else{a.inc.forEach(function(v){income+=v;});a.exp.forEach(function(v){budget+=v;});}
+  var goalSave=(Number(plan.goalMonthlyFixed)||0)*12;return {income:r2(income),budget:r2(budget),goalSave:r2(goalSave),surplus:r2(income-budget-goalSave)};}
 // Current net worth (assets + stand-alone goal balances − debts), read straight from live state — the same figure the
 // Net worth screen shows. Position (§10), kept separate from cash and the annual plan.
 function netWorthNow(){
@@ -2800,16 +2847,19 @@ function netWorthNow(){
 // recurring cost lowers it. Same current-month blend as cash flow (§4). A projection — assumes the rest of the year tracks plan.
 function computeNetWorthTrajectory(plan){
   var a=_cfArrays(plan),inc=a.inc,exp=a.exp,y=curYear(),bnd=curMonth();
-  var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];
-  (plan.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
+  var IE=actualIE(plan.rows,y),ai=IE.ai,ae=IE.ae;
   var now=netWorthNow(),add=0;
   for(var m=bnd-1;m<12;m++){var im,em;
     if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);}else{im=inc[m];em=exp[m];}
     var one=(plan.oneTime&&plan.oneTime[m])||0;add=r2(add+(im-em-one));}
-  return {now:now,end:r2(now+add)};}
+  return {now:now,end:r2(now+add-(Number(plan.goalSpend)||0))};}   // goalSpend: earmarked savings spent on a goal-funded purchase (a net-worth reduction, not a cash one)
 function planMetrics(plan){var ap=computeAnnualPlan(plan),cf=computeCashflow(plan,{mode:"actual",includeGoalHold:true}),nw=computeNetWorthTrajectory(plan);return {surplus:ap.surplus,low:cf.low,lowMonth:cf.lowMonth,end:cf.end,netEnd:nw.end,netNow:nw.now};}
 function goalCompletion(g){if(!g||(g.target||0)<=0)return null;var need=Math.max(0,(g.target||0)-(g.balance||0));if(need<=0.005)return "already reached";if((g.monthly||0)<=0)return null;var mo=Math.ceil(need/g.monthly),d=new Date();d=new Date(d.getFullYear(),d.getMonth()+mo,1);return d.toLocaleString("en-US",{month:"short",year:"numeric"});}
 // Run a hypothetical change against the whole model. change: {type:'goalMonthly',goal,monthly} | {type:'purchase',amount,month}
+// The 12-month array for a recurring what-if. `change.months` (1-based) limits it to selected months; absent = all year
+// (steady-state, so a new $700/mo payment reads as the full ×12 annual impact). Lets the user scope a change to, e.g.,
+// "from September on" or a fixed-term lease.
+function _scenBud12(change){var v=Number(change.amount)||0,ms=change.months,out=[0,0,0,0,0,0,0,0,0,0,0,0];if(ms&&ms.length){ms.forEach(function(m){m=Number(m);if(m>=1&&m<=12)out[m-1]=v;});}else{for(var i=0;i<12;i++)out[i]=v;}return out;}
 // Apply ONE change to the cloned hypo plan (mutating it), accumulating into ctx.goalInfo. Written so several changes can be
 // applied in sequence to the same plan (a "life change" batch) — expense/income concat onto hypo (not base) so they stack,
 // and one-time outflows ADD into their month rather than replacing the whole array.
@@ -2824,16 +2874,23 @@ function _applyChange(base,hypo,change,ctx){
       // Funded from a savings goal: the money is already set aside, so spendable cash is unaffected — instead the goal's
       // balance drops and its finish date pushes out (or it may no longer reach).
       var gn=change.from.slice(5),gg=(base.goals||[]).filter(function(g){return g.name.toLowerCase()===gn.toLowerCase();})[0];
-      if(gg){var nb=r2(Math.max(0,(gg.balance||0)-(Number(change.amount)||0)));ctx.goalInfo={name:gg.name,before:goalCompletion(gg),after:goalCompletion({target:gg.target,balance:nb,monthly:gg.monthly}),fundedFrom:true,remaining:nb};}
+      if(gg){
+        var amt=Number(change.amount)||0,bal=gg.balance||0,fromGoal=Math.min(amt,bal),shortfall=r2(Math.max(0,amt-bal)),nb=r2(Math.max(0,bal-amt));
+        // Partially-funded purchase: only what the goal holds comes from earmarked money; any excess is a real cash outflow
+        // (audit #3 — the old code floored the goal at 0 and the unfunded portion silently vanished from the model).
+        hypo.goalSpend=r2((hypo.goalSpend||0)+fromGoal); // earmarked savings actually spent → net worth drops, spendable cash unaffected
+        if(shortfall>0.005){var pmg=(change.month&&change.month>=1&&change.month<=12)?(change.month-1):(curMonth()-1);if(!hypo.oneTime)hypo.oneTime=[0,0,0,0,0,0,0,0,0,0,0,0];hypo.oneTime[pmg]=r2(hypo.oneTime[pmg]+shortfall);}
+        ctx.goalInfo={name:gg.name,before:goalCompletion(gg),after:goalCompletion({target:gg.target,balance:nb,monthly:gg.monthly}),fundedFrom:true,remaining:nb,fromGoal:r2(fromGoal),shortfall:shortfall};
+      }
     }else{
       var pm=(change.month&&change.month>=1&&change.month<=12)?(change.month-1):(curMonth()-1);
       if(!hypo.oneTime)hypo.oneTime=[0,0,0,0,0,0,0,0,0,0,0,0];
       hypo.oneTime[pm]=r2(hypo.oneTime[pm]+(Number(change.amount)||0));
     }
   }else if(change.type==="expenseMonthly"){
-    hypo.cats=(hypo.cats||[]).concat([{name:"_scenario",bud12:[0,0,0,0,0,0,0,0,0,0,0,0].map(function(){return Number(change.amount)||0;})}]);
+    hypo.cats=(hypo.cats||[]).concat([{name:"_scenario",bud12:_scenBud12(change)}]);
   }else if(change.type==="income"){
-    hypo.cons=(hypo.cons||[]).concat([{name:"_scenario",bud12:[0,0,0,0,0,0,0,0,0,0,0,0].map(function(){return Number(change.amount)||0;})}]);
+    hypo.cons=(hypo.cons||[]).concat([{name:"_scenario",bud12:_scenBud12(change)}]);
   }
 }
 // evaluateDecision accepts a single change OR an array of changes (a life-change batch). All changes apply to one cloned
@@ -4674,7 +4731,7 @@ function computeReminders(){
   if(p.saveup){state.cats.forEach(function(c){var cfg=catCfg(c.name);if(!cfg||cfg.type!=="itemized"||!cfg.items)return;
     // catBalance is the whole category's envelope; only trust it as one bill's "saved" when the category holds a single bill
     var soleBill=cfg.items.filter(function(x){return x.name&&(Number(x.amount)||0)>0;}).length===1;
-    cfg.items.forEach(function(it){if(it.cadence!=="AnnualSaveUp"||!it.name)return;var amt=Number(it.amount)||0;if(amt<=0)return;var due=Number(it.month)||12;var mu=due-m;if(mu<0)mu+=12;if(mu>3)return;if(!soleBill)return;var bal=Math.max(0,catBalance(c));var per=amt/Math.max(1,mu||1);var gap=r2(amt-bal);if(gap<=0.005){out.push({g:"saveup",cls:"good",icon:"🐖",text:"<b>"+esc(it.name)+"</b> is fully saved ("+money(amt)+") for "+MONTHS[due-1]+"."});}else{out.push({g:"saveup",cls:"info",icon:"🐖",text:money(bal)+" of "+money(amt)+" saved for <b>"+esc(it.name)+"</b> — due "+MONTHS[due-1]+(mu>0?(" · set aside "+money(r2(gap/Math.max(1,mu)))+"/mo"):"")+"."});}});});}
+    cfg.items.forEach(function(it){if(it.cadence!=="AnnualSaveUp"||!it.name)return;var amt=Number(it.amount)||0;if(amt<=0)return;var due=Number(it.month)||12;var mu=due-m;if(mu<0)mu+=12;if(mu>3)return;if(!soleBill)return;var bal=Math.max(0,catBalance(c));var gap=r2(amt-bal);if(gap<=0.005){out.push({g:"saveup",cls:"good",icon:"🐖",text:"<b>"+esc(it.name)+"</b> is fully saved ("+money(amt)+") for "+MONTHS[due-1]+"."});}else{out.push({g:"saveup",cls:"info",icon:"🐖",text:money(bal)+" of "+money(amt)+" saved for <b>"+esc(it.name)+"</b> — due "+MONTHS[due-1]+" · set aside "+money(r2(gap/Math.max(1,mu+1)))+"/mo."});}});});}  /* inclusive: current month through the due month (§9) */
   if(p.missed){state.cats.forEach(function(c){var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items){cfg.items.forEach(function(it){if(!it.name||it.cadence!=="Monthly"||!(Number(it.day)||0))return;if(Number(it.day)>=now.getDate())return;if(billLoggedThisMonth(it.name,c.name))return;out.push({g:"missed",cls:"warn",icon:"📌",text:"<b>"+esc(it.name)+"</b> not logged yet (was due the "+ord(it.day)+")."});});}else if(cfg&&(cfg.type==="monthly")&&c.mbud>0.005&&c.mspent<0.005&&now.getDate()>=15){out.push({g:"missed",cls:"info",icon:"📌",text:"Nothing logged in <b>"+esc(c.name)+"</b> yet ("+money(c.mbud)+" budgeted)."});}});}
   if(p.goals){(state.goals||[]).forEach(function(g){if(g.target<=0)return;var pct=g.balance/g.target;if(pct>=1)out.push({g:"goals",cls:"good",icon:"🎉",text:"<b>"+esc(g.name)+"</b> is fully funded — "+money(g.balance)+"!"});else if(pct>=0.5)out.push({g:"goals",cls:"good",icon:"🎯",text:"<b>"+esc(g.name)+"</b> is halfway there — "+money(g.balance)+" of "+money(g.target)+"."});});}
   if(p.recap){var wk=new Date(t0.getTime()-6*86400000),tot=0,n=0,byc={};state.rows.forEach(function(r){var e=(""+((r&&r[4])||"")).trim();var el=e.toLowerCase();if(!e||el==="deposit"||isGoalName(e))return;var iso=serialToISO(r[2]);if(!iso)return;var dt=new Date(iso+"T00:00:00");if(dt>=wk&&dt<=t0){var a=Number(r[6])||0;tot+=a;n++;byc[e]=(byc[e]||0)+a;}});if(n>0){var top=Object.keys(byc).sort(function(a,b){return byc[b]-byc[a];})[0];out.push({g:"recap",cls:"info",icon:"📊",text:money(tot)+" across "+n+" "+(n===1?"entry":"entries")+(top?(" · top: <b>"+esc(top)+"</b> "+money(byc[top])):"")+"."});}}
@@ -4729,13 +4786,22 @@ function insSeries(){var keys=insWindow();var series=keys.map(function(k){return
 // Shrink a number stat tile's value just enough to fit its tile (keeps small numbers big/punchy; large household totals
 // like $57,514.56 shrink instead of ellipsizing). Skips the wrapping text tile (.txt) and hidden/zero-width tiles.
 function fitStileNums(){
+  // Shrink each stat number to fit its tile. We can't measure overflow with scrollWidth here: the tile's `.sv` uses
+  // text-overflow:ellipsis, and once a value is ellipsized the browser clamps scrollWidth to clientWidth (so it always
+  // looks like it "fits" and never shrank — that's the "$98,775...." bug). Instead measure the value's TRUE width with an
+  // unconstrained off-screen probe and scale the font by avail/natural in one shot. Device-independent.
   try{
     var els=document.querySelectorAll('.stile .sv:not(.txt)');
     Array.prototype.forEach.call(els,function(el){
       el.style.fontSize='';
-      if(!el.clientWidth)return; // not visible yet
-      var fs=19;el.style.fontSize=fs+'px';var guard=0;
-      while(el.scrollWidth>el.clientWidth+1&&fs>12&&guard++<14){fs-=1;el.style.fontSize=fs+'px';}
+      var avail=el.clientWidth;if(!avail)return;                 // hidden view — refit when it's shown (switchView)
+      var cs=getComputedStyle(el),base=parseFloat(cs.fontSize)||19;
+      var probe=document.createElement('span');
+      probe.style.cssText='position:absolute;left:-9999px;top:-9999px;white-space:nowrap;visibility:hidden;font-family:'+cs.fontFamily+';font-weight:'+cs.fontWeight+';font-variant-numeric:tabular-nums;letter-spacing:'+cs.letterSpacing+';font-size:'+base+'px';
+      probe.textContent=el.textContent||'';
+      document.body.appendChild(probe);
+      var natural=probe.offsetWidth;document.body.removeChild(probe);
+      if(natural>avail-1){el.style.fontSize=Math.max(10,Math.floor(base*(avail-1)/natural))+'px';}
     });
   }catch(e){}
 }
@@ -4809,6 +4875,7 @@ function openCatTrend(name){
   h+='<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink2)">'+series.map(function(x){return '<span>'+MONTHS[x.m-1].slice(0,1)+'</span>';}).join("")+'</div>';
   h+='<div class="crem" style="margin-top:10px">Peak was <b>'+MONTHS[series[peakI].m-1]+' '+series[peakI].y+'</b> ('+money(pv)+').</div>';
   $("monOvBody").innerHTML=h;openOv("monOv");
+  try{requestAnimationFrame(fitStileNums);}catch(e){try{fitStileNums();}catch(_){}}
 }
 // The bottom list mirrors what you're logging: on Expense it filters to the chosen category, on Deposit to the chosen source
 // (all-time history, not just this month). With nothing chosen it shows everything recent, as before.
@@ -4895,7 +4962,8 @@ function renderBills(){
       '<div class="billr2">'+(isCustom?'':'<span class="bi-amtw">$<input class="bi-amt" data-i="'+i+'" inputmode="decimal" placeholder="0.00" value="'+esc(it.amount!==""&&it.amount!=null?it.amount:"")+'"></span>')+
       '<select class="bi-cad" data-i="'+i+'"><option value="Monthly"'+(it.cadence==="Monthly"||!it.cadence?" selected":"")+'>Monthly</option><option value="Annual"'+(it.cadence==="Annual"?" selected":"")+'>Annual, pay that month</option><option value="AnnualSaveUp"'+(it.cadence==="AnnualSaveUp"?" selected":"")+'>Annual (split per month)</option><option value="Custom"'+(isCustom?" selected":"")+'>Custom (set each month)</option></select></div>'+
       (isCustom?('<div class="bcustom">'+[0,1,2,3,4,5,6,7,8,9,10,11].map(function(j){return '<label class="bcm"><span>'+MONTHS[j].slice(0,3)+'</span><input class="bi-cm" data-i="'+i+'" data-m="'+j+'" inputmode="decimal" placeholder="0" value="'+esc(months[j]!=null&&months[j]!==""?months[j]:"")+'"></label>';}).join("")+'</div>'):'')+
-      '<div class="billr3">'+(monShow?('<label class="bi-lab">Month<select class="bi-mon" data-i="'+i+'">'+monthOpts(it.month)+'</select></label>'):'')+(isCustom?'':'<label class="bi-lab">Due day<input class="bi-day" data-i="'+i+'" inputmode="numeric" placeholder="—" value="'+esc(it.day!==""&&it.day!=null?it.day:"")+'"></label>')+'</div>'+
+      '<div class="billr3">'+(monShow?('<label class="bi-lab">Month<select class="bi-mon" data-i="'+i+'">'+monthOpts(it.month)+'</select></label>'):'')+(it.cadence==="AnnualSaveUp"?('<label class="bi-lab">Save from<select class="bi-start" data-i="'+i+'">'+monthOpts(it.start||1)+'</select></label>'):'')+(isCustom?'':'<label class="bi-lab">Due day<input class="bi-day" data-i="'+i+'" inputmode="numeric" placeholder="—" value="'+esc(it.day!==""&&it.day!=null?it.day:"")+'"></label>')+'</div>'+
+      (it.cadence==="AnnualSaveUp"?'<div class="hintline" style="text-align:left;margin:2px 0 0;padding-left:2px">Splits the yearly amount evenly from “Save from” through the due month. Starting mid-year? Set it to this month so each payment is right — not spread across months already gone.</div>':'')+
       '</div>';
   }).join("");
   el.querySelectorAll(".bi-name").forEach(function(x){x.addEventListener("input",function(){BILLS[+this.getAttribute("data-i")].name=this.value;billTotalUpd();});});
@@ -4903,6 +4971,7 @@ function renderBills(){
   el.querySelectorAll(".bi-cm").forEach(function(x){x.addEventListener("input",function(){var i=+this.getAttribute("data-i"),m=+this.getAttribute("data-m");if(!BILLS[i].months)BILLS[i].months=[];BILLS[i].months[m]=this.value;billTotalUpd();});});
   el.querySelectorAll(".bi-cad").forEach(function(x){x.addEventListener("change",function(){var i=+this.getAttribute("data-i");BILLS[i].cadence=this.value;if(this.value==="Custom"&&!BILLS[i].months)BILLS[i].months=[];renderBills();});});
   el.querySelectorAll(".bi-mon").forEach(function(x){x.addEventListener("change",function(){BILLS[+this.getAttribute("data-i")].month=Number(this.value);billTotalUpd();});});
+  el.querySelectorAll(".bi-start").forEach(function(x){x.addEventListener("change",function(){BILLS[+this.getAttribute("data-i")].start=Number(this.value);billTotalUpd();});});
   el.querySelectorAll(".bi-day").forEach(function(x){x.addEventListener("input",function(){var d=Math.max(0,Math.min(31,parseInt(this.value,10)||0));BILLS[+this.getAttribute("data-i")].day=d||"";});});
   el.querySelectorAll(".bi-x").forEach(function(x){x.addEventListener("click",function(){BILLS.splice(+this.getAttribute("data-i"),1);if(!BILLS.length)BILLS=[{name:"",amount:"",cadence:"Monthly",month:1,day:"",months:[]}];renderBills();});});
   billTotalUpd();
@@ -4948,12 +5017,17 @@ function conTypeUI(){
   $("conMonthRow").style.display=(t==="onetime")?"flex":"none";
   $("conCustom").style.display=(t==="custom")?"block":"none";
   $("conAmtLbl").textContent=(t==="paycheck")?"Take-home per check":(t==="onetime")?"Amount":(t==="weekly")?"Amount per week":(t==="biweekly")?"Amount every 2 weeks":"Amount per month";
-  var canCal=(t==="weekly"||t==="biweekly");
+  var freqN=Number($("conFreq").value);
+  // Real paydays are only meaningful when checks don't align to calendar months: the standalone weekly/biweekly types, and
+  // a Paycheck (salary) whose frequency is weekly (52) or every-2-weeks (26). Twice-monthly/monthly/yearly already align.
+  var payCal=isPay&&(freqN===52||freqN===26);
+  var canCal=(t==="weekly"||t==="biweekly"||payCal);
   $("conCalRow").style.display=canCal?"flex":"none";
   $("conAnchorRow").style.display=(canCal&&$("conCalendar")&&$("conCalendar").checked)?"flex":"none";
-  var fw={52:"weekly",26:"every 2 weeks",24:"twice a month",12:"monthly",1:"yearly"}[Number($("conFreq").value)]||"";
+  var fw={52:"weekly",26:"every 2 weeks",24:"twice a month",12:"monthly",1:"yearly"}[freqN]||"";
   var realOn=canCal&&$("conCalendar")&&$("conCalendar").checked;
-  var hints={paycheck:"Enter one paycheck; the app averages it across the year ("+fw+").",weekly:realOn?"Real paydays on: enter your next payday and the app counts the actual weekly checks each month (some months get an extra one).":"Same amount every week — the app spreads it evenly across the months (×52 ÷ 12). Turn on real paydays to model the actual weeks.",biweekly:realOn?"Real paydays on: enter your next payday and the app maps the actual every-2-weeks checks — so the two 3-paycheck months show up in your cash-flow forecast.":"Same amount every 2 weeks — spread evenly across the months (×26 ÷ 12). Turn on real paydays to show the two 3-paycheck months.",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
+  var payHint=payCal?(realOn?("Real paydays on: enter your next payday and the app maps the actual "+fw+" checks — so the extra-paycheck months show up in your cash-flow forecast."):("Enter one paycheck; the app averages it across the year ("+fw+"). Turn on real paydays to model the actual "+(freqN===52?"weekly":"every-2-weeks")+" checks.")):("Enter one paycheck; the app averages it across the year ("+fw+").");
+  var hints={paycheck:payHint,weekly:realOn?"Real paydays on: enter your next payday and the app counts the actual weekly checks each month (some months get an extra one).":"Same amount every week — the app spreads it evenly across the months (×52 ÷ 12). Turn on real paydays to model the actual weeks.",biweekly:realOn?"Real paydays on: enter your next payday and the app maps the actual every-2-weeks checks — so the two 3-paycheck months show up in your cash-flow forecast.":"Same amount every 2 weeks — spread evenly across the months (×26 ÷ 12). Turn on real paydays to show the two 3-paycheck months.",monthly:"Same amount every month.",onetime:"A single deposit in the month you pick.",custom:"Set a different amount for each month."};
   $("conHint").textContent=hints[t]||"";
   if(t==="custom"&&!$("nm0"))buildMGrid("conGrid","nm");
 }
@@ -5088,8 +5162,7 @@ function renderFeas(){
   if(planInc<=0.005&&planExp<=0.005&&goalSave<=0.005){card.className="card";el.innerHTML='<div class="empty">Add income and categories to check the yearly picture.</div>';return;}
   var income,budget,blended=(mode==="actual");
   if(blended){
-    var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];
-    state.rows.forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
+    var _IE=actualIE(state.rows,y),ai=_IE.ai,ae=_IE.ae;
     income=0;budget=0;for(var m=0;m<12;m++){if((m+1)<bnd){income+=ai[m];budget+=ae[m];}else if((m+1)===bnd){income+=Math.max(ai[m],incP[m]);budget+=Math.max(ae[m],expP[m]);}else{income+=incP[m];budget+=expP[m];}} // current month: actual-to-date, but at least the plan
     income=r2(income);budget=r2(budget);
   } else {income=r2(planInc);budget=r2(planExp);}
@@ -5336,7 +5409,8 @@ function renderContingency(){
       h+='<div class="totrow" style="margin-top:8px"><span>'+esc(e.name)+'</span><span class="'+(e.balance<-0.005?"bneg":"bpos")+'">'+money(e.balance)+'</span></div>';
       if(e.upc){var u=e.upc,when=u.monthsUntil<=0?"due this month":("due "+MONTHS[u.dueMonth-1]+" · "+u.monthsUntil+" mo"+(u.monthsUntil===1?"":"s")+" out");
         var line;
-        if(u.gap<=0.005)line='<span class="pos">fully covered</span> — '+money(u.banked)+' of '+money(u.need)+' for '+esc(u.name)+' ('+when+')';
+        if(u.multi)line='Next up: <b>'+esc(u.name)+'</b> ('+when+') · this envelope covers several annual bills, so the banked total isn’t split per bill.';
+        else if(u.gap<=0.005)line='<span class="pos">fully covered</span> — '+money(u.banked)+' of '+money(u.need)+' for '+esc(u.name)+' ('+when+')';
         else line=money(u.banked)+' of '+money(u.need)+' for '+esc(u.name)+' · <span class="neg">'+money(u.gap)+' to go</span>'+(u.perMonth>0.005?(' · set aside <b>'+money(u.perMonth)+'/mo</b>'):'')+' ('+when+')';
         h+='<div class="hintline" style="text-align:left;margin:2px 0 0;padding-left:2px">'+line+'</div>';
       }
@@ -5767,7 +5841,8 @@ function readConCfg(){
   if(t==="custom"){cfg.months=[];for(var i=0;i<12;i++){cfg.months.push(parseFloat(($("nm"+i)&&$("nm"+i).value||"").replace(/[^0-9.\-]/g,""))||0);}}
   else{cfg.amount=parseFloat($("conAmt").value.replace(/[^0-9.\-]/g,""))||0;}
   if(t==="paycheck"){cfg.freq=Number($("conFreq").value)||26;cfg.mode=conPayMode;if(conPayMode==="keep"){cfg.keep=parseFloat($("conKeep").value.replace(/[^0-9.\-]/g,""))||0;}else{cfg.pct=parseFloat($("conPct").value.replace(/[^0-9.\-]/g,""));if(isNaN(cfg.pct)||cfg.pct<=0)cfg.pct=100;if(cfg.pct>100)cfg.pct=100;}}
-  if((t==="weekly"||t==="biweekly")&&$("conCalendar")&&$("conCalendar").checked&&$("conAnchor")&&$("conAnchor").value){cfg.calendar=true;cfg.payAnchor=$("conAnchor").value;} // model the real payday calendar
+  var _pc=(t==="paycheck")&&(cfg.freq===52||cfg.freq===26); // a salary paycheck paid weekly/every-2-weeks can also use real paydays
+  if((t==="weekly"||t==="biweekly"||_pc)&&$("conCalendar")&&$("conCalendar").checked&&$("conAnchor")&&$("conAnchor").value){cfg.calendar=true;cfg.payAnchor=$("conAnchor").value;} // model the real payday calendar
   if(t==="onetime")cfg.month=Number($("conMonth").value)||curMonth();
   return cfg;
 }
@@ -5835,7 +5910,7 @@ function nextFreeRow(){
 function readCatCfg(){
   var t=$("cType").value;var cfg={type:t};
   if(t==="custom"){cfg.months=[];for(var i=0;i<12;i++){cfg.months.push(parseFloat(($("cm"+i)&&$("cm"+i).value||"").replace(/[^0-9.\-]/g,""))||0);}}
-  else if(t==="itemized"){cfg.items=BILLS.map(function(it){var o={name:(it.name||"").trim(),cadence:it.cadence||"Monthly",month:Number(it.month)||1,day:Number(it.day)||0};if(it.cadence==="Custom"){o.months=[];for(var j=0;j<12;j++)o.months[j]=parseFloat((""+((it.months&&it.months[j])||"")).replace(/[^0-9.\-]/g,""))||0;o.amount=r2(o.months.reduce(function(s,v){return s+v;},0));}else{o.amount=parseFloat((""+(it.amount||"")).replace(/[^0-9.\-]/g,""))||0;}return o;}).filter(function(it){return it.name||it.amount>0||(it.months&&it.months.some(function(v){return v>0;}));});}
+  else if(t==="itemized"){cfg.items=BILLS.map(function(it){var o={name:(it.name||"").trim(),cadence:it.cadence||"Monthly",month:Number(it.month)||1,day:Number(it.day)||0};if(it.cadence==="AnnualSaveUp"&&Number(it.start)>1)o.start=Number(it.start);if(it.cadence==="Custom"){o.months=[];for(var j=0;j<12;j++)o.months[j]=parseFloat((""+((it.months&&it.months[j])||"")).replace(/[^0-9.\-]/g,""))||0;o.amount=r2(o.months.reduce(function(s,v){return s+v;},0));}else{o.amount=parseFloat((""+(it.amount||"")).replace(/[^0-9.\-]/g,""))||0;}return o;}).filter(function(it){return it.name||it.amount>0||(it.months&&it.months.some(function(v){return v>0;}));});}
   else{cfg.amount=parseFloat($("cAmt").value.replace(/[^0-9.\-]/g,""))||0;}
   if(t==="annual"||t==="onetime")cfg.month=Number($("cMonth").value)||curMonth();
   if(t==="onetime"&&$("cSaveup").checked){cfg.saveup=true;cfg.start=Number($("cStart").value)||curMonth();}
@@ -5860,7 +5935,7 @@ function prefillCatForm(name,cfg){
   $("cType").value=cfg.type||"monthly";
   $("cRoll").value=(cfg.roll==="envelope"||cfg.roll==="buffer")?cfg.roll:"none";
   $("cAmt").value=(cfg.type!=="custom"&&cfg.type!=="itemized"&&cfg.amount)?cfg.amount:"";
-  if(cfg.type==="itemized"){BILLS=(cfg.items||[]).map(function(it){return {name:it.name,amount:it.amount,cadence:it.cadence,month:it.month,day:(it.day||""),months:(it.months||[]).slice()};});if(!BILLS.length)BILLS=[{name:"",amount:"",cadence:"Monthly",month:1,day:"",months:[]}];}else{BILLS=[];}
+  if(cfg.type==="itemized"){BILLS=(cfg.items||[]).map(function(it){return {name:it.name,amount:it.amount,cadence:it.cadence,month:it.month,start:(it.start||1),day:(it.day||""),months:(it.months||[]).slice()};});if(!BILLS.length)BILLS=[{name:"",amount:"",cadence:"Monthly",month:1,day:"",months:[]}];}else{BILLS=[];}
   catTypeUI();
   if(cfg.type==="annual"||cfg.type==="onetime")$("cMonth").value=cfg.month||curMonth();
   $("cSaveup").checked=!!(cfg.type==="onetime"&&cfg.saveup);if(cfg.saveup)$("cStart").value=cfg.start||curMonth();
@@ -6141,6 +6216,8 @@ function wrenDecisionMsg(res){
     });
     if(bits.length)parts.push("Together that's "+(bits.length>1?(bits.slice(0,-1).join(", ")+" and "+bits[bits.length-1]):bits[0])+".");
   }
+  if(!res.batch&&res.changes&&res.changes[0]){var c0=res.changes[0];if((c0.type==='expenseMonthly'||c0.type==='income')&&c0.months&&c0.months.length&&c0.months.length<12)parts.push("(Counted from "+MONF[c0.months[0]-1]+" through December — "+c0.months.length+" month"+(c0.months.length===1?"":"s")+" this year.)");}
+  if(res.goal&&res.goal.shortfall>0.005)parts.push("Heads up: “"+res.goal.name+"” only holds "+anMoney(res.goal.fromGoal)+", so the other "+anMoney(res.goal.shortfall)+" comes out of cash.");
   if(res.goal&&res.goal.before&&res.goal.after&&res.goal.before!==res.goal.after)parts.push("Your “"+res.goal.name+"” finish moves from "+res.goal.before+" to "+res.goal.after+".");
   var sc=(Math.abs(b.surplus-d.surplus)>0.5)?(" — surplus goes from "+anMoney(b.surplus)+" to "+anMoney(d.surplus)):(" — surplus about "+anMoney(d.surplus));
   parts.push("Your annual plan "+(d.surplus>=-0.005?("stays positive"+sc):("would run a "+anMoney(-d.surplus)+" deficit"))+".");
