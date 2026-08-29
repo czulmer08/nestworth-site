@@ -1285,6 +1285,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.17 — Aug 29, 2026 · Build 20260829.105 · Buffer categories that go over their monthly budget now appear in the "Can you cover it?" assessment with an explicit note — "X went $Y over its budget — absorbed by your shared contingency buffer" (or, if the buffer pool is itself overspent, that the excess comes from cash) — instead of either a bare red over-budget alarm or vanishing entirely. Refines v0.68.16: a buffer doing its job (absorbing a lump) is shown as covered, not alarmed, and every over-budget category now gets a matching coverage answer.
+//   v0.68.16 — Aug 29, 2026 · Build 20260829.104 · Month "Can you cover it?" clarity fixes (from real-use feedback). (1) Order: the OVER BUDGET list now renders BEFORE the coverage assessment, so you see what's over budget first, then whether you're covered. (2) The over-budget reminder now excludes buffer categories too (not just envelopes) — matching the coverage assessment exactly — so every "over budget" row is one the assessment also speaks to; a buffer category doing its job (absorbing a lump) no longer false-alarms as a red over-budget item. (3) The goal-impact line no longer prints a vacuous "your planned $0.00 of residual saving is fully supported" when there's no leftover pool to fund residual goals — it only speaks to residual when there's an actual pool, and to fixed goals when there are fixed contributions; otherwise it stays silent. Same gating applied to Wren.
 //   v0.68.15 — Aug 29, 2026 · Build 20260829.103 · Corrects and deepens v0.68.14. Goal money is NOT simply "unaffected" by an over-budget month — that conflated the plan staying the same with what's actually affordable. New authoritative helper goalFundingStatus() distinguishes PLANNED goal funding from what THIS month's performance can SUPPORT: only the slice of overage that this month's CASH absorbs (not an envelope covering its own overage from its own banked balance, and not the shared contingency pool) erodes residual "% of leftover" capacity; fixed goal contributions are protected first. Reconciles exactly (overage = envelope-self + shared-contingency + cash-absorbed; supported residual = planned − cash-absorbed). The Month "Can you cover it?" block and Wren now narrate this one fact — reassuring only when residual is truly intact, otherwise showing planned vs currently-supported honestly. Terminology fixed: an envelope covering its own overage is envelope coverage, not shared contingency. New verify-goal-funding.js (6 scenarios + reconciliation invariants); verify-contingency-goals.js reworked to the honest narration.
 //   v0.68.14 — Aug 29, 2026 · Build 20260829.102 · Clarity: the Month "Can you cover it?" block now opens with a plain-language summary answering the two questions an over-budget month actually raises — whether you're covered OVERALL this month (net under/over budget + contingency in reserve), and whether any of it touches your goals. It doesn't: goal money (fixed contributions + residual "% of leftover", which is plan-based) is a separate pool from the envelope/buffer cushions, so covering an overage never reduces this month's goal funding — the summary and Wren now both say so, and only when you actually have goals (no false reassurance). New verify-contingency-goals.js.
 //   v0.68.13 — Aug 29, 2026 · Build 20260829.101 · Onboarding: the 60-second guided tour no longer auto-launches OVER a brand-new person who's still deciding at the first-run card (Set up / Import / Just log expenses), or over an open setup/import overlay. It now waits until they've chosen a path and landed on a clear screen, then starts — and gives up quietly after ~30s rather than interrupting a long setup (the Guide and "Take the tour" buttons stay available). Found in the unfamiliar-user cognitive walkthrough. New verify-firstrun-tour.js.
@@ -1673,8 +1675,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.15"; // SemVer — what changed functionally (display only)
-var BUILD="20260829.103"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.17"; // SemVer — what changed functionally (display only)
+var BUILD="20260829.105"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -3113,12 +3115,17 @@ function coverageReport(){
     if(projEnd<-0.005){allSolvent=false;envRisk.push({name:c.name,shortfall:r2(-projEnd),basis:reined?"budget":"pace"});}
   });
   envOver.sort(function(a,b){return b.over-a.over;});envRisk.sort(function(a,b){return b.shortfall-a.shortfall;});
+  // BUFFER categories over THIS month's budget: they don't carry their own per-category cushion (like an envelope) — their
+  // variance is absorbed by the SHARED contingency buffer pool. Surfaced so they get a "covered by your contingency buffer"
+  // note in the assessment rather than a bare over-budget alarm.
+  var bufOver=[];state.cats.forEach(function(c){if(catRoll(c.name)!=="buffer")return;var mb=c.mbud||0,u=budUsed(c),ov=r2(u-mb);if(mb>0.005&&ov>0.005)bufOver.push({name:c.name,over:ov});});
+  bufOver.sort(function(a,b){return b.over-a.over;});
   // attach the authoritative coverage facts so "in the red" can distinguish covered-by-contingency from genuinely uncovered
   var covByName={};roll.envelopes.forEach(function(e){covByName[e.name.toLowerCase()]={covered:e.coveredByContingency||0,uncovered:e.uncovered||0,raw:e.rawBalance};});
   envOver.forEach(function(o){var c=covByName[o.name.toLowerCase()];if(c){o.covered=c.covered;o.uncovered=c.uncovered;}});
-  return {buffer:roll.buffer,availableBuffer:roll.availableBuffer,remainingContingency:roll.remainingContingency,contingencyUsed:roll.contingencyUsed,
+  return {buffer:roll.buffer,rawBuffer:roll.rawBuffer,bufferDeficit:roll.bufferDeficit,availableBuffer:roll.availableBuffer,remainingContingency:roll.remainingContingency,contingencyUsed:roll.contingencyUsed,
     totalEnvelopeDeficit:roll.totalEnvelopeDeficit,uncoveredDeficit:roll.uncoveredDeficit,
-    fixedOver:fixedOver,fixedTot:fixedTot,monthLeft:monthLeft,envOver:envOver,envRisk:envRisk,allSolvent:allSolvent,remMonths:remMonths,hasEnv:hasEnv};
+    fixedOver:fixedOver,fixedTot:fixedTot,monthLeft:monthLeft,envOver:envOver,bufOver:bufOver,envRisk:envRisk,allSolvent:allSolvent,remMonths:remMonths,hasEnv:hasEnv};
 }
 // ===== Planned vs currently-SUPPORTABLE goal funding — the AUTHORITATIVE fact the Nest Review and Wren both narrate (neither
 // computes it independently). It distinguishes what the PLAN allocated to goals from what this month's ACTUAL performance can
@@ -5367,9 +5374,11 @@ function computeReminders(){
   var p=remPrefs(),out=[],now=new Date(),y=curYear(),m=curMonth();
   var t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   if(p.overbudget){state.cats.forEach(function(c){
-    // Skip categories that bank across months (envelope roll, or itemized with an annual/save-up bill): spending a lump in one
-    // month is expected there and is covered by the banked balance, so a raw month-budget comparison would false-alarm.
-    if(catRoll(c.name)==="envelope")return;
+    // Skip categories that bank across months (envelope OR buffer roll, or itemized with an annual/save-up bill): spending a
+    // lump in one month is expected there and is absorbed by the banked balance / shared buffer, so a raw month-budget
+    // comparison false-alarms. This mirrors coverageReport() exactly, so every "OVER BUDGET" row is one the coverage
+    // assessment below also speaks to — no category is flagged over budget without a matching "here's whether you're covered."
+    if(catRoll(c.name)!=="none")return;
     var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.some(function(it){return it.cadence==="Annual"||it.cadence==="AnnualSaveUp";}))return;
     var _u=budUsed(c);if(c.mbud>0.005&&_u>c.mbud+0.005)out.push({g:"overbudget",cls:"bad",icon:"⚠️",text:"<b>"+esc(c.name)+"</b> is over by "+money(_u-c.mbud)+" this month."});});}
   if(p.duesoon){state.cats.forEach(function(c){var cfg=catCfg(c.name);if(!cfg||cfg.type!=="itemized"||!cfg.items)return;cfg.items.forEach(function(it){if(!it.name||!(Number(it.day)||0))return;var due=billNextDue(it,now);if(!due)return;var du=Math.round((due-t0)/86400000);if(du<0||du>7)return;if(billLoggedThisMonth(it.name,c.name))return;var when=du<=0?"today":(du===1?"tomorrow":("in "+du+" days"));out.push({g:"duesoon",cls:"warn",icon:"🔁",text:"<b>"+esc(it.name)+"</b> ("+money(it.amount)+") due "+ord(due.getDate())+" — "+when+"."});});});}
@@ -5388,7 +5397,7 @@ var REM_ORDER=["overbudget","duesoon","saveup","missed","goals","recap"];
 function coverageHtml(){
   if(!remPrefs().overbudget)return "";
   var r=coverageReport();
-  if(r.fixedTot<=0.005&&!r.envOver.length&&!r.envRisk.length)return "";
+  if(r.fixedTot<=0.005&&!r.envOver.length&&!(r.bufOver&&r.bufOver.length)&&!r.envRisk.length)return "";
   var rows=[];
   // the buffer available for a THIS-MONTH overage is what's left after contingency covers cumulative envelope deficits
   var avail=(r.remainingContingency!=null)?r.remainingContingency:(r.buffer>0?r.buffer:0);
@@ -5411,6 +5420,12 @@ function coverageHtml(){
     else if(cov>0.005)rows.push({cls:"warn",ico:"✉️",text:"<b>"+esc(e.name)+"</b> is "+money(-e.balance)+" in the red — contingency covers "+money(cov)+", leaving <b>"+money(unc)+"</b> uncovered."});
     else rows.push({cls:"warn",ico:"✉️",text:"<b>"+esc(e.name)+"</b> is "+money(-e.balance)+" in the red with no contingency to cover it."});
   });
+  // BUFFER categories over their monthly budget: their variance is absorbed by the SHARED contingency buffer pool (not a
+  // per-category cushion). Give each an explicit "covered by your contingency buffer" note — or flag it if the pool is overspent.
+  (r.bufOver||[]).forEach(function(bo){
+    if((r.rawBuffer||0)>=-0.005)rows.push({cls:"info",ico:"🛟",text:"<b>"+esc(bo.name)+"</b> went "+money(bo.over)+" over its budget — absorbed by your shared contingency buffer."});
+    else rows.push({cls:"warn",ico:"🛟",text:"<b>"+esc(bo.name)+"</b> went "+money(bo.over)+" over its budget — but your contingency buffer is itself overspent by "+money(r.bufferDeficit)+", so that much comes out of cash."});
+  });
   if(r.hasEnv){
     if(r.allSolvent)rows.push({cls:"good",ico:"🗓️",text:"Every envelope stays funded through December."});
     else r.envRisk.forEach(function(e){rows.push({cls:"warn",ico:"🗓️",text:(e.basis==="budget"?"Even holding to budget, <b>":"At your current pace, <b>")+esc(e.name)+"</b> "+(e.basis==="budget"?"stays about ":"runs about ")+money(e.shortfall)+" short before year-end."});});
@@ -5419,14 +5434,15 @@ function coverageHtml(){
   // this month's CASH absorbs (not envelope self-coverage, not shared contingency) reduces residual capacity; fixed goals are
   // protected. Reassure only when nothing diverges; otherwise show planned vs currently-supported honestly.
   try{var g=goalFundingStatus();
-    if(g.hasResidual||g.hasFixed){
+    var mRes=g.hasResidual&&g.residualPlanned>0.005; // only mention residual if there is an actual leftover pool to fund it (avoid a vacuous "$0.00 fully supported")
+    if(g.hasFixed||mRes){
       if(!g.residualReduced&&!g.drawsReserves){
-        var okbits=[];if(g.hasFixed)okbits.push("your fixed goal contributions ("+money(g.fixedSupported)+") are protected");if(g.hasResidual)okbits.push("your planned "+money(g.residualPlanned)+" of residual saving is fully supported");
-        rows.push({cls:"good",ico:"🎯",text:"This doesn’t reduce your goal funding — "+okbits.join(" and ")+" this month."});
+        var okbits=[];if(g.hasFixed)okbits.push("your fixed goal contributions ("+money(g.fixedSupported)+") are protected");if(mRes)okbits.push("your planned "+money(g.residualPlanned)+" of residual saving is fully supported");
+        if(okbits.length)rows.push({cls:"good",ico:"🎯",text:"This doesn’t reduce your goal funding — "+okbits.join(" and ")+" this month."});
       }else{
         var bad=[];if(g.hasFixed)bad.push("Fixed goals stay funded ("+money(g.fixedSupported)+")");
-        if(g.hasResidual)bad.push((g.hasFixed?"but ":"")+"about <b>"+money(g.residualSupported)+"</b> of your planned "+money(g.residualPlanned)+" residual saving is supported at today’s spending");
-        rows.push({cls:"warn",ico:"🎯",text:bad.join(", ")+(g.drawsReserves?" — the overage now draws on your cash reserves.":" this month.")});
+        if(mRes)bad.push((g.hasFixed?"but ":"")+"about <b>"+money(g.residualSupported)+"</b> of your planned "+money(g.residualPlanned)+" residual saving is supported at today’s spending");
+        if(bad.length)rows.push({cls:"warn",ico:"🎯",text:bad.join(", ")+(g.drawsReserves?" — the overage now draws on your cash reserves.":" this month.")});
       }
     }
   }catch(e){}
@@ -5440,9 +5456,12 @@ function renderReminders(){
   if(!rem.length&&!cov){card.style.display="none";return;}
   card.style.display="block";
   var byg={};rem.forEach(function(r){(byg[r.g]=byg[r.g]||[]).push(r);});
-  var h=byg["overbudget"]?'<div class="rem-note">A few categories are over budget this month. Here’s whether you’re covered.</div>':"";
-  h+=cov; // the "so what?" comes right after the note, before the per-item detail
-  REM_ORDER.forEach(function(g){var items=byg[g];if(!items||!items.length)return;h+='<div class="remgrp"><div class="remtitle">'+esc(REM_TITLES[g])+'</div>'+items.map(function(r){return '<div class="remrow '+r.cls+'"><span class="remico">'+r.icon+'</span><span>'+r.text+'</span></div>';}).join("")+'</div>';});
+  var mkGroup=function(g,items){return '<div class="remgrp"><div class="remtitle">'+esc(REM_TITLES[g])+'</div>'+items.map(function(r){return '<div class="remrow '+r.cls+'"><span class="remico">'+r.icon+'</span><span>'+r.text+'</span></div>';}).join("")+'</div>';};
+  var h=(byg["overbudget"]||cov)?'<div class="rem-note">A few categories are over budget this month. Here’s whether you’re covered.</div>':"";
+  // Order: WHAT'S over budget first, THEN whether you're covered (the "so what?"), then everything else.
+  if(byg["overbudget"])h+=mkGroup("overbudget",byg["overbudget"]);
+  h+=cov;
+  REM_ORDER.forEach(function(g){if(g==="overbudget")return;var items=byg[g];if(!items||!items.length)return;h+=mkGroup(g,items);});
   body.innerHTML=h;
 }
 function renderMonth(){
@@ -7261,15 +7280,15 @@ function wrenAnalyze(text){
     if(cr.hasEnv&&!cr.allSolvent)parts.push(cr.envRisk.map(function(e){return e.name+" (~"+anMoney(e.shortfall)+" short"+(e.basis==="budget"?", even holding to budget":"")+")";}).join(", ")+" won't make it to year-end at this pace.");
     // Goal relationship — the worry an over-budget month raises — narrated from the authoritative planned-vs-supportable fact.
     // Only the CASH-absorbed slice of the overage (not envelope self-coverage, not shared contingency) reduces residual capacity.
-    var g=goalFundingStatus();
-    if((g.hasResidual||g.hasFixed)&&(g.overTotal>0.005||t.indexOf("goal")>=0)){
+    var g=goalFundingStatus();var mRes=g.hasResidual&&g.residualPlanned>0.005;
+    if((g.hasFixed||mRes)&&(g.overTotal>0.005||t.indexOf("goal")>=0)){
       if(!g.residualReduced&&!g.drawsReserves){
-        var okb=[];if(g.hasFixed)okb.push("your fixed contributions of "+anMoney(g.fixedSupported)+" stay protected");if(g.hasResidual)okb.push("your planned "+anMoney(g.residualPlanned)+" of residual saving is fully supported");
-        parts.push("This doesn't reduce your goal funding this month — "+okb.join(", and ")+", because the overage is covered without touching this month's cash.");
+        var okb=[];if(g.hasFixed)okb.push("your fixed contributions of "+anMoney(g.fixedSupported)+" stay protected");if(mRes)okb.push("your planned "+anMoney(g.residualPlanned)+" of residual saving is fully supported");
+        if(okb.length)parts.push("This doesn't reduce your goal funding this month — "+okb.join(", and ")+", because the overage is covered without touching this month's cash.");
       }else{
         var bb=[];if(g.hasFixed)bb.push("your fixed goals stay funded ("+anMoney(g.fixedSupported)+")");
-        if(g.hasResidual)bb.push("at today's spending, about "+anMoney(g.residualSupported)+" of your planned "+anMoney(g.residualPlanned)+" residual saving is supported — the "+anMoney(g.cashAbsorbed)+" absorbed by cash this month is what trims it");
-        parts.push("Here's the goal picture: "+bb.join(", and ")+(g.drawsReserves?". That overage now exceeds this month's discretionary room, so it's drawing on your cash reserves.":"."));
+        if(mRes)bb.push("at today's spending, about "+anMoney(g.residualSupported)+" of your planned "+anMoney(g.residualPlanned)+" residual saving is supported — the "+anMoney(g.cashAbsorbed)+" absorbed by cash this month is what trims it");
+        if(bb.length)parts.push("Here's the goal picture: "+bb.join(", and ")+(g.drawsReserves?". That overage now exceeds this month's discretionary room, so it's drawing on your cash reserves.":"."));
       }
     }
     return {answer:parts.join(" "),go:{v:"month"}};
