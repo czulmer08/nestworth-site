@@ -1286,6 +1286,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.22 — Aug 29, 2026 · Build 20260829.110 · Second goal-funding gap found by adversarial audit: UNBUDGETED / uncategorized spending didn't reduce supportable residual. goalFundingStatus()'s inputs were all budget-line based (fixedTot/underRoom, envelope deficits, contingency), so a transaction in a category with no budget line — or an uncategorized expense — was real cash consumption (canonical monthActualTotals includes it) yet invisibly left residual "% of leftover" capacity untouched. New unbudgetedConsumption() sums this month's expense rows that aren't in any budgeted category (uncategorized included; credits/refunds net down; goal movements excluded via isExpenseRow), and goalFundingStatus folds it into the no-cushion cash pressure alongside the plain overage, net of genuine plain under-budget room. Budgeted categories are skipped (their spend is already in mspent/budUsed), so nothing is double-charged, and the full household cash identity still reconciles with C = canonical consumption. verify-goal-funding.js extended with GF-013…GF-018 (unbudgeted reduces residual, partial offset by under-room, exceeds→$0+overflow, uncategorized≡named, refund restores, goal-move-not-consumption); verify-goal-funding-reconcile.js adds an unbudgeted identity case; mutation-audited (ignoring unbudgeted makes GF-013/015 fail). Deferred as before: floor-aware multi-month cash-flow reconciliation, and whether plain slack should offset an accumulated envelope/buffer deficit.
+//   v0.68.21 — Aug 29, 2026 · Build 20260829.109 · The contingency history is now VISIBLE (v0.68.19 gave Wren the month-by-month history to narrate, but there was nowhere to SEE it). The Contingency card now draws a compact bar sparkline of the pooled buffer's month-end balance across the completed months — green above the zero line, red below — with the month it first crossed negative highlighted, and a plain caption ("Went negative in July · last in the black in June at $100 · now −$400" or "In the black every month"). It reads from the same getContingencyFacts() history Wren narrates, so the picture and Wren's answer can't disagree. New verify-contingency-trend.js (6, break-audited).
 //   v0.68.20 — Aug 29, 2026 · Build 20260829.108 · Cash-flow clarity (from real-use confusion: "how is the balance positive if my contingency is overspent?"). The running-total column read as "money I have" — it isn't. (1) Renamed the column "Balance" → "Projected cash". (2) When Starting savings is $0, a conspicuous note now says these figures are a cash-flow TREND from a $0 baseline, not actual cash on hand, and to enter start-of-year cash for a true projection. (3) The verdict now connects the two pools the screen used to leave separate: when the contingency buffer is overspent it says plainly that projected cash is NOT the contingency and a positive cash trend doesn't refill it (and a neutral "separate from your contingency" line when it's in the black). NO math change — an investigation of the current-month "so far + plan" net (verify-cashflow-current-month.js) proved it is NOT double-counting income or producing a catch-up artifact: current-month income = max(actual-to-date, plan) and outflow = max(actual-to-date, plan), income enters once, and the net only SHRINKS as real spending is logged (conservative on outflow). The large recovering month is a real deposit already received paired with at-least-planned spending; the ambiguity was purely the label/baseline. New verify-cashflow-current-month.js (5, the decomposition/no-double-count proof) + verify-cashflow-presentation.js (5, the clarity UI), both break-audited with permanent verify-mutation.js entries.
 //   v0.68.19 — Aug 29, 2026 · Build 20260829.107 · Wren temporal-contingency routing (found by ordinary use). "When did my contingency become overspent?" is a TIME question and was being answered as the STATE question "IS my contingency overspent?" — it just repeated the current −$X balance. New authoritative engine helper getContingencyFacts() exposes the CURRENT state AND a month-by-month pool history: firstNegativeMonth (the month the pooled buffer balance first crossed from ≥0 to <0), lastPositiveMonth + balance, the carry-in baseline, and the biggest single-month drop. Wren now NARRATES it (narrator-not-calculator, same contract as getGoalFacts) — a temporal question ("when/what month/last positive/before it went negative/how has it changed") names the month; it never re-repeats the current balance. Also fixes an over-answer: "How much is in my contingency after my bills?" now gives a CLEAN state answer (balance + $0-available + why) instead of dragging in uncovered-envelope totals and year-end envelope risk the user didn't ask about; questions that DO ask about covering an overage still get the fuller coverage answer. New verify-contingency-history.js (9 cases, break-audited) + a permanent verify-mutation.js entry (removing the temporal route makes it fail).
 //   v0.68.18 — Aug 29, 2026 · Build 20260829.106 · Fixes a cross-category-offset gap in goalFundingStatus() found by adversarial audit. When one category was over budget and ANOTHER was under by an offsetting amount (e.g. Living +$100, Dining −$100 → the household spent exactly its plan, coverageReport().monthLeft = $0), the goal-funding model still treated the GROSS $100 overage as cash consumed and wrongly reported residual "% of leftover" saving as reduced (planned $1,000 → supported $900). It now nets a plain category's overage against genuine under-budget slack in OTHER plain categories (cr.fixedTot − cr.underRoom) before deciding what truly hits cash — so an offset month leaves residual untouched, and the household cash identity (income + envelope-self + shared-contingency − consumption − fixed − residualSupported = −overflow) reconciles. The "Can you cover it?" coverage line was made consistent (it now offsets the overage by real under-budget-elsewhere slack, not just net leftover), so coverage and goal-funding can no longer contradict each other on an offset month. Envelope self-coverage and shared contingency stay distinct and are not double-counted. verify-goal-funding.js extended with GF-007…GF-012 (exact/partial offset, more-underspend-than-overage, offset+envelope-self, offset+contingency, order-invariance); verify-contingency-goals.js CASE 7 asserts the two surfaces agree; both mutation-audited (the restored gross behavior makes GF-007/008 and CASE 7 fail). NOTE: whether plain under-budget slack should also offset an ENVELOPE/buffer deficit is deliberately left to future reconciliation work; the fix keeps the offset and cushion mechanisms separate and non-double-counted.
@@ -1679,8 +1681,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.20"; // SemVer — what changed functionally (display only)
-var BUILD="20260829.108"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.22"; // SemVer — what changed functionally (display only)
+var BUILD="20260829.110"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -3134,6 +3136,25 @@ function coverageReport(){
     totalEnvelopeDeficit:roll.totalEnvelopeDeficit,uncoveredDeficit:roll.uncoveredDeficit,
     fixedOver:fixedOver,fixedTot:fixedTot,monthLeft:monthLeft,underRoom:underRoom,envOver:envOver,bufOver:bufOver,envRisk:envRisk,allSolvent:allSolvent,remMonths:remMonths,hasEnv:hasEnv};
 }
+// Current-month cash consumption that has NO budget line at all — spending in a category NestWorth isn't budgeting, or an
+// uncategorized expense. It is REAL consumption (canonical monthActualTotals includes it) but it isn't in coverageReport's
+// fixedTot/underRoom, envOver, or the buffer pool — so without accounting for it here it would invisibly draw down cash yet never
+// reduce supportable residual. NET (a credit/refund nets it down, so a refund restores capacity); goal movements are excluded by
+// isExpenseRow (a goal-tagged row is a transfer, not consumption). Budgeted categories are skipped — their spend is already in
+// mspent/budUsed → fixedTot/underRoom, so counting it here too would double-charge the same dollar.
+function unbudgetedConsumption(){
+  var y=curYear(),mo=curMonth(),budgeted={};
+  (state.cats||[]).forEach(function(c){budgeted[(""+c.name).trim().toLowerCase()]=1;});
+  var s=0;(state.rows||[]).forEach(function(r){
+    if(Number(r[0])!==y||Number(r[1])!==mo)return;
+    if(typeof _asOfOK==="function"&&!_asOfOK(r))return;         // future-dated excluded, same cutoff as every actuals path
+    if(!isExpenseRow(r))return;                                 // excludes deposits AND goal movements (a goal-named row is a transfer)
+    var cat=(""+((r&&r[4])||"")).trim().toLowerCase();
+    if(cat&&budgeted[cat])return;                               // in a budgeted category → already counted via fixedTot/underRoom
+    s+=Number(r[6])||0;                                         // uncategorized ("") or named-unbudgeted; credits/refunds net down
+  });
+  return r2(s);
+}
 // ===== Planned vs currently-SUPPORTABLE goal funding — the AUTHORITATIVE fact the Nest Review and Wren both narrate (neither
 // computes it independently). It distinguishes what the PLAN allocated to goals from what this month's ACTUAL performance can
 // support. Coverage hierarchy (from computeRollover): category budget → CROSS-CATEGORY OFFSET (a plain overage cancelled by
@@ -3159,7 +3180,11 @@ function goalFundingStatus(){
   // underspend banks into its OWN cushion — envelope balance or the shared-contingency pool — so it's already credited there; letting
   // it also offset a plain overage would double-cover the same dollar. Whether plain slack should offset an envelope/buffer DEFICIT
   // is a deeper reconciliation left to future work — the auditor's cases keep the two mechanisms separate and non-double-counted.)
-  var fixedOver=r2(Math.max(0,r2((cr.fixedTot||0)-(cr.underRoom||0)))); // NET plain overage after plain-vs-plain cross-category offsets
+  // UNBUDGETED consumption (no budget line, no cushion) joins the plain overage as no-cushion cash pressure; a net refund becomes
+  // free cash that offsets like under-budget room. Then net against genuine plain under-budget slack.
+  var unb=r2((typeof unbudgetedConsumption==="function")?unbudgetedConsumption():0);
+  var overNoCushion=r2((cr.fixedTot||0)+Math.max(0,unb)),underAvail=r2((cr.underRoom||0)+Math.max(0,-unb));
+  var fixedOver=r2(Math.max(0,r2(overNoCushion-underAvail))); // NET no-cushion overage: plain overage + unbudgeted spend, after plain under-budget offsets
   // then the shared contingency absorbs this month's NEW deficits (envelope-into-deficit first, then the NET non-envelope overage), up to what's available; the rest is cash:
   var sharedForEnv=r2(Math.min(availPool,envDeficit));
   var sharedForFixed=r2(Math.min(r2(availPool-sharedForEnv),fixedOver));
@@ -6211,6 +6236,33 @@ async function gtxSubmit(){
   }catch(e){msg.textContent="Could not move money: "+(e.message||e);msg.className="msg bad";}
   b.disabled=false;b.textContent=sign>0?"Add money":"Withdraw";
 }
+// A compact month-by-month TREND of the pooled contingency balance, drawn from the SAME history Wren narrates
+// (getContingencyFacts()) — so the number Wren quotes and the picture on the card can't disagree. Bars are the month-END pool
+// balance for each COMPLETED month (the horizon behind rawBuffer); green above the zero line, red below; the month it first
+// crossed negative is highlighted. Theme-aware via the palette vars. Returns "" when there's no buffer or too little to trend.
+function contingencyTrendHTML(){
+  var cf;try{cf=getContingencyFacts();}catch(e){return "";}
+  if(!cf.hasBuffer||!cf.history||cf.history.length<2)return "";
+  var hist=cf.history,n=hist.length,q=function(x){return Math.round(x*100)/100;};
+  var vals=hist.map(function(x){return x.bal;});
+  var maxV=Math.max.apply(null,vals.concat([0])),minV=Math.min.apply(null,vals.concat([0])),range=maxV-minV;
+  var cap;
+  if(cf.firstNegativeMonth)cap='<span class="neg">Went negative in '+MONF[cf.firstNegativeMonth-1]+'</span>'+(cf.lastPositiveMonth?(' · last in the black in '+MONTHS[cf.lastPositiveMonth-1]+' at '+money(cf.lastPositiveBal)):'')+' · now <b>'+money(cf.rawBuffer)+'</b>.';
+  else cap='<span class="pos">In the black every month</span> · now <b>'+money(cf.rawBuffer)+'</b>.';
+  var head='<div class="hintline" style="text-align:left;margin:0 0 3px;font-weight:600;color:var(--ink)">Contingency trend · month-end, '+MONTHS[hist[0].m-1]+'–'+MONTHS[hist[n-1].m-1]+'</div>';
+  var capLine='<div class="hintline" style="text-align:left;margin:3px 0 0">'+cap+'</div>';
+  if(range<0.5)return '<div style="margin:12px 0 2px;padding-top:10px;border-top:1px solid var(--line)">'+head+capLine+'</div>'; // flat — a chart would just be a line
+  var W=300,plotTop=8,plotH=44,labelY=64,H=72,zeroY=plotTop+(maxV/range)*plotH,slot=W/n,barW=Math.min(24,slot*0.62),svg="";
+  svg+='<line x1="0" y1="'+q(zeroY)+'" x2="'+W+'" y2="'+q(zeroY)+'" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"></line>';
+  for(var i=0;i<n;i++){
+    var v=vals[i],cx=(i+0.5)*slot,x=cx-barW/2,y=plotTop+((maxV-v)/range)*plotH,pos=v>=-0.005;
+    var ry=pos?y:zeroY,rh=Math.max(1.5,Math.abs(zeroY-y)),cross=(cf.firstNegativeMonth===hist[i].m);
+    svg+='<rect x="'+q(x)+'" y="'+q(ry)+'" width="'+q(barW)+'" height="'+q(rh)+'" rx="1.5" fill="'+(pos?"var(--green)":"var(--bad)")+'"'+(cross?' stroke="var(--bad)" stroke-width="1"':'')+'></rect>';
+    svg+='<text x="'+q(cx)+'" y="'+labelY+'" text-anchor="middle" font-size="9" fill="'+(cross?"var(--bad)":"var(--ink2)")+'"'+(cross?' font-weight="700"':'')+'>'+((MONTHS[hist[i].m-1]||"").slice(0,1))+'</text>';
+  }
+  return '<div style="margin:12px 0 2px;padding-top:10px;border-top:1px solid var(--line)">'+head
+    +'<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="auto" style="display:block" role="img" aria-label="Contingency balance by month, '+MONTHS[hist[0].m-1]+' to '+MONTHS[hist[n-1].m-1]+', now '+money(cf.rawBuffer)+'">'+svg+'</svg>'+capLine+'</div>';
+}
 function renderContingency(){
   var el=$("contBody");if(!el)return;var r=computeRollover();
   // Show the empty prompt only when NO category is set to roll — not merely when the pooled buffer nets to <= 0 (which can now be negative from overspend).
@@ -6220,6 +6272,7 @@ function renderContingency(){
   // Contingency = a shared SECONDARY cushion. Show what's banked, what it's currently covering, and what's actually left.
   h+='<div class="totrow"><span>Contingency</span><b class="'+(r.rawBuffer<-0.005?"bneg":"")+'">'+money(r.rawBuffer)+'</b></div>';
   h+='<div class="hintline" style="text-align:left;margin:4px 0 0">A shared secondary cushion — every buffer category\'s unspent money pools here, ready to cover a category that outspends its own envelope.</div>';
+  h+=contingencyTrendHTML(); // month-by-month trend of the pooled balance — the history Wren narrates, now visible
   if(r.contingencyUsed>0.005){
     h+='<div class="totrow" style="margin-top:6px"><span style="padding-left:12px;color:var(--ink2)">Covering envelope deficits</span><span class="neg">−'+money(r.contingencyUsed)+'</span></div>';
     h+='<div class="totrow" style="margin-top:2px"><span style="padding-left:12px">Available</span><b class="'+(r.remainingContingency>0.005?"pos":"")+'">'+money(r.remainingContingency)+'</b></div>';
