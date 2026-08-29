@@ -37,6 +37,8 @@ const MUT=[
   {n:'allocation follow-up loses its antecedent',                 find:'var _refPrior=wrenCtx.lastFact&&wrenCtx.lastFact.type==="projectedCash"&&', repl:'var _refPrior=false&&',                                                  by:'verify-wren-cash-alloc.js'},
   {n:'surplus allocation skips contingency repair (double-alloc)',find:'var afterRepair=r2(Math.max(0,preSurplus-contingencyRepair));',            repl:'var afterRepair=r2(Math.max(0,preSurplus));',                             by:'verify-cash-allocation.js'},
   {n:'surplus reconciliation card removed from the Contingency card',find:'h+=cashReconCardHTML();',                                                repl:'h+="";',                                                                by:'verify-cash-recon-card.js'},
+  {n:'contingency target build ignored (no positive cushion)',      find:'var contingencyBuild=r2(Math.min(afterRepair,target));',                 repl:'var contingencyBuild=0;',                                               by:'verify-cash-allocation.js'},
+  {n:'cross-surface recon blinded to the repair (surfaces contradict again)',find:',repair=rc?r2(Math.max(0,rc.contingencyRepair||0)):0,',           repl:',repair=0,',                                                            by:'verify-cross-surface-recon.js'},
 ];
 
 // Run a suite; capture exit code + combined output so we can classify WHY it passed/failed (not just the exit code).

@@ -24,14 +24,15 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     var fill=function(v){var a=[];for(var i=0;i<12;i++)a.push(v);return a;};
     var realMAT=monthActualTotals, realIE=actualIE; // keep the canonical ones for the real-row cases
     // stubbed reconciliation: control income/consumption/protected/entering/residualPlanned directly for exact arithmetic
-    var recon=function(income,consumption,agf,agc,entering,rp){
+    var recon=function(income,consumption,agf,agc,entering,rp,target){
+      state.meta=state.meta||{};state.meta.contingencyTarget=target||0;
       monthActualTotals=function(){return {income:income,expense:consumption};};
       actualIE=function(){var agfA=fill(0),agcA=fill(0),agA=fill(0);agfA[7]=agf;agcA[7]=agc;agA[7]=agf+agc;return {ai:fill(0),ae:fill(0),ag:agA,agc:agcA,agf:agfA};};
       _contingencyEntering=function(){return entering;};
       residualPool=function(){return rp;};
       return monthlyCashReconciliation(2026,8);
     };
-    var ident=function(r){return Math.abs((r.income+r.reserveDraw)-(r.consumption+r.protectedGoals+r.contingencyRepair+r.residualFunding+r.unallocated))<0.02;};
+    var ident=function(r){return Math.abs((r.income+r.reserveDraw)-(r.consumption+r.protectedGoals+r.contingencyRepair+(r.contingencyBuild||0)+r.residualFunding+r.unallocated))<0.02;};
     var Rz={};
     // 001 excess income + negative contingency → surplus repairs contingency
     var g=recon(15000,11000,1000,0,-2000,1000);
@@ -58,6 +59,13 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     g=recon(12000,11000,1000,0,-2000,1000);
     Rz.a011={repair:g.contingencyRepair,residual:g.residualFunding,unalloc:g.unallocated,after:g.contingencyAfterRepair,surplus:g.preAllocationSurplus,ident:ident(g)};
 
+    // 013 TARGET: repair the deficit to $0, THEN build a positive cushion toward the target, THEN residual
+    g=recon(20000,11000,0,0,-2000,5000,3000);
+    Rz.a013={repair:g.contingencyRepair,build:g.contingencyBuild,effective:g.contingencyEffective,residual:g.residualFunding,ident:ident(g)};
+    // 014 TARGET partially built: surplus covers the deficit and only part of the target
+    g=recon(14000,11000,0,0,-2000,5000,3000);
+    Rz.a014={repair:g.contingencyRepair,build:g.contingencyBuild,effective:g.contingencyEffective,shortfall:g.targetShortfall,residual:g.residualFunding,ident:ident(g)};
+    state.meta.contingencyTarget=0; // reset before real-row cases
     // restore canonical helpers for real-row integration cases
     monthActualTotals=realMAT;actualIE=realIE;_contingencyEntering=function(){return 0;};residualPool=function(){return 5000;};
     window.isGoalName=function(x){return (""+x).trim().toLowerCase()==='vacation';};
@@ -100,8 +108,12 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
      near(R.a010.income,12000)&&near(R.a010.consumption,9000)&&near(R.a010.surplus,3000)&&R.a010.ident, JSON.stringify(R.a010));
   ck('CASH-ALLOC-011 no excess income → nothing allocated, contingency unchanged at −$2,000; identity holds',
      near(R.a011.repair,0)&&near(R.a011.residual,0)&&near(R.a011.unalloc,0)&&near(R.a011.after,-2000)&&near(R.a011.surplus,0)&&R.a011.ident, JSON.stringify(R.a011));
+  ck('CASH-ALLOC-013 TARGET: repair $2,000 to $0, then build $3,000 toward the target (effective $3,000), then $4,000 residual; identity holds',
+     near(R.a013.repair,2000)&&near(R.a013.build,3000)&&near(R.a013.effective,3000)&&near(R.a013.residual,4000)&&R.a013.ident, JSON.stringify(R.a013));
+  ck('CASH-ALLOC-014 TARGET partially built: repair $2,000, build $1,000 of the $3,000 target (effective $1,000, $2,000 short), $0 residual; identity holds',
+     near(R.a014.repair,2000)&&near(R.a014.build,1000)&&near(R.a014.effective,1000)&&near(R.a014.shortfall,2000)&&near(R.a014.residual,0)&&R.a014.ident, JSON.stringify(R.a014));
   ck('CASH-ALLOC-012 reconciliation identity holds across every case (every dollar has exactly one destination)',
-     R.a001.ident&&R.a002.ident&&R.a003.ident&&R.a004.ident&&R.a005.ident&&R.a006.ident&&R.a007.ident&&R.a008.ident&&R.a009.ident&&R.a010.ident&&R.a011.ident, 'identity across all');
+     R.a001.ident&&R.a002.ident&&R.a003.ident&&R.a004.ident&&R.a005.ident&&R.a006.ident&&R.a007.ident&&R.a008.ident&&R.a009.ident&&R.a010.ident&&R.a011.ident&&R.a013.ident&&R.a014.ident, 'identity across all');
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.slice(0,3).join(' | '));

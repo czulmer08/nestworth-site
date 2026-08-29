@@ -39,7 +39,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
       noteShown:bn&&bn.style.display!=="none",
       noteText:bn?bn.innerHTML:"",
       noteWarnsBaseline:bn&&/Starting savings/.test(bn.innerHTML)&&/\$0 (starting|start)/i.test(bn.innerHTML)&&/not the money you actually have/i.test(bn.innerHTML),
-      connectsContingency:/not your contingency/.test(verdict)&&/overspent by \$400\.00/.test(verdict)&&/doesn.t refill it/.test(verdict)};
+      connectsContingency:/not your contingency/.test(verdict)&&/overspent by \$400\.00/.test(verdict)&&/no surplus.*to (repair|cover) it|doesn.t refill it/.test(verdict)};
 
     // (3) Starting savings set → note hidden
     state.meta.startCash=5000;renderStress();

@@ -32,33 +32,46 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   await setup();
   const A=await page.evaluate(()=>{
     monthlyCashReconciliation=function(){return {month:8,income:15000,consumption:11000,protectedGoals:1000,protectedFixed:1000,categoryLinkedGoalFunding:0,
-      hasSurplus:true,surplus:3000,contingencyEntering:-400,contingencyEnteringDeficit:400,contingencyRepair:400,contingencyAfterRepair:0,
+      hasSurplus:true,surplus:3000,contingencyEntering:-400,contingencyEnteringDeficit:400,contingencyRepair:400,contingencyAfterRepair:0,contingencyEffective:0,contingencyBuild:0,contingencyTarget:0,
       residualPlanned:1000,residualFunding:1000,unallocated:1600,reserveDraw:0,drawsReserves:false};};
     renderContingency();return $("contBody").innerHTML;
   });
   ck('waterfall renders the line items (deposits +$15,000, spending −$11,000, protected −$1,000, surplus $3,000)',
      /Where August’s cash is going/.test(A)&&/Deposits received[\s\S]{0,80}\+\$15,000\.00/.test(A)&&/Actual spending[\s\S]{0,80}−\$11,000\.00/.test(A)&&/Surplus to allocate[\s\S]{0,80}\$3,000\.00/.test(A), A.slice(0,120));
   ck('waterfall shows contingency repaired −$400, residual funded −$1,000, remaining projected cash $1,600',
-     /Contingency repaired[\s\S]{0,80}−\$400\.00/.test(A)&&/Residual goals funded[\s\S]{0,80}−\$1,000\.00/.test(A)&&/Remaining projected cash[\s\S]{0,80}\$1,600\.00/.test(A), '');
+     /Contingency shortfall covered[\s\S]{0,80}−\$400\.00/.test(A)&&/Residual goals supportable[\s\S]{0,80}−\$1,000\.00/.test(A)&&/Cash remaining after that[\s\S]{0,80}\$1,600\.00/.test(A), '');
   ck('one-line interpretation reconciles the flow (repaired $400 back to $0, funded $1,000 residual, left $1,600)',
-     /first repaired \$400\.00 of negative contingency \(back to \$0\), then funded \$1,000\.00 of residual goals, and left \$1,600\.00 as spendable cash/.test(A), '');
+     /first covered \$400\.00 of contingency shortfall \(to \$0\), then supported \$1,000\.00 of residual goals, and left \$1,600\.00 as spendable cash/.test(A), '');
   ck('raw → repaired → effective distinction: raw −$400 total, "can repair +$400", "Effective if applied $0.00"',
-     /−\$400\.00/.test(A)&&/This month’s surplus can repair[\s\S]{0,80}\+\$400\.00/.test(A)&&/Effective if applied[\s\S]{0,80}\$0\.00/.test(A), '');
+     /Contingency available now[\s\S]{0,80}\$0\.00/.test(A)&&/Raw balance \(history\)[\s\S]{0,80}[-−]\$400\.00/.test(A)&&/Covered by [\s\S]{0,60}surplus[\s\S]{0,60}\+\$400\.00/.test(A)&&/Effective balance[\s\S]{0,80}\$0\.00/.test(A), '');
 
   // CASE B — no surplus (drawing reserves) → shows the reserve draw, NO repair rows
   await setup();
   const B=await page.evaluate(()=>{
     monthlyCashReconciliation=function(){return {month:8,income:9000,consumption:9500,protectedGoals:500,hasSurplus:false,surplus:0,
-      contingencyEntering:-400,contingencyEnteringDeficit:400,contingencyRepair:0,contingencyAfterRepair:-400,residualPlanned:1000,residualFunding:0,unallocated:0,reserveDraw:1000,drawsReserves:true};};
+      contingencyEntering:-400,contingencyEnteringDeficit:400,contingencyRepair:0,contingencyAfterRepair:-400,contingencyEffective:-400,contingencyBuild:0,contingencyTarget:0,residualPlanned:1000,residualFunding:0,unallocated:0,reserveDraw:1000,drawsReserves:true};};
     renderContingency();return $("contBody").innerHTML;
   });
   ck('no-surplus month → "Short this month −$1,000", a reserve-draw note, and NO "Contingency repaired" / "can repair" rows',
      /Short this month[\s\S]{0,80}−\$1,000\.00/.test(B)&&/drawing \$1,000\.00 from reserves/.test(B)&&!/Contingency repaired/.test(B)&&!/can repair/.test(B), B.slice(0,120));
 
+  // CASE D — a contingency TARGET is set: surplus repairs to $0 AND builds toward the target
+  await setup();
+  const D=await page.evaluate(()=>{
+    monthlyCashReconciliation=function(){return {month:8,income:20000,consumption:11000,protectedGoals:0,hasSurplus:true,surplus:9000,
+      contingencyEntering:-2000,contingencyEnteringDeficit:2000,contingencyRepair:2000,contingencyAfterRepair:0,contingencyEffective:3000,contingencyBuild:3000,contingencyTarget:3000,
+      residualPlanned:5000,residualFunding:4000,unallocated:0,reserveDraw:0,drawsReserves:false};};
+    renderContingency();return $("contBody").innerHTML;
+  });
+  ck('TARGET set → "Contingency available now $3,000", "Built toward $3,000.00 target", "Effective balance $3,000.00"',
+     /Contingency available now[\s\S]{0,80}\$3,000\.00/.test(D)&&/Built toward your \$3,000\.00 target[\s\S]{0,80}\+\$3,000\.00/.test(D)&&/Effective balance[\s\S]{0,80}\$3,000\.00/.test(D), '');
+  ck('TARGET waterfall shows "Built toward $3,000.00 target −$3,000.00"',
+     /Built toward \$3,000\.00 target[\s\S]{0,80}−\$3,000\.00/.test(D), '');
+
   // CASE C — no deposit yet this month → no reconciliation card
   await setup();
   const C=await page.evaluate(()=>{
-    monthlyCashReconciliation=function(){return {month:8,income:0,consumption:0,protectedGoals:0,hasSurplus:false,surplus:0,contingencyRepair:0,contingencyAfterRepair:0,reserveDraw:0,drawsReserves:false,residualFunding:0,unallocated:0,residualPlanned:0,contingencyEntering:0,contingencyEnteringDeficit:0};};
+    monthlyCashReconciliation=function(){return {month:8,income:0,consumption:0,protectedGoals:0,hasSurplus:false,surplus:0,contingencyRepair:0,contingencyAfterRepair:0,contingencyEffective:0,contingencyBuild:0,contingencyTarget:0,reserveDraw:0,drawsReserves:false,residualFunding:0,unallocated:0,residualPlanned:0,contingencyEntering:0,contingencyEnteringDeficit:0};};
     renderContingency();return $("contBody").innerHTML;
   });
   ck('no deposit yet this month → the reconciliation card is not shown', !/cash is going/.test(C)&&!/Deposits received/.test(C), '');
