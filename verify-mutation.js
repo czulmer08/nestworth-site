@@ -32,6 +32,11 @@ const MUT=[
   {n:'$0-baseline cash-flow note suppressed',                      find:'if(Math.abs(start)<0.005){',                                            repl:'if(false){',                                                            by:'verify-cashflow-presentation.js'},
   {n:'contingency trend chart removed from the card',              find:'h+=contingencyTrendHTML();',                                            repl:'h+="";',                                                                by:'verify-contingency-trend.js'},
   {n:'unbudgeted consumption ignored in goal funding',             find:'var unb=r2((typeof unbudgetedConsumption==="function")?unbudgetedConsumption():0);', repl:'var unb=0;',                                        by:'verify-goal-funding.js'},
+  {n:'deposit↔contingency causal answer removed',                  find:'/(deposit|paycheck|pay ?check|income|raise|got paid|direct deposit|money (came|coming) in)/.test(t)', repl:'false',                              by:'verify-contingency-history.js'},
+  {n:'projected-cash routed back to spending pace',                find:'if(/\\bcash\\b/.test(t)&&/(projected cash|cash projection',                repl:'if(false&&/\\bcash\\b/.test(t)&&/(projected cash|cash projection',        by:'verify-wren-cash-alloc.js'},
+  {n:'allocation follow-up loses its antecedent',                 find:'var _refPrior=wrenCtx.lastFact&&wrenCtx.lastFact.type==="projectedCash"&&', repl:'var _refPrior=false&&',                                                  by:'verify-wren-cash-alloc.js'},
+  {n:'surplus allocation skips contingency repair (double-alloc)',find:'var afterRepair=r2(Math.max(0,preSurplus-contingencyRepair));',            repl:'var afterRepair=r2(Math.max(0,preSurplus));',                             by:'verify-cash-allocation.js'},
+  {n:'surplus reconciliation card removed from the Contingency card',find:'h+=cashReconCardHTML();',                                                repl:'h+="";',                                                                by:'verify-cash-recon-card.js'},
 ];
 
 // Run a suite; capture exit code + combined output so we can classify WHY it passed/failed (not just the exit code).
