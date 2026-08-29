@@ -1329,10 +1329,11 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //       target month), so a goal you set up this month counts this month. Auto-suggested monthly amounts follow suit.
 //       The "bump this goal" nudge now says "your annual budget has room" (it's based on the annual average).
 //   v0.34.0 — Aug 28, 2026 · Build 20260828.50
-//     • Data integrity (P0): transaction append is now atomic. Each new row is reserved with a unique nonce in column A
-//       and verified before the real write, so two people in the same household logging at the same instant can never
-//       overwrite each other's entry — the same reserve-and-verify guarantee budget rows already had. Falls back to
-//       Google's own append if the scan can't run, so a write is never lost. New suite: verify-append-concurrency.js.
+//     • Data integrity: transaction append uses a best-effort nonce reservation (unique id written to column A, read back,
+//       kept only if it survived) that greatly reduces same-instant clobbering between two household devices. It is NOT
+//       truly atomic — read→write→verify can still interleave — so a rare collision remains possible; a real guarantee
+//       needs a server-side lock (Apps Script). Falls back to Google's own append if the scan can't run, so a write is
+//       never lost. Multi-step writes (e.g. debt payoff) leave a reconciliation marker that repairs on next load. Suite: verify-append-concurrency.js.
 //   v0.33.0 — Aug 28, 2026 · Build 20260828.49
 //     • Wren analytics, Layer 3 (deterministic, on-device). New: year-end forecast ("where will we end the year?"),
 //       cash-flow check ("are we living within our means?" / "will we run out?"), affordability ("when could I afford
@@ -1614,8 +1615,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.51.0"; // SemVer — what changed functionally (display only)
-var BUILD="20260828.70"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.54.0"; // SemVer — what changed functionally (display only)
+var BUILD="20260829.73"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Offline awareness: the shell + Wren help load from cache, but live spreadsheet reads/writes need Google — so say so
@@ -1732,9 +1733,12 @@ function detectCadence(m){
   var eq=(nz.length===12)&&nz.every(function(i){return Math.abs((Number(m[i])||0)-(Number(m[0])||0))<0.005;});
   if(eq)return {cadence:"Monthly",amount:r2(Number(m[0])||0),month:1};
   if(nz.length===1)return {cadence:"Annual",amount:r2(Number(m[nz[0]])||0),month:nz[0]+1};
-  var a=nz[0],b=nz[nz.length-1],contig=(b-a+1===nz.length),same=nz.every(function(i){return Math.abs((Number(m[i])||0)-(Number(m[a])||0))<0.005;});
-  // AnnualSaveUp always spreads Jan→due month, so only classify it that way when the block starts in January; otherwise keep the exact shape as Custom.
-  if(contig&&same&&a===0)return {cadence:"AnnualSaveUp",amount:r2((Number(m[a])||0)*(b+1)),month:b+1};
+  var a=nz[0],b=nz[nz.length-1],contig=(b-a+1===nz.length);
+  // Equal-ish contiguous block = a save-up. Tolerate the last month's rounding remainder (33.33/33.33/33.34 from _spread),
+  // and recognize a block that starts mid-year (start = a+1) — the amount is the block's exact sum, due is the last month.
+  var body=nz.slice(0,-1).every(function(i){return Math.abs((Number(m[i])||0)-(Number(m[a])||0))<0.02;});
+  var lastClose=Math.abs((Number(m[b])||0)-(Number(m[a])||0))<0.03;
+  if(contig&&body&&lastClose&&nz.length>=2){var bt=0;for(var q=a;q<=b;q++)bt+=Number(m[q])||0;var it={cadence:"AnnualSaveUp",amount:r2(bt),month:b+1};if(a>0)it.start=a+1;return it;}
   var tot=0;for(var k=0;k<12;k++)tot+=Number(m[k])||0;return {cadence:"Custom",amount:r2(tot),month:1,months:m.slice()};
 }
 function billMonths(items){var m=[0,0,0,0,0,0,0,0,0,0,0,0];(items||[]).forEach(function(it){var a=Number(it.amount)||0,mo=Number(it.month)||1;if(mo<1)mo=1;if(mo>12)mo=12;var cad=it.cadence;if(cad==="Custom"&&it.months){for(var j=0;j<12;j++)m[j]+=Number(it.months[j])||0;}else if(cad==="AnnualSaveUp"){var st=Number(it.start)||1;if(st<1)st=1;if(st>mo)st=mo;var sidx=[];for(var k=st-1;k<mo;k++)sidx.push(k);var sp=_spread(a,sidx);for(var k2=0;k2<12;k2++)m[k2]+=sp[k2];} /* save-up spreads from its start month (default Jan) through the due month — so a mid-year bill funds over the months that remain, not a phantom Jan–Dec */else if(cad==="Annual"){m[mo-1]+=a;}else{for(var q=0;q<12;q++)m[q]+=a;}});for(var z=0;z<12;z++)m[z]=r2(m[z]);return m;}
@@ -1919,11 +1923,12 @@ async function claimRow(sheetName,start,end,name,which){
 }
 // Append rows by writing to the first free row FROM THE TOP, not Google's values.append — which, when a tab is a full-sheet
 // native Table, appends after the table and strands rows ~1,000,000 rows down. Falls back to the API append if the scan can't run.
-// Reserve append rows ATOMICALLY against other devices: for each row, write a unique nonce to column A at the end of the
-// tab, read it back, and only keep the row if our nonce survived. If another phone grabbed that row at the same instant,
-// its value now occupies it, so the next scan's end moves past it and we take a fresh row. This is the same reserve-and-
-// verify guarantee claimRow() gives budget rows — so two spouses logging at 5:17 can never overwrite each other's entry.
-// Returns the claimed row numbers, or null if the scan can't run / the tab is full (caller falls back to Google's append).
+// Best-effort append-row reservation against other devices: for each row, write a unique nonce to column A at the end of
+// the tab, read it back, and only keep the row if our nonce survived. If another phone grabbed that row at nearly the same
+// instant, its value now occupies it, so the next scan's end moves past it and we take a fresh row. NOTE: this is NOT a true
+// atomic reservation — read→write→verify can still interleave with another client, so a rare collision is possible. It
+// greatly reduces same-instant clobbering versus a blind append, but a real guarantee would need a server-side lock (Apps
+// Script). Returns the claimed row numbers, or null if the scan can't run / the tab is full (caller falls back to append).
 async function claimRows(tab,count){
   var rows=[],base="~clm"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   for(var need=0;need<count;need++){
@@ -2790,8 +2795,22 @@ function isGoalName(name){return !!(state.goalSet&&state.goalSet[(""+name).trim(
 function isDepositRow(r){return (""+((r&&r[4])||"")).trim().toLowerCase()==="deposit";}
 function isGoalMovementRow(r){return isGoalName((r&&r[4])||"")||isGoalName((r&&r[5])||"");}
 function isExpenseRow(r){return !isDepositRow(r)&&!isGoalMovementRow(r);}   // a real outflow (incl. uncategorized); credits (Amount<0) net down spend
-// Actual income / expense 12-month arrays for `y`, using the canonical classifier above.
-function actualIE(rows,y){var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0];(rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var amt=Number(r[6])||0;if(isDepositRow(r))ai[mo-1]+=amt;else if(isExpenseRow(r))ae[mo-1]+=amt;});return {ai:ai,ae:ae};}
+// Actual income / expense / goal-movement 12-month arrays for `y`, using the canonical classifier above. `ag` is real
+// money moved into savings goals each month (any goal-tagged row) — spendable cash left, even though net worth didn't.
+function actualIE(rows,y){var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0],ag=[0,0,0,0,0,0,0,0,0,0,0,0];(rows||[]).forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var amt=Number(r[6])||0;if(isDepositRow(r))ai[mo-1]+=amt;else if(isGoalMovementRow(r))ag[mo-1]+=amt;else ae[mo-1]+=amt;});return {ai:ai,ae:ae,ag:ag};}
+// The ONE monthly-actuals function every screen consumes (Month headline, Nest Review, forecasts): total income and total
+// NET expense for (y, mo), over ALL rows — budgeted, uncategorized, and unbudgeted alike — via the canonical classifier.
+// Credits (Amount<0) net spending down; goal movements are excluded (they're not spending).
+function monthActualTotals(y,mo){var inc=0,exp=0;(state.rows||[]).forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==mo)return;var amt=Number(r[6])||0;if(isDepositRow(r))inc+=amt;else if(isExpenseRow(r))exp+=amt;});return {income:r2(inc),expense:r2(exp)};}
+// Money moved into a specific goal in (y, mo) — matched by goal name in EITHER Category or Company (how contributions are
+// actually tagged), so a category-linked goal's funding is found too.
+function goalContribMonth(name,y,mo){var nl=(""+name).trim().toLowerCase(),s=0;(state.rows||[]).forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==mo)return;var cat=(""+((r&&r[4])||"")).trim().toLowerCase(),co=(""+((r&&r[5])||"")).trim().toLowerCase();if(cat===nl||co===nl)s+=Number(r[6])||0;});return r2(s);}
+// "At this pace" year-end spend projection — the ONE forecast the Insights card and Wren both use. Averages ACTIVE months
+// (months with spend), never YTD ÷ fraction-of-calendar-year, so a mid-year adopter isn't projected as if January–July
+// happened (audit #9). `ae` is the canonical actual monthly spend.
+function yearEndSpendProjection(){var y=curYear(),m=curMonth(),ae=actualIE(state.rows,y).ae,ytd=0,active=0;for(var i=0;i<m;i++){var v=ae[i]||0;ytd+=v;if(v>0.005)active++;}var avg=active>0?ytd/active:0;return {ytd:r2(ytd),active:active,avg:r2(avg),proj:r2(ytd+avg*Math.max(0,12-m))};}
+// Same active-month pace projection for a single category's this-year spend.
+function catYearPaceProj(name){var m=curMonth(),sp=catSpend12(name),ytd=0,active=0;for(var i=0;i<m;i++){var v=sp[i]||0;ytd+=v;if(v>0.005)active++;}var avg=active>0?ytd/active:0;return {ytd:r2(ytd),proj:r2(ytd+avg*Math.max(0,12-m))};}
 // Category-linked goals are covered by their category budget; residual goals draw from leftover — neither adds to the separate goal hold/annual savings.
 function goalHold(){var h=0;(state.goals||[]).forEach(function(g){if(g.archived||g.category||g.residual)return;h+=Math.max(0,Math.max(g.monthly,g.mtd));});return r2(h);}
 function goalSaveAnnual(){var s=0;(state.goals||[]).forEach(function(g){if(g.archived||g.category||g.residual)return;s+=g.monthly*12;});return r2(s);}
@@ -2816,13 +2835,17 @@ function _cfArrays(plan){var inc=[0,0,0,0,0,0,0,0,0,0,0,0],exp=[0,0,0,0,0,0,0,0,
 // Month-by-month running spendable cash. Fixed goal contributions leave spendable cash each month (they stay in net worth,
 // but aren't cash you can spend), and a one-time outflow is applied in its month. Current month blends actual-to-date with plan.
 function computeCashflow(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=opts.year||curYear(),bnd=curMonth();
-  var a=_cfArrays(plan),inc=a.inc,exp=a.exp,IE=actualIE(plan.rows,y),ai=IE.ai,ae=IE.ae;
-  var gh=(opts.includeGoalHold===false)?0:(Number(plan.goalMonthlyFixed)||0);
+  var a=_cfArrays(plan),inc=a.inc,exp=a.exp,IE=actualIE(plan.rows,y),ai=IE.ai,ae=IE.ae,ag=IE.ag;
+  var planGh=(opts.includeGoalHold===false)?0:(Number(plan.goalMonthlyFixed)||0);
   var start=Number(plan.startCash)||0,bal=start,low=start,lowM=-1,months=[];
-  for(var m=0;m<12;m++){var im,em;
-    if(mode==="actual"){if((m+1)<bnd){im=ai[m];em=ae[m];}else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);}else{im=inc[m];em=exp[m];}}
-    else{im=inc[m];em=exp[m];}
-    var one=(plan.oneTime&&plan.oneTime[m])||0,net=r2(im-em-gh-one);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}months.push({m:m+1,net:net,bal:bal});}
+  for(var m=0;m<12;m++){var im,em,gout;
+    if(mode==="actual"){
+      if((m+1)<bnd){im=ai[m];em=ae[m];gout=ag[m];}                                  // completed: ACTUAL income/expense/goal moves — a skipped or doubled goal contribution shows in real spendable cash
+      else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);gout=Math.max(ag[m],planGh);} // current: actual-to-date, at least plan
+      else{im=inc[m];em=exp[m];gout=planGh;}                                        // future: planned
+    }else{im=inc[m];em=exp[m];gout=planGh;}
+    if(opts.includeGoalHold===false)gout=0;
+    var one=(plan.oneTime&&plan.oneTime[m])||0,net=r2(im-em-gout-one);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}months.push({m:m+1,net:net,bal:bal});}
   return {months:months,end:bal,low:low,lowM:lowM,lowMonth:(lowM>=0?MONTHS[lowM]:"")};}
 // Annual feasibility. In "actual" mode it uses the same Plan+Actual blend (§4) as the Budget screen (renderFeas) and the
 // cash-flow model: past months actual, current month max(actual, plan), future months planned — so the Decision Engine's
@@ -2850,10 +2873,13 @@ function computeNetWorthTrajectory(plan){
   var IE=actualIE(plan.rows,y),ai=IE.ai,ae=IE.ae;
   var now=netWorthNow(),add=0;
   for(var m=bnd-1;m<12;m++){var im,em;
-    if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);}else{im=inc[m];em=exp[m];}
+    // Current month: netWorthNow() already embeds this month's actuals, so only add what's still EXPECTED to happen
+    // (remaining planned income/spend) — otherwise the current month gets counted twice (audit #6).
+    if((m+1)===bnd){im=Math.max(0,inc[m]-ai[m]);em=Math.max(0,exp[m]-ae[m]);}else{im=inc[m];em=exp[m];}
     var one=(plan.oneTime&&plan.oneTime[m])||0;add=r2(add+(im-em-one));}
   return {now:now,end:r2(now+add-(Number(plan.goalSpend)||0))};}   // goalSpend: earmarked savings spent on a goal-funded purchase (a net-worth reduction, not a cash one)
-function planMetrics(plan){var ap=computeAnnualPlan(plan),cf=computeCashflow(plan,{mode:"actual",includeGoalHold:true}),nw=computeNetWorthTrajectory(plan);return {surplus:ap.surplus,low:cf.low,lowMonth:cf.lowMonth,end:cf.end,netEnd:nw.end,netNow:nw.now};}
+// Decision baseline uses the SAME Plan+Actual annual math the Budget screen shows (audit #4), so surplus can't disagree.
+function planMetrics(plan){var ap=computeAnnualPlan(plan,{mode:"actual"}),cf=computeCashflow(plan,{mode:"actual",includeGoalHold:true}),nw=computeNetWorthTrajectory(plan);return {surplus:ap.surplus,low:cf.low,lowMonth:cf.lowMonth,end:cf.end,netEnd:nw.end,netNow:nw.now};}
 function goalCompletion(g){if(!g||(g.target||0)<=0)return null;var need=Math.max(0,(g.target||0)-(g.balance||0));if(need<=0.005)return "already reached";if((g.monthly||0)<=0)return null;var mo=Math.ceil(need/g.monthly),d=new Date();d=new Date(d.getFullYear(),d.getMonth()+mo,1);return d.toLocaleString("en-US",{month:"short",year:"numeric"});}
 // Run a hypothetical change against the whole model. change: {type:'goalMonthly',goal,monthly} | {type:'purchase',amount,month}
 // The 12-month array for a recurring what-if. `change.months` (1-based) limits it to selected months; absent = all year
@@ -2867,8 +2893,12 @@ function _applyChange(base,hypo,change,ctx){
   if(change.type==="goalMonthly"){
     var gb=(base.goals||[]).filter(function(g){return g.name.toLowerCase()===(""+change.goal).toLowerCase();})[0];
     var oldM=gb?(gb.monthly||0):0,newM=Number(change.monthly)||0;
-    hypo.goalMonthlyFixed=r2(hypo.goalMonthlyFixed+(newM-oldM));
-    if(gb)ctx.goalInfo={name:gb.name,before:goalCompletion(gb),after:goalCompletion({target:gb.target,balance:gb.balance,monthly:newM}),oldMonthly:oldM,newMonthly:newM};
+    // Only a FIXED (stand-alone, non-residual) goal's monthly feeds fixedGoalMonthly — the surplus/cash line. A category-linked
+    // goal's money already lives in its category budget, and a residual goal draws the leftover pool, so changing either must
+    // NOT be treated as an extra fixed commitment (audit #5); we still report its finish-date shift.
+    var isFixed=gb&&!gb.category&&!gb.residual&&!gb.archived;
+    if(isFixed)hypo.goalMonthlyFixed=r2(hypo.goalMonthlyFixed+(newM-oldM));
+    if(gb)ctx.goalInfo={name:gb.name,before:goalCompletion(gb),after:goalCompletion({target:gb.target,balance:gb.balance,monthly:newM}),oldMonthly:oldM,newMonthly:newM,linked:!isFixed};
   }else if(change.type==="purchase"){
     if(/^goal:/.test(change.from||"")){
       // Funded from a savings goal: the money is already set aside, so spendable cash is unaffected — instead the goal's
@@ -2907,7 +2937,10 @@ function computeResidual(){
   var pool=residualPool();
   var setSum=0,blanks=0;res.forEach(function(g){var p=Math.max(0,g.residualPct||0);if(p>0)setSum+=p;else blanks++;});
   var scale=(setSum>100)?(100/setSum):1;var blankEach=(setSum<100&&blanks>0)?((100-setSum)/blanks):0;var n=res.length;
-  res.forEach(function(g){var p=Math.max(0,g.residualPct||0);var pctUsed;if(setSum<=0.005)pctUsed=n?100/n:0;else pctUsed=(p>0)?p*scale:blankEach;g._resPct=r2(pctUsed);g._resMo=r2(pool*pctUsed/100);g._resMode=(setSum<=0.005)?"even split":(p>0?(r2(pctUsed)+"%"):"rest");});
+  var sumMo=0;res.forEach(function(g){var p=Math.max(0,g.residualPct||0);var pctUsed;if(setSum<=0.005)pctUsed=n?100/n:0;else pctUsed=(p>0)?p*scale:blankEach;g._resPct=r2(pctUsed);g._resMo=r2(pool*pctUsed/100);sumMo=r2(sumMo+g._resMo);g._resMode=(setSum<=0.005)?"even split":(p>0?(r2(pctUsed)+"%"):"rest");});
+  // When the percentages fill the whole pool, hand the rounding remainder to the last goal so the allocations sum to exactly the pool.
+  var fully=!(setSum>0.005&&setSum<100&&blanks===0);
+  if(fully&&res.length)res[res.length-1]._resMo=r2(res[res.length-1]._resMo+(pool-sumMo));
   return {pool:pool,goals:res};
 }
 function monthsUntil(ym){if(!ym)return 0;var p=(""+ym).split("-");var ty=Number(p[0]),tm=Number(p[1]);if(!ty||!tm)return 0;return (ty-curYear())*12+(tm-curMonth());}
@@ -3289,6 +3322,7 @@ async function loadAll(){
   loadGoals();
   await loadCarryIn();
   await loadNW();
+  try{await reconcilePending();}catch(e){} // repair an interrupted debt-payoff write, now that rows/goals/debts are loaded
   syncDropdowns(); // keep the ledger Category/Contributor dropdowns in step with the summary (best-effort, only when changed)
 }
 // Round-trip: if a category has indented "↳ bill" rows in the summary that DON'T match what the app already has, treat those
@@ -4751,13 +4785,11 @@ function renderReminders(){
 }
 function renderMonth(){
   var now=new Date();$("mLabel").textContent=MONF[now.getMonth()]+" "+now.getFullYear()+" · by category";
-  var cats=state.cats, tb=0, ts=0;
-  cats.forEach(function(c){tb+=c.mbud;ts+=c.mspent;});
-  // Include uncategorized + unbudgeted spending this month so "Spent"/"Net" reflect reality (not just budgeted categories).
-  var _y=curYear(),_mo=curMonth(),_known={};cats.forEach(function(c){_known[c.name.toLowerCase()]=1;});
-  var extra=0;state.rows.forEach(function(r){if(Number(r[0])!==_y||Number(r[1])!==_mo)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(e==="deposit"||isGoalName(e)||isGoalName((r&&r[5])||""))return;if(!_known[e])extra+=Number(r[6])||0;});
-  ts=r2(ts+extra);
-  var ti=incomeThisMonth();
+  var cats=state.cats, tb=0;
+  cats.forEach(function(c){tb+=c.mbud;});
+  // Spent + Income come from the shared monthly-actuals function (canonical classifier, includes uncategorized/unbudgeted)
+  // so this headline can never disagree with the Nest Review or the cash-flow screen.
+  var _y=curYear(),_mo=curMonth(),_mt=monthActualTotals(_y,_mo),ts=_mt.expense,ti=_mt.income;
   $("mTot").innerHTML='<div class="totrow"><span>Income</span><b>'+money(ti)+'</b></div><div class="totrow" style="margin-top:6px"><span>Spent</span><b>'+money(ts)+(tb>0?(" / "+money(tb)):"")+'</b></div><div class="totrow" style="border-top:1px solid var(--line);margin-top:9px;padding-top:9px"><span>Net this month</span><b style="color:'+((ti-ts)>=0?"var(--green)":"var(--bad)")+'">'+money(ti-ts)+'</b></div>';
   try{var _rv=buildNestReview(),_rc=$("reviewCard");if(_rc){if(_rv&&(_rv.spending.actual>0.5||_rv.income.actual>0.5)){$("reviewBtnLabel").textContent=_rv.label+" in review";_rc.style.display="";}else _rc.style.display="none";}}catch(e){}
   var body=$("mBody");
@@ -4817,7 +4849,7 @@ function renderInsights(){
     fc.style.display="block";var fh;
     if(dom<3){fh='<div class="totrow"><span>Spent so far</span><b>'+money(tsM)+'</b></div><div class="crem" style="margin-top:7px">Too early in the month to project a month-end total yet.</div>';}
     else{var proj=frac>0?tsM/frac:tsM,diff=proj-tbM;
-    fh='<div class="totrow"><span>Projected by month-end</span><b>'+money(proj)+'</b></div><div class="crem" style="margin-top:7px">'+(diff>5?("At this pace you’ll be about "+money(diff)+" over your "+money(tbM)+" budget."):("On track — about "+money(Math.max(0,-diff))+" under your "+money(tbM)+" budget at this pace."))+'</div>';
+    fh='<div class="totrow"><span title="A straight-line estimate from your pace so far — not a firm forecast, since bills cluster at certain times of the month.">Pace estimate · month-end</span><b>'+money(proj)+'</b></div><div class="crem" style="margin-top:7px">'+(diff>5?("At this pace you’ll be about "+money(diff)+" over your "+money(tbM)+" budget."):("On track — about "+money(Math.max(0,-diff))+" under your "+money(tbM)+" budget at this pace."))+'</div>';
     // only project categories that recur evenly each month; annual/one-time/itemized spikes shouldn't be linearly extrapolated
     var overs=state.cats.filter(function(c){var cf=catCfg(c.name);var t=cf&&cf.type;return (!t||t==="monthly")&&c.mbud>0.005&&c.mspent>0.005;}).map(function(c){var p=frac>0?c.mspent/frac:c.mspent;return {name:c.name,proj:p,over:p-c.mbud,bud:c.mbud};}).filter(function(x){return x.over>1;}).sort(function(a,b){return b.over-a.over;}).slice(0,4);
     if(overs.length&&dom>=4){fh+='<div style="margin-top:10px"><div class="eyebrow" style="margin-bottom:5px">Headed over</div>'+overs.map(function(x){return '<div class="totrow" style="margin-top:4px"><span>'+esc(x.name)+'</span><span class="neg" style="font-weight:700">~'+money(x.proj)+' · +'+money(x.over)+'</span></div>';}).join("")+'</div>';}
@@ -4837,14 +4869,14 @@ function renderInsights(){
   var topCat=catArr[0];
   var h='';
   h+='<div class="insseg" id="insSeg"><button data-r="year"'+(_insRange==="year"?' class="on"':'')+'>This year</button><button data-r="12mo"'+(_insRange==="12mo"?' class="on"':'')+'>Last 12 months</button></div>';
-  h+='<div class="stiles"><div class="stile"><div class="sv">'+money(totWin)+'</div><div class="sl">Spent</div></div><div class="stile"><div class="sv">'+money(avg)+'</div><div class="sl">Avg / mo</div></div><div class="stile"><div class="sv txt" title="'+(topCat?esc(topCat.name):"")+'">'+(topCat?esc(topCat.name):"—")+'</div><div class="sl">Top category</div></div></div>';
+  h+='<div class="stiles"><div class="stile"><div class="sv">'+money(totWin)+'</div><div class="sl" title="Gross purchases — refunds and credits are not netted out here, unlike the Month tab’s Spent.">Gross spend</div></div><div class="stile"><div class="sv">'+money(avg)+'</div><div class="sl">Avg / mo</div></div><div class="stile"><div class="sv txt" title="'+(topCat?esc(topCat.name):"")+'">'+(topCat?esc(topCat.name):"—")+'</div><div class="sl">Top category</div></div></div>';
   // bar chart
   h+='<div class="inschart">'+series.map(function(x,i){var hp=Math.round(x.total/mx*84)+2;return '<div class="inscol'+(i===peakIdx&&peakV>0?" peak":"")+'" data-y="'+x.y+'" data-m="'+x.m+'"><div class="insbar" style="height:'+hp+'px" title="'+MONTHS[x.m-1]+' '+x.y+': '+money(x.total)+'"></div><div class="insml">'+MONTHS[x.m-1].slice(0,1)+'</div></div>';}).join("")+'</div>';
   if(peakV>0)h+='<div class="crem">Highest: <b>'+MONTHS[series[peakIdx].m-1]+' '+series[peakIdx].y+'</b> at '+money(peakV)+'. Tap a bar for that month.</div>';
   // full-year projection (year mode)
   // Project = actual so far + (avg per ACTIVE month × months remaining). Avoids the old bug of dividing YTD by all elapsed
   // calendar months (incl. pre-adoption/empty ones), which badly understated a mid-year adopter's pace.
-  if(_insRange==="year"&&totWin>0.005){var rem=Math.max(0,12-m);var yProj=r2(totWin+avg*rem);h+='<div class="crem" style="margin-top:8px">At this pace, about <b>'+money(yProj)+'</b> spent across '+y+'.</div>';}
+  if(_insRange==="year"&&totWin>0.005){var yProj=yearEndSpendProjection().proj;h+='<div class="crem" style="margin-top:8px">At this pace, about <b>'+money(yProj)+'</b> spent across '+y+'.</div>';}  // shared with Wren's year-end forecast
   // trending: last 3 vs prior 3, ending at the current month (not the calendar tail)
   var endIx=(_insRange==="year")?(m-1):(series.length-1);
   if(endIx>=5){var l3=0,p3=0;for(var ii=endIx-2;ii<=endIx;ii++)l3+=series[ii].total;for(var jj=endIx-5;jj<=endIx-3;jj++)p3+=series[jj].total;if(p3>0.005){var tch=r2(l3-p3),tpc=Math.round(tch/p3*100);h+='<div class="crem" style="margin-top:6px">Last 3 months: <b>'+money(r2(l3))+'</b> — <span class="'+(tch>0?"neg":"pos")+'">'+(tch>0?"up ":"down ")+Math.abs(tpc)+'%</span> vs the 3 before.</div>';}}
@@ -5080,25 +5112,20 @@ function renderStress(){
   var start=(state.meta&&Number(state.meta.startCash))||0;
   var mode=state._stMode||"plan",bnd=curMonth();
   Array.prototype.forEach.call(document.querySelectorAll("#stModeSeg button"),function(b){b.classList.toggle("on",b.getAttribute("data-sm")===mode);});
-  var inc=[0,0,0,0,0,0,0,0,0,0,0,0],exp=[0,0,0,0,0,0,0,0,0,0,0,0];
-  state.cons.forEach(function(c){(c.bud12||[]).forEach(function(v,m){inc[m]+=Number(v)||0;});});
-  state.cats.forEach(function(c){(c.bud12||[]).forEach(function(v,m){exp[m]+=Number(v)||0;});});
-  var ai=[0,0,0,0,0,0,0,0,0,0,0,0],ae=[0,0,0,0,0,0,0,0,0,0,0,0],y=curYear();
-  state.rows.forEach(function(r){if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<1||mo>12)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase(),amt=Number(r[6])||0;if(e==="deposit")ai[mo-1]+=amt;else if(!isGoalName(e))ae[mo-1]+=amt;});
-  var gh=fixedGoalMonthly(state.goals); // fixed goal contributions leave spendable cash each month — one model with the Decision Engine
-  var bal=start,low=start,lowM=-1,rows="";
-  for(var m=0;m<12;m++){
-    var im,em,tag="";
-    if(mode==="actual"){
-      if((m+1)<bnd){im=ai[m];em=ae[m];tag='<span class="sttag">actual</span>';}                       // past months: what actually happened
-      else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);em=Math.max(ae[m],exp[m]);tag='<span class="sttag">so far + plan</span>';} // current month: actual-to-date, but never less than the plan (so an over-budget month shows up now, not next month)
-      else{im=inc[m];em=exp[m];tag='<span class="sttag">plan</span>';}                                  // future months: still planned
-    }else{im=inc[m];em=exp[m];}
-    var net=r2(im-em-gh);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}
-    rows+='<div class="strow sttap" data-mo="'+(m+1)+'"><span class="stm">'+MONTHS[m]+tag+'</span><span class="stn '+(net<0?"neg":"pos")+'">'+(net<0?"-":"+")+money(Math.abs(net))+'</span><span class="stb '+(bal<-0.005?"neg":"")+'">'+money(bal)+'</span></div>';}
+  // Render straight from the canonical cash-flow engine — the SAME function the Decision Engine calls — so the screen and
+  // the what-if math can never disagree (audit: this screen used to rebuild its own arrays with an older classifier).
+  var plan=currentPlan();
+  var cf=computeCashflow(plan,{mode:mode,includeGoalHold:true});
+  var exp=_cfArrays(plan).exp, ae=actualIE(state.rows,curYear()).ae; // plan vs actual spend, for the drift line below
+  var low=cf.low,lowM=cf.lowM,end=cf.end,rows="";
+  cf.months.forEach(function(mm,m){
+    var tag=(mode==="actual")?('<span class="sttag">'+((m+1)<bnd?"actual":((m+1)===bnd?"so far + plan":"plan"))+'</span>'):"";
+    var net=mm.net,bal=mm.bal;
+    rows+='<div class="strow sttap" data-mo="'+(m+1)+'"><span class="stm">'+MONTHS[m]+tag+'</span><span class="stn '+(net<0?"neg":"pos")+'">'+(net<0?"-":"+")+money(Math.abs(net))+'</span><span class="stb '+(bal<-0.005?"neg":"")+'">'+money(bal)+'</span></div>';
+  });
   $("stGrid").innerHTML='<div class="strow sthead"><span class="stm">Month</span><span class="stn">Net</span><span class="stb">Balance</span></div>'+rows;
   Array.prototype.forEach.call($("stGrid").querySelectorAll(".sttap"),function(row){row.addEventListener("click",function(){openMonthDetail(Number(this.getAttribute("data-mo")));});});
-  var end=bal,v;
+  var v;
   if(low<-0.005)v='<span class="neg">⚠ Your savings run dry — dipping to '+money(low)+' around '+MONTHS[lowM]+'.</span> Add income, trim a category, or spread big bills with "split per month".';
   else if(end<start-0.005)v='✓ Covered — you draw '+money(start-end)+' from savings across the year, ending near '+money(end)+'.';
   else v='<span class="pos">✓ Covered — savings grow by '+money(end-start)+' this year, ending near '+money(end)+'.</span>';
@@ -5125,7 +5152,7 @@ function renderMonthDetail(mo,yr){
   // actuals for this month
   var actExp={},actInc=0,actExpTot=0;
   var actDisp={};
-  state.rows.forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==mo)return;var e=(""+((r&&r[4])||"")).trim(),amt=Number(r[6])||0,el=e.toLowerCase();if(el==="deposit"){actInc+=amt;return;}if(isGoalName(e))return;var k=el||"uncategorized";actExp[k]=(actExp[k]||0)+amt;if(!actDisp[k])actDisp[k]=e||"Uncategorized";actExpTot+=amt;});
+  state.rows.forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==mo)return;var e=(""+((r&&r[4])||"")).trim(),amt=Number(r[6])||0,el=e.toLowerCase();if(el==="deposit"){actInc+=amt;return;}if(isGoalMovementRow(r))return;var k=el||"uncategorized";actExp[k]=(actExp[k]||0)+amt;if(!actDisp[k])actDisp[k]=e||"Uncategorized";actExpTot+=amt;});
   var incP=0;if(hasBudget)state.cons.forEach(function(c){incP+=(c.bud12&&c.bud12[mo-1])||0;});
   var expP=0;if(hasBudget)state.cats.forEach(function(c){expP+=(c.bud12&&c.bud12[mo-1])||0;});
   var lines=[];
@@ -5211,6 +5238,7 @@ function renderGoals(){
     var badge=done?'<span class="gbadge done">Funded ✓</span>':(g.locked?'<span class="gbadge lock">Locked</span>':'');
     var pace="";
     if(done){pace='<span class="pos">Goal reached 🎉</span>';}
+    else if(g.target>0&&g.targetDate&&monthsUntil(g.targetDate)<0){var still=r2(g.target-g.balance);pace='<span class="neg">⏰ Target date ('+fmtYM(g.targetDate)+') has passed</span> · '+money(still)+' still needed'+(g.monthly>0?(' at '+money(g.monthly)+'/mo'):'')+' · <span style="color:var(--gold)">update the target date below</span>';}
     else if(g.target>0){var n=goalFundMonths(g.targetDate);if(n>0){var need=r2((g.target-g.balance)/n);var behind=(g.monthly>0&&need>g.monthly+0.005);pace='Save <b>'+money(need)+'/mo</b> to reach by '+fmtYM(g.targetDate);if(g.monthly>0&&Math.abs(need-g.monthly)>0.005)pace+=' · <span class="'+(behind?"neg":"pos")+'">planning '+money(g.monthly)+'/mo'+(behind?' (behind)':' (ahead)')+'</span>';if(behind){var room=residualPool();if(room>=(need-g.monthly)-0.005)pace+='<br><span style="color:var(--gold)">💡 Your annual budget has room — bump to '+money(need)+'/mo to finish on time.</span>';else pace+='<br><span style="color:var(--ink2)">Bumping to '+money(need)+'/mo would go past your leftover budget.</span>';}}else if(g.monthly>0){pace='Planning <b>'+money(g.monthly)+'/mo</b>';}}
     else if(g.monthly>0){pace='Planning <b>'+money(g.monthly)+'/mo</b>';}
     if(g.residual&&!done)pace='From leftover · <b>'+money(g._resMo||0)+'/mo</b> ('+(g._resMode||"even split")+')'; // don't overwrite "Goal reached" for a completed residual goal
@@ -5256,6 +5284,24 @@ async function fundAllThisMonth(){
   finally{fundAllThisMonth._busy=false;}
 }
 function goalParentCat(name){var g=(state.goals||[]).filter(function(x){return x.name.toLowerCase()===(""+name).toLowerCase();})[0];return (g&&g.category)?g.category:name;}
+function _pendKey(){return "nw_pending_"+(sheetId||"x");}
+// Repair an interrupted multi-step write (currently: debt payoff) on next load. If the balances were changed but the goal
+// withdrawal never recorded, complete the withdrawal so the two stay consistent; if it did record, just clear the marker.
+// Defense-in-depth — NOT a substitute for true atomicity (which needs a server-side lock).
+async function reconcilePending(){
+  var raw="";try{raw=lsGet(_pendKey());}catch(e){}if(!raw)return;
+  var mk;try{mk=JSON.parse(raw);}catch(e){try{lsDel(_pendKey());}catch(_){}return;}
+  if(!mk||mk.op!=='debtpay'||!(mk.applied>0.005)){try{lsDel(_pendKey());}catch(e){}return;}
+  var gl=(""+mk.goal).toLowerCase();
+  var found=(state.rows||[]).some(function(r){var co=(""+((r&&r[5])||"")).trim().toLowerCase();return co===gl&&Math.abs((Number(r[6])||0)+mk.applied)<0.02;});
+  if(found){try{lsDel(_pendKey());}catch(e){}return;}
+  try{
+    var t=new Date(),date=t.getFullYear()+"-"+("0"+(t.getMonth()+1)).slice(-2)+"-"+("0"+t.getDate()).slice(-2);
+    var vals=[t.getFullYear(),t.getMonth()+1,date,"",(mk.cat||mk.goal),mk.goal,-mk.applied,"Applied to "+mk.debt+" (recovered)",""];
+    await vappend(LEDGER+"!A:I",[vals]);state.rows.push(vals);
+    try{lsDel(_pendKey());}catch(e){}
+  }catch(e){} // repair failed — leave the marker so the next load tries again
+}
 async function logGoalContribution(name,amt,note){
   if(logGoalContribution._busy)return;logGoalContribution._busy=true; // guard double-tap on a Fund button
   var d=new Date();var date=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);var msg=$("goalMsg");msg.className="msg";
@@ -5274,12 +5320,16 @@ async function applyGoalToDebt(name){
     if(applied<=0.005){await askInfo("Nothing to apply",(g.balance<=0.005)?"This goal has no balance to apply.":"“"+g.debt+"” is already at $0.");return;}
     if(!await askConfirm({title:"Pay down "+g.debt+"?",msg:"Move "+money(applied)+" from <b>"+esc(name)+"</b> onto <b>"+esc(g.debt)+"</b>. That lowers the debt to "+money(r2(d.bal-applied))+" and takes the same amount out of the goal."+((g.balance-applied>0.005)?(" "+money(r2(g.balance-applied))+" stays in the goal."):""),ok:"Pay it down"}))return;
     var t=new Date(),date=t.getFullYear()+"-"+("0"+(t.getMonth()+1)).slice(-2)+"-"+("0"+t.getDate()).slice(-2);
+    // Record the INTENT before mutating balances, so if the ledger withdrawal never lands (app closed / network drop between
+    // the two writes) the next load can complete it — keeping the debt paydown and the goal withdrawal consistent.
+    try{lsSet(_pendKey(),JSON.stringify({op:'debtpay',goal:name,debt:g.debt,applied:applied,cat:goalParentCat(name),date:date}));}catch(e){}
     var updates=[{range:NW+"!B"+d.row,values:[[r2(d.bal-applied)]]}];
     // If the goal's cash is held in a tracked account, that account pays the debt too — otherwise net worth would inflate
     // (the goal balance isn't counted as a standalone asset when it's account-linked).
     if(g.account){var acc=(state.assets||[]).filter(function(x){return x.name.toLowerCase()===g.account.toLowerCase();})[0];if(acc)updates.push({range:NW+"!B"+acc.row,values:[[r2(acc.bal-applied)]]});}
     await vBatchUpdate(updates);
     await vappend(LEDGER+"!A:I",[[t.getFullYear(),t.getMonth()+1,date,"",goalParentCat(name),name,-applied,"Applied to "+g.debt,""]]);
+    try{lsDel(_pendKey());}catch(e){} // both writes landed → operation complete
     state._nwForce=true;await loadAll();renderAll();
     var gm=$("goalMsg");if(gm){gm.className="msg";var gt="Applied "+money(applied)+" to "+g.debt+" ✓";gm.textContent=gt;setTimeout(function(){if(gm.textContent===gt)gm.textContent="";},2000);}
   }catch(e){var gm2=$("goalMsg");if(gm2){gm2.textContent="Could not apply: "+(e.message||e);gm2.className="msg bad";}}
@@ -5583,13 +5633,14 @@ function nestReviewMonth(){
 function buildNestReview(){
   var mm=nestReviewMonth();if(!mm)return null;
   var mi=mm.m-1,label=MONF[mi]+" "+mm.y,reviewYm=mm.y*100+mm.m;
-  // income actual (deposits) vs plan (income sources' budget for that month)
-  var incA=0,dep=state.dep||{};for(var k in dep)incA+=(dep[k]&&dep[k][mi])||0;incA=r2(incA);
+  // income + total spend from the SHARED monthly-actuals function (same as the Month headline — includes unbudgeted spending),
+  // so the Review can't say "$4,000" while Month says "$4,800".
+  var mt=monthActualTotals(mm.y,mm.m),incA=mt.income,spA=mt.expense;
   var incP=0;(state.cons||[]).forEach(function(c){incP+=(c.bud12&&c.bud12[mi])||0;});incP=r2(incP);
-  // spending per category (folds itemized bills into parents via catSpend12)
-  var cats=[],spA=0,spP=0;
-  (state.cats||[]).forEach(function(c){var sp=catSpend12(c.name)[mi]||0,bud=(c.bud12&&c.bud12[mi])||0;spA+=sp;spP+=bud;cats.push({name:c.name,spent:r2(sp),bud:r2(bud),diff:r2(sp-bud)});});
-  spA=r2(spA);spP=r2(spP);
+  // per-category breakdown for the "Why?" lines (folds itemized bills into parents via catSpend12)
+  var cats=[],spP=0;
+  (state.cats||[]).forEach(function(c){var sp=catSpend12(c.name)[mi]||0,bud=(c.bud12&&c.bud12[mi])||0;spP+=bud;cats.push({name:c.name,spent:r2(sp),bud:r2(bud),diff:r2(sp-bud)});});
+  spP=r2(spP);
   var over=cats.filter(function(c){return c.diff>0.5&&c.bud>0.005;}).sort(function(a,b){return b.diff-a.diff;});
   var under=cats.filter(function(c){return c.diff<-0.5&&c.bud>0.005;}).sort(function(a,b){return a.diff-b.diff;});
   // net worth change: latest snapshot at/before the review month vs the latest strictly before it (attribution from detail)
@@ -5598,10 +5649,10 @@ function buildNestReview(){
   for(var j=0;j<h.length;j++){if(h[j].ym<reviewYm)before=h[j];}
   var net=null;
   if(atAfter&&before&&atAfter.ym!==before.ym)net={now:r2(atAfter.net),prev:r2(before.net),change:r2(atAfter.net-before.net),dAssets:r2((atAfter.assets||0)-(before.assets||0)),dDebts:r2((atAfter.debts||0)-(before.debts||0))};
-  // goals: contributed that month (category-tagged movements land in the spend index under the goal name) + pace
+  // goals: contributed that month — matched by goal name in Category OR Company (so a category-linked goal's funding counts too) + pace
   var goals=[];
   (state.goals||[]).forEach(function(g){if(!g||!g.name||g.archived)return;
-    var added=r2(((state.spend&&state.spend[g.name.toLowerCase()])||_z12())[mi]||0);
+    var added=goalContribMonth(g.name,mm.y,mm.m);
     var behind=false,need=0;if(g.target>0){var n=goalFundMonths(g.targetDate);if(n>0){need=r2((g.target-g.balance)/n);behind=(g.monthly>0&&need>g.monthly+0.005);}}
     if(added>0.5||behind)goals.push({name:g.name,added:added,balance:r2(g.balance),target:r2(g.target||0),behind:behind,pace:need});});
   goals.sort(function(a,b){return b.added-a.added;});
@@ -6259,8 +6310,8 @@ function wrenAnalyze(text){
   var scope=/\b(year|ytd|annual|this year|so far|to date)\b/.test(t)?"year":"month";
   var when=(scope==="year")?("in "+Y):("in "+mName);
   var rows=(state.rows||[]).filter(function(r){return r&&Number(r[0])===Y&&(scope==="year"||Number(r[1])===M);});
-  var isDep=function(r){return (""+((r[4])||"")).trim().toLowerCase()==="deposit";};
-  var exp=rows.filter(function(r){var c=(""+((r[4])||"")).trim().toLowerCase();return c&&c!=="deposit"&&!isGoalName(r[4])&&!isGoalName(r[5]);});
+  var isDep=isDepositRow;
+  var exp=rows.filter(isExpenseRow);   // canonical classifier — includes uncategorized/unbudgeted spending, excludes goal moves (via Category OR Company), so Wren's totals match the Month headline
   var sum=function(rs){return rs.reduce(function(a,r){return a+(Number(r[6])||0);},0);};
   var wantsSpend=/\b(spent|spend|spending|cost|costs|paid|expenses?)\b/.test(t);
   var wantsBiggest=/\b(biggest|top|most|largest|highest|worst)\b/.test(t)||/where.*(most|go)\b/.test(t)&&/spend|money/.test(t);
@@ -6402,9 +6453,8 @@ function wrenAnalyze(text){
   }
   // I) Year-end forecast
   if(/(end of the year|rest of the year|where (will|do) (we|i) (end|land)|finish the year|whole year|trending toward|on pace.*year|annual spending|year[- ]?end|by december)/.test(t)){
-    var yfrac=anYearFrac(),ytd=0;Object.keys(expByM).forEach(function(k){if(Math.floor(k/100)===Y)ytd+=expByM[k];});
-    var proj=r2(ytd/yfrac),totBud=0;(state.cats||[]).forEach(function(c){totBud+=(c.annual||0);});
-    var overs=[];(state.cats||[]).forEach(function(c){if((c.annual||0)<=0)return;var cm2=anCatByMonth(c.name.toLowerCase()),y2=0;Object.keys(cm2).forEach(function(k){if(Math.floor(k/100)===Y)y2+=cm2[k];});var ovr=y2/yfrac-(c.annual||0);if(ovr>0.005)overs.push({n:c.name,over:r2(ovr)});});
+    var yp=yearEndSpendProjection(),ytd=yp.ytd,proj=yp.proj,totBud=0;(state.cats||[]).forEach(function(c){totBud+=(c.annual||0);});   // shared active-month projection (no mid-year inflation)
+    var overs=[];(state.cats||[]).forEach(function(c){if((c.annual||0)<=0)return;var ovr=catYearPaceProj(c.name).proj-(c.annual||0);if(ovr>0.005)overs.push({n:c.name,over:r2(ovr)});});
     overs.sort(function(a,b){return b.over-a.over;});
     var msg="Through "+mName+" you've spent "+anMoney(ytd)+". At this pace you're trending toward about "+anMoney(proj)+" for the year";
     if(totBud>0.005){var d4=r2(proj-totBud);msg+=(Math.abs(d4)<1?(" — right on your "+anMoney(totBud)+" plan."):(d4>0?(" — about "+anMoney(d4)+" over your "+anMoney(totBud)+" plan."):(" — about "+anMoney(-d4)+" under your "+anMoney(totBud)+" plan.")));}else msg+=".";
@@ -6492,9 +6542,13 @@ function wrenAnalyze(text){
   }
   // T) Find money / uncommitted
   if(/(find money|find me money|free up|spare money|extra money|uncommitted|where can i find)/.test(t)){
-    var iT=monthInc(),sT=monthExp(),committed=0;(state.cats||[]).forEach(function(c){if((c.mbud||0)>0)committed+=Math.max(0,(c.mbud||0)-(c.mspent||0));});
-    var freeNow=r2(iT-sT-committed);
-    return {answer:"So far this month you've taken in "+anMoney(iT)+" and spent "+anMoney(sT)+", leaving "+anMoney(iT-sT)+". About "+anMoney(committed)+" of that is still earmarked for the rest of your budgeted categories, so roughly "+anMoney(Math.max(0,freeNow))+" isn't committed"+(freeNow<0?" (you're leaning on earlier months or savings)":"")+".",go:{v:"budget"}};
+    var _mt=monthActualTotals(curYear(),curMonth()),iT=_mt.income,sT=_mt.expense,committed=0;   // shared monthly-actuals engine
+    (state.cats||[]).forEach(function(c){if((c.mbud||0)>0)committed+=Math.max(0,(c.mbud||0)-(c.mspent||0));});
+    // Fixed-goal contributions still owed this month are committed too — don't call money that's headed to a goal "spare".
+    var goalCommit=0;(state.goals||[]).forEach(function(g){if(!g||g.archived||g.category||g.residual)return;goalCommit+=Math.max(0,(g.monthly||0)-goalContribMonth(g.name,curYear(),curMonth()));});
+    goalCommit=r2(goalCommit);committed=r2(committed+goalCommit);
+    var freeNow=r2(iT-sT-committed),goalNote=goalCommit>0.5?(", including "+anMoney(goalCommit)+" still going to your goals,"):"";
+    return {answer:"So far this month you've taken in "+anMoney(iT)+" and spent "+anMoney(sT)+", leaving "+anMoney(r2(iT-sT))+". About "+anMoney(committed)+" of that"+goalNote+" is still earmarked for the rest of your plan, so roughly "+anMoney(Math.max(0,freeNow))+" isn't committed"+(freeNow<0?" (you're leaning on earlier months or savings)":"")+".",go:{v:"budget"}};
   }
 
   if(found&&(wantsSpend||/how much/.test(t))&&!wantsIncome){
