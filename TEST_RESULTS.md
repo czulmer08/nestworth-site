@@ -1,8 +1,8 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.12 · Build 20260829.100
-**app.html SHA-256:** `5229b467d19043d99c39a30dfb21d9c5f29b9531523190a0a9c0594ecfda5468`
-**Executed:** 2026-08-29 14:52 UTC
+**Build under test:** v0.68.13 · Build 20260829.101
+**app.html SHA-256:** `6da2ac3b5a2324f9b258c8247f3a287fa45c8879c8678a5c512704033130f8dc`
+**Executed:** 2026-08-29 15:05 UTC
 **Environment:** headless Chromium 141.0.7390.37 (Playwright) on Node v22.22.2, Linux cloud container.
 
 ## Execution provenance (read this first)
@@ -19,10 +19,11 @@ These are **actual run results** from executing the suites against the exact bui
 
 | | |
 |---|---|
-| Test files | **86** (85 functional suites + mutation) |
-| Functional suites | **85 / 85 pass**, 0 failed |
-| Total assertions | **~892** (695 `passed`-style + 64 golden invariants + 133 Wren-golden) |
+| Test files | **90** (89 functional suites + mutation) |
+| Functional suites | **89 / 89 pass**, 0 failed |
+| Total assertions | **~920** (723 `passed`-style + 64 golden invariants + 133 Wren-golden) |
 | Randomized households (fuzz) | **9,000**, 9/9 identity invariants |
+| Beta-readiness harnesses | new-user journey **6/6**, household journeys (H1,H3–H8) **8/8**, chaos-user **9/9**, first-run tour timing **5/5** — each break-audited |
 | Mutation (validity-gated, run alone) | **12 / 12 CAUGHT by genuine assertion failure**; app.html restored byte-exact |
 
 ## The requested release-artifact suites (explicit)
@@ -44,10 +45,14 @@ These are **actual run results** from executing the suites against the exact bui
 | `verify-pullin.js` | **33 / 33** (incl. PULL-RECOVERY-001 + `= + - @` tab/CR sanitation table) |
 | `verify-a11y.js` | **10 / 10** (code-level; NOT a screen-reader certification) |
 | `verify-perf.js` | **5 / 5** (headless baseline, 1k–100k rows) |
+| `verify-new-user-journey.js` | **6 / 6** — clean-start journey, *user-sees = engine = persisted* oracle |
+| `verify-household-journeys.js` | **8 / 8** — stranger households H1, H3–H8 (variable income, tight cash, high debt, refunds, residual, uncategorized) |
+| `verify-chaos-user.js` | **9 / 9** — misuse / malformed input / double-tap / archive-with-money / delete-source |
+| `verify-firstrun-tour.js` | **5 / 5** — the auto-tour defers past the first-run choice (v0.68.13 fix) |
 
-**All requested suites executed on v0.68.12 and passed.**
+**All requested suites executed on v0.68.13 and passed.**
 
-## Full per-suite output (all 86 files)
+## Full per-suite output (all 90 files)
 
 ```
 verify-a11y.js                   10 passed, 0 failed   (code-level; not a screen-reader cert)
@@ -65,6 +70,7 @@ verify-breakdown-sync.js         8 passed, 0 failed
 verify-carry.js                  6 passed, 0 failed
 verify-catyear.js                4 passed, 0 failed
 verify-chaos.js                  9 passed, 0 failed
+verify-chaos-user.js             9 passed, 0 failed   (misuse / malformed input)
 verify-contingency-coverage.js   25 passed, 0 failed
 verify-coverage.js               12 passed, 0 failed
 verify-decisions-ui.js           13 passed, 0 failed
@@ -75,6 +81,7 @@ verify-effortless.js             4 passed, 0 failed
 verify-engine-invariants.js      3 passed, 0 failed   (FIN-ASOF-001/002, FIN-NW-001)
 verify-erase-key.js              4 passed, 0 failed
 verify-fixes.js                  6 passed, 0 failed
+verify-firstrun-tour.js          5 passed, 0 failed   (auto-tour defers past first-run)
 verify-fold.js                   5 passed, 0 failed
 verify-formpref-profile.js       6 passed, 0 failed
 verify-freshness.js              4 passed, 0 failed
@@ -85,6 +92,7 @@ verify-golden-invariants.js      64 total, 0 fail
 verify-golden.js                 12 passed, 0 failed
 verify-grow.js                   7 passed, 0 failed
 verify-hidecat.js                8 passed, 0 failed
+verify-household-journeys.js      8 passed, 0 failed   (stranger households H1,H3-H8)
 verify-idempotent.js             8 passed, 0 failed
 verify-import-income.js          4 passed, 0 failed
 verify-income-calendar.js        13 passed, 0 failed
@@ -102,6 +110,7 @@ verify-midyear-pay.js            13 passed, 0 failed
 verify-migration.js              22 passed, 0 failed
 verify-model.js                  4 passed, 0 failed
 verify-nest-review.js            14 passed, 0 failed
+verify-new-user-journey.js       6 passed, 0 failed   (clean-start 3-way oracle)
 verify-optimize.js               8 passed, 0 failed
 verify-overbudget-sign.js        3 passed, 0 failed
 verify-parent-chip.js            7 passed, 0 failed
@@ -138,11 +147,12 @@ verify-write-contract.js         10 passed, 0 failed
 verify-mutation.js               12/12 CAUGHT (run alone) · app.html restored byte-exact
 ```
 
-## What's new since the prior report (v0.68.10 → v0.68.12)
+## What's new since the prior report (v0.68.10 → v0.68.13)
 
-- **Application-wide verified-write contract** — `writeMeta` root fix (baseline advances only on confirmed persistence; failures surface a retry banner and are durably recoverable), transaction edit/delete refuse on unverified row identity, atomic net-worth save, expense/recurring writes on the durable-id path. (`verify-write-contract.js`, new.)
-- **Formal schema migration** — `schemaVersion`, ordered idempotent migrations, pre-migration backup, fail-safe + write-lock on a newer schema, financial-fingerprint preservation across a **checked-in fixture corpus** (`fixtures/meta/`). (`verify-migration.js`, new.)
-- **Multi-row goal-move idempotency** and **pending-meta reconciliation** added to `verify-idempotent.js` / `verify-write-contract.js`.
+- **Application-wide verified-write contract** — `writeMeta` root fix (baseline advances only on confirmed persistence; failures surface a retry banner and are durably recoverable), transaction edit/delete refuse on unverified row identity, atomic net-worth save, expense/recurring writes on the durable-id path. (`verify-write-contract.js`.)
+- **Formal schema migration** — `schemaVersion`, ordered idempotent migrations, pre-migration backup, fail-safe + write-lock on a newer schema, financial-fingerprint preservation across a **checked-in fixture corpus** (`fixtures/meta/`). (`verify-migration.js`.)
+- **Beta-readiness harnesses** — clean-start new-user journey with the *user-sees = engine = persisted* oracle, stranger-household journeys (H1, H3–H8), and a chaos-user misuse suite; each break-audited. (`verify-new-user-journey.js`, `verify-household-journeys.js`, `verify-chaos-user.js`.)
+- **Onboarding fix (v0.68.13)** — the auto-tour no longer launches over the first-run choice; it waits for the user to pick a path and land on a clear screen. (`verify-firstrun-tour.js`.)
 
 ## Still owed before public 1.0 (NOT covered by the above — needs real hardware/people)
 

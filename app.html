@@ -1285,6 +1285,9 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.15 — Aug 29, 2026 · Build 20260829.103 · Corrects and deepens v0.68.14. Goal money is NOT simply "unaffected" by an over-budget month — that conflated the plan staying the same with what's actually affordable. New authoritative helper goalFundingStatus() distinguishes PLANNED goal funding from what THIS month's performance can SUPPORT: only the slice of overage that this month's CASH absorbs (not an envelope covering its own overage from its own banked balance, and not the shared contingency pool) erodes residual "% of leftover" capacity; fixed goal contributions are protected first. Reconciles exactly (overage = envelope-self + shared-contingency + cash-absorbed; supported residual = planned − cash-absorbed). The Month "Can you cover it?" block and Wren now narrate this one fact — reassuring only when residual is truly intact, otherwise showing planned vs currently-supported honestly. Terminology fixed: an envelope covering its own overage is envelope coverage, not shared contingency. New verify-goal-funding.js (6 scenarios + reconciliation invariants); verify-contingency-goals.js reworked to the honest narration.
+//   v0.68.14 — Aug 29, 2026 · Build 20260829.102 · Clarity: the Month "Can you cover it?" block now opens with a plain-language summary answering the two questions an over-budget month actually raises — whether you're covered OVERALL this month (net under/over budget + contingency in reserve), and whether any of it touches your goals. It doesn't: goal money (fixed contributions + residual "% of leftover", which is plan-based) is a separate pool from the envelope/buffer cushions, so covering an overage never reduces this month's goal funding — the summary and Wren now both say so, and only when you actually have goals (no false reassurance). New verify-contingency-goals.js.
+//   v0.68.13 — Aug 29, 2026 · Build 20260829.101 · Onboarding: the 60-second guided tour no longer auto-launches OVER a brand-new person who's still deciding at the first-run card (Set up / Import / Just log expenses), or over an open setup/import overlay. It now waits until they've chosen a path and landed on a clear screen, then starts — and gives up quietly after ~30s rather than interrupting a long setup (the Guide and "Take the tour" buttons stay available). Found in the unfamiliar-user cognitive walkthrough. New verify-firstrun-tour.js.
 //   v0.68.12 — Aug 29, 2026 · Build 20260829.100 · Write-atomicity completion + formal schema migration. (1) Multi-row goal-move batches ("fund all goals", goal contributions/withdrawals) now use a multi-row idempotent append — each row carries its own durable id, so an ambiguous network failure reconciles row-by-row without duplicating. (2) The metadata half of every multi-stage config write (fold/combine/rename/add) is now DURABLY recoverable: a save that couldn't be confirmed is persisted to the device and re-applied by reconcilePendingMeta on the next load, so a change can't be lost by closing the app before the retry. (3) Formal schema versioning: the metadata document carries schemaVersion; migrateMeta() runs registered migrations in order, is idempotent (running twice equals once), backs up the pre-migration doc before transforming, and FAILS SAFE on a Nest created by a newer version (refuses to open/overwrite it rather than downgrading or discarding unknown fields — CURRENT_SCHEMA_VERSION=1, v0→1 is data-preserving). New verify-migration.js (22 assertions) proves migrations preserve FINANCIAL MEANING via an engine-fact fingerprint across historical fixtures, plus verify-write-contract/idempotent additions.
 //   v0.68.11 — Aug 29, 2026 · Build 20260829.99 · Verified-write contract (application-wide audit). Product invariant: if NestWorth reports success, persistence was confirmed; if it can't be confirmed, don't claim success — keep the user's input, stay recoverable, surface an actionable error. Fixes: (1) writeMeta (the root defect) no longer swallows save failures or advances its merge baseline optimistically — a failed metadata save now shows a Retry banner, keeps the change in memory, and never poisons the next merge; this closes the silent-failure class across goals, settings, category config, hidden categories, payees, start-cash/month and account links at once. (2) Transaction EDIT and DELETE now REFUSE when the target row's identity can't be confirmed (moved/edited elsewhere, or read failed) — no more "Save anyway"/"Delete anyway" that could modify or delete a different transaction. (3) Net-worth save (applyNW) is now a single atomic write (fills used rows + blanks the tail) instead of clear-then-rewrite, so a mid-write failure can't wipe every balance. (4) removeNW surfaces failures instead of swallowing them. (5) Expense and recurring-bill creation now use the same durable-transaction-ID append as deposits, so an ambiguous network failure reconciles without duplicating (not just deposits). New verify-write-contract.js (TXN-EDIT-002, TXN-DELETE-001, META-SAVE-001, NW-ATOMIC-001).
 //   v0.68.10 — Aug 29, 2026 · Build 20260829.98 · Write-recovery hardening (audit findings). PULL-RECOVERY-001: Pull-In claims a row (name → column A) and writes its budget values as two steps; if the second fails after the first committed, the category name is already on the sheet. On retry, applyPullIn now RECOVERS that existing row (matched by name) and finishes initializing it instead of claiming a second row — so a partial commit converges to exactly ONE correctly-budgeted category, never a duplicate. Recovery, not rollback (a network blip can make a rollback itself uncertain). PERSIST-IDEMP-002: idempotentAppend now FAILS CLOSED if the durable pending marker can't be stored (private mode / quota / blocked storage) — it establishes and verifies the recovery marker BEFORE writing, and if it can't, it does NOT perform the write through the idempotent path ("couldn't establish a safe recovery record — nothing was added"). Two new regression tests (PULL-RECOVERY-001, PERSIST-IDEMP-002).
@@ -1670,8 +1673,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.12"; // SemVer — what changed functionally (display only)
-var BUILD="20260829.100"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.15"; // SemVer — what changed functionally (display only)
+var BUILD="20260829.103"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -3116,6 +3119,43 @@ function coverageReport(){
   return {buffer:roll.buffer,availableBuffer:roll.availableBuffer,remainingContingency:roll.remainingContingency,contingencyUsed:roll.contingencyUsed,
     totalEnvelopeDeficit:roll.totalEnvelopeDeficit,uncoveredDeficit:roll.uncoveredDeficit,
     fixedOver:fixedOver,fixedTot:fixedTot,monthLeft:monthLeft,envOver:envOver,envRisk:envRisk,allSolvent:allSolvent,remMonths:remMonths,hasEnv:hasEnv};
+}
+// ===== Planned vs currently-SUPPORTABLE goal funding — the AUTHORITATIVE fact the Nest Review and Wren both narrate (neither
+// computes it independently). It distinguishes what the PLAN allocated to goals from what this month's ACTUAL performance can
+// support. Coverage hierarchy (from computeRollover): category budget → the envelope's own accumulated balance → shared
+// contingency (the pooled buffer categories) → uncovered, which is absorbed by THIS month's cash. That last, cash-absorbed
+// slice is exactly what erodes residual ("% of leftover") capacity; FIXED goal commitments are protected first.
+//   Reconciliation invariants (see verify-goal-funding.js):
+//     overTotal      === envelopeSelf + sharedContingencyUsed + cashAbsorbed          (every over-budget dollar is accounted for)
+//     residualSupported === max(0, residualPlanned − cashAbsorbed)                     (uncovered cash is what reduces residual)
+// NOTE: "contingency" here means ONLY the shared buffer pool. An envelope covering its own overage from its own banked balance
+// is envelopeSelf, NOT contingency — so remainingContingency doesn't move when an envelope self-covers.
+function goalFundingStatus(){
+  var roll=computeRollover(),cr=coverageReport();
+  var availPool=r2(Math.max(0,roll.remainingContingency||0)); // shared contingency CURRENTLY available (after cumulative envelope deficits)
+  // THIS MONTH's overages, absorbed first by each envelope's OWN accumulated balance (balance before this month = balance now + this month's over):
+  var envSelf=0,envDeficit=0;
+  (cr.envOver||[]).forEach(function(e){var over=Math.max(0,e.over||0);var balBefore=r2((e.balance||0)+over);var self=Math.max(0,Math.min(over,balBefore));envSelf=r2(envSelf+self);envDeficit=r2(envDeficit+r2(over-self));});
+  var fixedOver=r2(Math.max(0,cr.fixedTot||0)); // non-envelope categories over budget — no cushion of their own
+  // then the shared contingency absorbs this month's NEW deficits (envelope-into-deficit first, then non-envelope overages), up to what's available; the rest is cash:
+  var sharedForEnv=r2(Math.min(availPool,envDeficit));
+  var sharedForFixed=r2(Math.min(r2(availPool-sharedForEnv),fixedOver));
+  var sharedContingencyUsed=r2(sharedForEnv+sharedForFixed);
+  var cashAbsorbed=r2(r2(envDeficit-sharedForEnv)+r2(fixedOver-sharedForFixed)); // what THIS month's cash flow absorbs
+  var overTotal=r2(envSelf+envDeficit+fixedOver); // by construction: overTotal === envSelf + sharedContingencyUsed + cashAbsorbed
+  var fixedPlanned=r2((typeof fixedGoalMonthly==="function")?fixedGoalMonthly(state.goals):0);
+  var residualPlanned=r2((typeof residualPool==="function")?residualPool():0);
+  var residualSupported=r2(Math.max(0,residualPlanned-cashAbsorbed)); // uncovered cash is exactly what erodes residual capacity, floored at 0
+  var overflow=r2(Math.max(0,cashAbsorbed-residualPlanned));          // overage beyond residual capacity → draws reserves / below plan
+  return {
+    overTotal:overTotal,envelopeSelf:envSelf,sharedContingencyUsed:sharedContingencyUsed,cashAbsorbed:cashAbsorbed,
+    fixedPlanned:fixedPlanned,fixedSupported:fixedPlanned,          // fixed commitments are protected first
+    residualPlanned:residualPlanned,residualSupported:residualSupported,
+    residualReduced:(residualSupported<residualPlanned-0.005),
+    drawsReserves:(overflow>0.005),overflow:overflow,
+    hasResidual:(state.goals||[]).some(function(g){return g&&g.residual&&!g.archived;}),
+    hasFixed:(fixedPlanned>0.005),floor:r2((typeof nestFloor==="function")?nestFloor():0)
+  };
 }
 // ---- Goals (savings earmarks — money movements, NOT expenses) ----
 function loadGoals(){
@@ -5375,6 +5415,21 @@ function coverageHtml(){
     if(r.allSolvent)rows.push({cls:"good",ico:"🗓️",text:"Every envelope stays funded through December."});
     else r.envRisk.forEach(function(e){rows.push({cls:"warn",ico:"🗓️",text:(e.basis==="budget"?"Even holding to budget, <b>":"At your current pace, <b>")+esc(e.name)+"</b> "+(e.basis==="budget"?"stays about ":"runs about ")+money(e.shortfall)+" short before year-end."});});
   }
+  // GOALS impact — narrate the authoritative planned-vs-supportable fact (goalFundingStatus). Only the part of the overage that
+  // this month's CASH absorbs (not envelope self-coverage, not shared contingency) reduces residual capacity; fixed goals are
+  // protected. Reassure only when nothing diverges; otherwise show planned vs currently-supported honestly.
+  try{var g=goalFundingStatus();
+    if(g.hasResidual||g.hasFixed){
+      if(!g.residualReduced&&!g.drawsReserves){
+        var okbits=[];if(g.hasFixed)okbits.push("your fixed goal contributions ("+money(g.fixedSupported)+") are protected");if(g.hasResidual)okbits.push("your planned "+money(g.residualPlanned)+" of residual saving is fully supported");
+        rows.push({cls:"good",ico:"🎯",text:"This doesn’t reduce your goal funding — "+okbits.join(" and ")+" this month."});
+      }else{
+        var bad=[];if(g.hasFixed)bad.push("Fixed goals stay funded ("+money(g.fixedSupported)+")");
+        if(g.hasResidual)bad.push((g.hasFixed?"but ":"")+"about <b>"+money(g.residualSupported)+"</b> of your planned "+money(g.residualPlanned)+" residual saving is supported at today’s spending");
+        rows.push({cls:"warn",ico:"🎯",text:bad.join(", ")+(g.drawsReserves?" — the overage now draws on your cash reserves.":" this month.")});
+      }
+    }
+  }catch(e){}
   if(!rows.length)return "";
   return '<div class="remgrp"><div class="remtitle">Can you cover it?</div>'+rows.map(function(x){return '<div class="remrow '+x.cls+'"><span class="remico">'+x.ico+'</span><span>'+x.text+'</span></div>';}).join("")+'</div>';
 }
@@ -6791,7 +6846,21 @@ function positionStep(s){var hole=$("tourHole"),tip=$("tourTip");var el=s.sel?do
 function tourNext(){if(_ti>=TOUR.length-1){endTour(true);return;}_ti++;tourGo();}
 function tourBack(){if(_ti<=0)return;_ti--;tourGo();}
 function endTour(){window.__tour=false;$("tourWrap").classList.remove("on");try{lsSet("nw_tour_seen","1");}catch(e){}}
-function maybeStartTour(){try{if(lsGet("nw_tour_seen")==="1")return;setTimeout(function(){try{if(!$("appScreen").classList.contains("on"))return;var anyOv=[].some.call(document.querySelectorAll(".ov"),function(o){return o.style.display==="flex";});if(anyOv)return;switchView("add");startTour(0);}catch(e){}},800);}catch(e){}}
+function maybeStartTour(){try{if(lsGet("nw_tour_seen")==="1")return;}catch(e){return;}
+  // Don't let the auto-tour take over while a brand-new person is still deciding at the first-run card (Set up / Import / Just
+  // log expenses), or while a setup/import overlay they opened is still up. Wait until they've chosen a path and landed on a
+  // clear screen; give up quietly after ~30s (the Guide and "Take the tour" buttons stay available) rather than interrupt a
+  // long setup. (Unfamiliar-user walkthrough finding: the 800ms auto-tour could otherwise launch over the first-run choice.)
+  var tries=0;
+  (function attempt(){setTimeout(function(){try{
+    if(lsGet("nw_tour_seen")==="1")return;
+    if(!$("appScreen").classList.contains("on"))return;                    // not in the app yet
+    var fr=$("firstRunCard"),frOpen=!!(fr&&fr.style.display&&fr.style.display!=="none"); // still at the first-run choice
+    var anyOv=[].some.call(document.querySelectorAll(".ov"),function(o){return o.style.display==="flex";}); // a flow is open
+    if(frOpen||anyOv){if(tries++<40)attempt();return;}                     // busy → check back shortly; then stop trying
+    switchView("add");startTour(0);
+  }catch(e){}},800);})();
+}
 var GUIDE=[
  {c:"Logging money",items:[
    {t:"Add expenses & deposits",d:"Log money out or in from the Add tab — category, amount, and an optional company/payee and note.",go:{v:"add",el:"addMode"}},
@@ -7190,6 +7259,19 @@ function wrenAnalyze(text){
     if(roll.uncoveredDeficit>0.005)parts.push("Across your envelopes, "+anMoney(roll.uncoveredDeficit)+" of overspending is still uncovered.");
     else if(roll.totalEnvelopeDeficit>0.005)parts.push("Contingency covers all of your red envelopes right now.");
     if(cr.hasEnv&&!cr.allSolvent)parts.push(cr.envRisk.map(function(e){return e.name+" (~"+anMoney(e.shortfall)+" short"+(e.basis==="budget"?", even holding to budget":"")+")";}).join(", ")+" won't make it to year-end at this pace.");
+    // Goal relationship — the worry an over-budget month raises — narrated from the authoritative planned-vs-supportable fact.
+    // Only the CASH-absorbed slice of the overage (not envelope self-coverage, not shared contingency) reduces residual capacity.
+    var g=goalFundingStatus();
+    if((g.hasResidual||g.hasFixed)&&(g.overTotal>0.005||t.indexOf("goal")>=0)){
+      if(!g.residualReduced&&!g.drawsReserves){
+        var okb=[];if(g.hasFixed)okb.push("your fixed contributions of "+anMoney(g.fixedSupported)+" stay protected");if(g.hasResidual)okb.push("your planned "+anMoney(g.residualPlanned)+" of residual saving is fully supported");
+        parts.push("This doesn't reduce your goal funding this month — "+okb.join(", and ")+", because the overage is covered without touching this month's cash.");
+      }else{
+        var bb=[];if(g.hasFixed)bb.push("your fixed goals stay funded ("+anMoney(g.fixedSupported)+")");
+        if(g.hasResidual)bb.push("at today's spending, about "+anMoney(g.residualSupported)+" of your planned "+anMoney(g.residualPlanned)+" residual saving is supported — the "+anMoney(g.cashAbsorbed)+" absorbed by cash this month is what trims it");
+        parts.push("Here's the goal picture: "+bb.join(", and ")+(g.drawsReserves?". That overage now exceeds this month's discretionary room, so it's drawing on your cash reserves.":"."));
+      }
+    }
     return {answer:parts.join(" "),go:{v:"month"}};
   }
   // instructional phrasings are how-to questions, not data questions — let the guide intents handle them
