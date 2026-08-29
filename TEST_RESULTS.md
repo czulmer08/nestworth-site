@@ -1,8 +1,8 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.15 · Build 20260829.103
-**app.html SHA-256:** `a33cd0ee5bfd52332353c79ebb5278f0afe8551f381ed8f9572f06060244b5ad`
-**Executed:** 2026-08-29 16:31 UTC
+**Build under test:** v0.68.17 · Build 20260829.105
+**app.html SHA-256:** `9fb52aafb9087219814682a6cefb4e4ea19e495323960d1e91010c29d640ba78`
+**Executed:** 2026-08-29 16:58 UTC
 **Environment:** headless Chromium 141.0.7390.37 (Playwright) on Node v22.22.2, Linux cloud container.
 
 ## Execution provenance (read this first)
@@ -24,7 +24,7 @@ These are **actual run results** from executing the suites against the exact bui
 | Total assertions | **~1,000** (804 `passed`-style + 64 golden invariants + 133 Wren-golden) |
 | Randomized households (fuzz) | **9,000**, 9/9 identity invariants |
 | Beta-readiness harnesses | new-user journey **6/6**, household journeys (H1,H3–H8) **8/8**, chaos-user **9/9**, first-run tour timing **5/5** — each break-audited |
-| Goal-funding (planned vs supportable) | helper golden **6/6**, engine reconciliation **7/7**, contingency↔goals narration **4/4** — full cash identity reconciles; each break-audited |
+| Goal-funding (planned vs supportable) | helper golden **6/6**, engine reconciliation **7/7**, contingency↔goals narration **7/7** — full cash identity reconciles; each break-audited |
 | Mutation (validity-gated, run alone) | **12 / 12 CAUGHT by genuine assertion failure**; app.html restored byte-exact |
 
 ## The requested release-artifact suites (explicit)
@@ -52,9 +52,9 @@ These are **actual run results** from executing the suites against the exact bui
 | `verify-firstrun-tour.js` | **5 / 5** — the auto-tour defers past the first-run choice (v0.68.13 fix) |
 | `verify-goal-funding.js` | **6 / 6** — planned vs supportable residual: under/on-plan, envelope-self, shared-contingency, uncovered, floor; reconciliation invariants |
 | `verify-goal-funding-reconcile.js` | **7 / 7** — engine-level cash identity across every goal type (fixed, category-linked, residual, capped) + coverage layer + floor |
-| `verify-contingency-goals.js` | **4 / 4** — Review + Wren narrate planned-vs-supported honestly (reassure only when residual truly intact) |
+| `verify-contingency-goals.js` | **7 / 7** — Review + Wren narrate planned-vs-supported honestly; order fix, no vacuous $0.00 line, buffer-over shown with a contingency-buffer note |
 
-**All requested suites executed on v0.68.15 and passed.**
+**All requested suites executed on v0.68.17 and passed.**
 
 ## Full per-suite output (all 93 files)
 
@@ -76,7 +76,7 @@ verify-catyear.js                4 passed, 0 failed
 verify-chaos.js                  9 passed, 0 failed
 verify-chaos-user.js             9 passed, 0 failed   (misuse / malformed input)
 verify-contingency-coverage.js   25 passed, 0 failed
-verify-contingency-goals.js      4 passed, 0 failed   (Review+Wren narrate planned-vs-supported)
+verify-contingency-goals.js      7 passed, 0 failed   (narration + order + buffer-note fixes)
 verify-coverage.js               12 passed, 0 failed
 verify-decisions-ui.js           13 passed, 0 failed
 verify-decisions.js              7 passed, 0 failed
@@ -159,6 +159,7 @@ verify-mutation.js               12/12 CAUGHT (run alone) · app.html restored b
 - **Application-wide verified-write contract** — `writeMeta` root fix (baseline advances only on confirmed persistence; failures surface a retry banner and are durably recoverable), transaction edit/delete refuse on unverified row identity, atomic net-worth save, expense/recurring writes on the durable-id path. (`verify-write-contract.js`.)
 - **Formal schema migration** — `schemaVersion`, ordered idempotent migrations, pre-migration backup, fail-safe + write-lock on a newer schema, financial-fingerprint preservation across a **checked-in fixture corpus** (`fixtures/meta/`). (`verify-migration.js`.)
 - **Beta-readiness harnesses** — clean-start new-user journey with the *user-sees = engine = persisted* oracle, stranger-household journeys (H1, H3–H8), and a chaos-user misuse suite; each break-audited. (`verify-new-user-journey.js`, `verify-household-journeys.js`, `verify-chaos-user.js`.)
+- **Month "Can you cover it?" clarity (v0.68.16 → v0.68.17)** — from real-use feedback: over-budget list renders before the coverage assessment; the vacuous "planned $0.00 of residual saving is fully supported" line is suppressed when there's no leftover pool; and a buffer category over its monthly budget is shown in the assessment with a "covered by your shared contingency buffer" note (option B) instead of a bare alarm — so every over-budget row now has a matching coverage answer. (`verify-contingency-goals.js`.)
 - **Onboarding fix (v0.68.13)** — the auto-tour no longer launches over the first-run choice; it waits for the user to pick a path and land on a clear screen. (`verify-firstrun-tour.js`.)
 - **Contingency ↔ goals clarity, then a real model distinction (v0.68.14 → v0.68.15)** — the "Can you cover it?" block and Wren now answer whether an over-budget month touches goals. The blanket "goals are unaffected" was corrected: new authoritative `goalFundingStatus()` distinguishes **planned** from **currently-supportable** residual funding (only the cash-absorbed slice of an overage erodes residual; fixed and category-linked goals are reserved before the leftover; envelope self-coverage and shared contingency kept distinct). Proven at the engine level with the full cash-reconciliation identity across every goal type + coverage layer + the floor. (`verify-goal-funding.js`, `verify-goal-funding-reconcile.js`, `verify-contingency-goals.js`.) Floor-aware multi-month cash-flow reconciliation is deliberately deferred as future work (see `BETA_STUDY.md` Part 7).
 
