@@ -28,6 +28,9 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     state.cons=[{name:'Job',annual:60000}];
     state.debts=[{name:'Car Loan'}];
     state.goals=[{name:'Car Fund',target:12000,balance:3000,monthly:800,archived:false,category:'',residual:false}];
+    // give each category/income a real 12-month plan (the shared engine reads bud12, not the annual shortcut)
+    state.cats.forEach(function(c){c.bud12=Array(12).fill(c.annual/12);});
+    state.cons.forEach(function(c){c.bud12=Array(12).fill(c.annual/12);});
     var rows=[];
     function add(y,m,day,who,cat,co,amt){rows.push([y,m,y+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day,who,cat,co,amt,'','N']);}
     for(var i=0;i<6;i++){var mm=M-i,yy=Y;if(mm<1){mm+=12;yy--;}add(yy,mm,5,'Me','Food','Publix',380+i*5);}
@@ -60,7 +63,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
       findMoney:A('find money for me')
     };
     // cash-flow deficit path with lower income
-    state.cons=[{name:'Job',annual:15000}];o.deficit=A('will we run out of savings?');
+    state.cons=[{name:'Job',annual:15000,bud12:Array(12).fill(15000/12)}];o.deficit=A('will we run out of savings?');
     return o;
   });
 

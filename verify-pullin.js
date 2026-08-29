@@ -14,6 +14,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
 
   // ---------- detection + picker ----------
   const det=await page.evaluate(()=>{
+    window.__realClaimRow=claimRow; // save the REAL claimRow before later blocks stub it (stubs persist across evaluates in one page)
     window.isGoalName=function(){return false;};window.catBills=function(){return [];};window.topCats=function(){return [];};
     window.money=function(n){return "$"+(Number(n)||0).toFixed(2);};
     window.budYear=2026; // pin the viewed budget year so year-scoped detection matches these 2026 rows
@@ -132,6 +133,92 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('itemized bill (Netflix) is NOT duplicated under "All"', decl.allTiles.indexOf('Netflix')<0, JSON.stringify(decl.allTiles));
   ck('itemized bill (Netflix) still appears in its bills section', decl.billTiles.indexOf('Netflix')>=0, JSON.stringify(decl.billTiles));
   ck('a normal category (Groceries) is still listed under "All"', decl.allTiles.indexOf('Groceries')>=0, JSON.stringify(decl.allTiles));
+
+  // ---------- FAILURE PATH: a pick that can't be reserved must SURFACE an error, keep the overlay open, and fake nothing ----------
+  const fp=await page.evaluate(async()=>{
+    window.summaryName=function(){return "2026 Account Summary";};
+    window.CAT_START=5;window.CAT_END=45;window.CON_START=50;window.CON_END=65;
+    window.detectLayout=async function(){return true;};
+    window.vBatchUpdate=async function(){};window.writeMeta=async function(){};window.loadAll=async function(){};window.renderAll=function(){};window.syncDropdowns=async function(){};
+    window.isGoalName=function(){return false;};window.catBills=function(){return [];};window.money=function(n){return "$"+(Number(n)||0).toFixed(2);};window.budYear=2026;
+    window.claimRow=async function(){return 0;}; // couldn't reserve a spot (fail-closed verification read, or section full & couldn't grow)
+    state.cats=[];state.cons=[];state.meta={cats:{},cons:{},prefs:{}};
+    state.rows=[[2026,8,'2026-08-02','Me','Pets','Chewy',30,'','']];
+    renderPullIn();
+    document.getElementById('pullInOv').style.display='flex'; // overlay open
+    await applyPullIn();
+    var msg=document.getElementById('pullInMsg');
+    return {msgText:(msg?msg.textContent:''),msgBad:(msg?/\bbad\b/.test(msg.className):false),
+      ovOpen:document.getElementById('pullInOv').style.display!=='none',
+      metaEmpty:Object.keys(state.meta.cats).length===0,btnReset:document.getElementById('pullInApply').textContent==='Add to budget'};
+  });
+  ck('a pick that can’t be reserved surfaces an error (no silent no-op)', /Couldn’t add|Couldn't add/.test(fp.msgText)&&fp.msgBad===true, JSON.stringify(fp));
+  ck('on failure nothing is written to meta and the overlay stays open to retry', fp.metaEmpty===true&&fp.ovOpen===true&&fp.btnReset===true, JSON.stringify(fp));
+
+  // ---------- SANITIZE TABLE: EVERY formula-leading character (= + - @ and leading tab/CR, which can arrive via paste) must be
+  // written SAFELY so claimRow's read-back verifies and the row IS claimed. Ordinary names must pass through UNCHANGED (no
+  // over-escaping). Category naming is held to the same boundary rule as ledger sanitation. Drives the REAL claimRow. ----------
+  const sanTable=await page.evaluate(async()=>{
+    var names=["=Rent","+Rent","-Rent","@Rent","\tRent","\rRent","Rent","Café ⚡","1099 income"];
+    var res=[];
+    for(var k=0;k<names.length;k++){
+      var nm=names[k],written=null;
+      window.vBatchUpdate=async function(d){if(d&&d[0]&&/!A\d+$/.test(d[0].range))written=d[0].values[0][0];};
+      window.vgetU=async function(range){var m=String(range).match(/!A(\d+)$/); // single-cell read-back: Sheets stores/returns the text WITHOUT the leading apostrophe
+        if(m)return {values:[[written==null?'':String(written).replace(/^'/,'')]]};
+        return {values:[]};}; // the A{start}:A{end} scan → all rows free
+      var row=await window.__realClaimRow("2026 Account Summary",5,45,nm,"cat"); // the REAL claimRow (earlier blocks stubbed window.claimRow)
+      res.push({name:nm,row:row,written:written});
+    }
+    return res;
+  });
+  var _lead=/^[=+\-@\t\r]/;
+  sanTable.forEach(function(rr){
+    var esc=_lead.test(rr.name),label=JSON.stringify(rr.name);
+    ck('claimRow writes '+label+' safely and the row IS claimed'+(esc?' (escaped)':' (unchanged — no over-escaping)'),
+       rr.row>=5 && rr.written===(esc?("'"+rr.name):rr.name), JSON.stringify(rr));
+  });
+
+  // ---------- PULL-RECOVERY-001: partial commit. claimRow writes the NAME (column A) and verifies it; if the following
+  // budget-values write fails, the name is already on the sheet. On retry, applyPullIn must RECOVER that existing row and
+  // finish initializing it — exactly ONE category, correctly budgeted, never a duplicate. Driven against a store-backed sheet. ----------
+  const rec=await page.evaluate(async()=>{
+    window.summaryName=function(){return "2026 Account Summary";};
+    window.CAT_START=5;window.CAT_END=45;window.CON_START=50;window.CON_END=65;
+    window.detectLayout=async function(){return true;};
+    window.writeMeta=async function(){};window.loadAll=async function(){};window.renderAll=function(){};window.syncDropdowns=async function(){};
+    window.isGoalName=function(){return false;};window.catBills=function(){return [];};window.money=function(n){return "$"+(Number(n)||0).toFixed(2);};window.budYear=2026;window.topCats=function(){return [];};
+    window.claimRow=window.__realClaimRow; // earlier blocks stubbed window.claimRow — restore the REAL one so it claims against the store-backed mock
+    var A={},E={},failBudgetOnce=true; // simulated summary sheet: column A (names), column E (Jan budget); first budget write fails
+    window.vgetU=async function(range){range=String(range);
+      var ms=range.match(/!A(\d+):A(\d+)$/);if(ms){var s=+ms[1],e=+ms[2],v=[];for(var r=s;r<=e;r++)v.push([A[r]!=null?A[r]:'']);return {values:v};}
+      var m1=range.match(/!A(\d+)$/);if(m1){var rr=+m1[1];return {values:[[A[rr]!=null?A[rr]:'']]};}
+      return {values:[]};};
+    window.vBatchUpdate=async function(data){
+      var hasBudget=data.some(function(d){return /!E\d+$/.test(d.range);});
+      if(hasBudget&&failBudgetOnce){failBudgetOnce=false;throw new Error("network dropped writing budget values");} // fail the FIRST budget-values write, after claimRow already committed the name
+      data.forEach(function(d){var ma=d.range.match(/!A(\d+)$/);if(ma)A[+ma[1]]=d.values[0][0];var me=d.range.match(/!E(\d+)$/);if(me)E[+me[1]]=d.values[0][0];});};
+    state.cats=[];state.cons=[];state.meta={cats:{},cons:{},prefs:{}};
+    state.rows=[[2026,8,'2026-08-02','Me','Pets','Chewy',60,'','']];
+    // FIRST attempt — tap the suggestion, apply → the budget write fails after the name was claimed
+    renderPullIn();
+    var pr=[].find.call(document.querySelectorAll('#pullInBody .pin-row'),function(r){return r.querySelector('.pin-name').textContent==='Pets';});
+    var suggAmt=Number(pr.querySelector('.pin-sugg').getAttribute('data-amt'))||0;pr.querySelector('.pin-sugg').classList.add('on');
+    document.getElementById('pullInOv').style.display='flex';
+    await applyPullIn();
+    var firstMsgEl=document.getElementById('pullInMsg'),firstMsgBad=(/\bbad\b/.test(firstMsgEl.className)&&!!firstMsgEl.textContent),firstMeta=!!state.meta.cats['pets'],nameOnSheetAfterFail=Object.keys(A).filter(function(k){return (""+A[k]).toLowerCase()==='pets';}).length;
+    // SECOND attempt (retry) — must recover the existing row, not claim a new one
+    renderPullIn();
+    var pr2=[].find.call(document.querySelectorAll('#pullInBody .pin-row'),function(r){return r.querySelector('.pin-name').textContent==='Pets';});
+    if(pr2&&pr2.querySelector('.pin-sugg'))pr2.querySelector('.pin-sugg').classList.add('on');
+    await applyPullIn();
+    var petsRows=Object.keys(A).filter(function(k){return (""+A[k]).toLowerCase()==='pets';});
+    return {suggAmt:suggAmt,firstMsgBad:firstMsgBad,firstMeta:firstMeta,nameOnSheetAfterFail:nameOnSheetAfterFail,
+      petsRowCount:petsRows.length,petsBudget:E[petsRows[0]],metaPets:state.meta.cats['pets']||null};
+  });
+  ck('PULL-RECOVERY-001: first attempt fails loudly (name committed, but error shown and meta NOT faked)', rec.firstMsgBad===true&&rec.firstMeta===false&&rec.nameOnSheetAfterFail===1, JSON.stringify(rec));
+  ck('PULL-RECOVERY-001: after retry, EXACTLY ONE Pets row exists (recovered, not duplicated)', rec.petsRowCount===1, JSON.stringify(rec));
+  ck('PULL-RECOVERY-001: the recovered row is correctly initialized to the requested budget + meta set', rec.suggAmt>0&&rec.petsBudget===rec.suggAmt&&rec.metaPets&&rec.metaPets.amount===rec.suggAmt, JSON.stringify(rec));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d?('  ['+r.d+']'):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.join(' | '));

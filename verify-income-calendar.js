@@ -31,7 +31,33 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     state.rows=[[Y-1,12,(Y-1)+'-12-15','Me','Food','X',999,'','N'],[Y,1,Y+'-01-15','Me','Food','X',100,'','N'],[Y,8,Y+'-08-15','Me','Food','X',50,'','N']];
     buildIndexes();
     var foodYr=((state.spend&&state.spend['food'])||[]).reduce(function(a,b){return a+b;},0);
-    return {wkFlat0:wkFlat[0],bwFlat0:bwFlat[0],sumBW,threeChk,calMatches,notAllEqual:!bwCal.every(function(v){return v===bwCal[0];}),sumWK,muCross,foodYr};
+
+    // ---- Paycheck (salary) real-payday calendar ----
+    // biweekly salary, budget 100% of each check: flat vs calendar redistribute the SAME annual total, calendar is uneven
+    var payFlat=monthsFor({type:'paycheck',freq:26,mode:'pct',pct:100,amount:1000});
+    var payCal=monthsFor({type:'paycheck',freq:26,mode:'pct',pct:100,amount:1000,calendar:true,payAnchor:anchor});
+    var payCalMatches=payCal.every(function(v,i){return v===r2(1000*pp[i]);});
+    var flatAnnual=payFlat.reduce(function(a,b){return a+b;},0),calAnnual=payCal.reduce(function(a,b){return a+b;},0);
+    var sameAnnual=Math.abs(flatAnnual-calAnnual)<1;                       // redistributed, not changed (both ≈ 26×1000)
+    var payUneven=!payCal.every(function(v){return v===payCal[0];});
+    // set-aside ($/mo) mode: each real check counts, minus a fixed monthly hold
+    var payKeep=monthsFor({type:'paycheck',freq:26,mode:'keep',keep:500,amount:1000,calendar:true,payAnchor:anchor});
+    var keepOk=payKeep.every(function(v,i){return v===r2(Math.max(0,1000*pp[i]-500));});
+    // frequencies that align to months ignore the calendar (twice-monthly stays flat even if a stray anchor is set)
+    var payTwice=monthsFor({type:'paycheck',freq:24,mode:'pct',pct:100,amount:1000,calendar:true,payAnchor:anchor});
+    var twiceFlat=payTwice.every(function(v){return v===payTwice[0];});
+
+    // ---- UI: the "Use real paydays" row is offered for a paycheck at weekly/biweekly frequency, not otherwise ----
+    show('appScreen');
+    var vis=function(){return getComputedStyle(document.getElementById('conCalRow')).display!=='none';};
+    $("conType").value='paycheck';$("conFreq").value='26';conTypeUI();var showsBW=vis();
+    $("conFreq").value='52';conTypeUI();var showsWK=vis();
+    $("conFreq").value='24';conTypeUI();var hidesTwice=!vis();
+    $("conFreq").value='12';conTypeUI();var hidesMon=!vis();
+    $("conType").value='monthly';conTypeUI();var hidesMonthlyType=!vis();
+
+    return {wkFlat0:wkFlat[0],bwFlat0:bwFlat[0],sumBW,threeChk,calMatches,notAllEqual:!bwCal.every(function(v){return v===bwCal[0];}),sumWK,muCross,foodYr,
+            payCalMatches,sameAnnual,payUneven,keepOk,twiceFlat,showsBW,showsWK,hidesTwice,hidesMon,hidesMonthlyType};
   });
 
   ck('weekly flat = amount × 52 ÷ 12 ($100 → $433.33/mo)', res.wkFlat0===433.33, JSON.stringify(res.wkFlat0));
@@ -41,6 +67,12 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('weekly calendar has ~52 paydays', res.sumWK>=52&&res.sumWK<=53, JSON.stringify(res.sumWK));
   ck('goal months-until works across the year boundary (positive)', res.muCross>0, JSON.stringify(res.muCross));
   ck('this-year spend index excludes prior-year rows (Dec $999 not counted; $150 this year)', res.foodYr===150, JSON.stringify(res.foodYr));
+  ck('paycheck (salary) calendar = per-check × that month\'s paydays', res.payCalMatches, String(res.payCalMatches));
+  ck('paycheck calendar redistributes the SAME annual total as flat, but uneven', res.sameAnnual&&res.payUneven, JSON.stringify({sameAnnual:res.sameAnnual,uneven:res.payUneven}));
+  ck('paycheck set-aside ($/mo) subtracts a fixed monthly hold from each month\'s real checks', res.keepOk, String(res.keepOk));
+  ck('twice-monthly paycheck ignores the calendar (stays flat)', res.twiceFlat, String(res.twiceFlat));
+  ck('"Use real paydays" shows for a paycheck at every-2-weeks and weekly', res.showsBW&&res.showsWK, JSON.stringify({bw:res.showsBW,wk:res.showsWK}));
+  ck('"Use real paydays" is hidden for twice-monthly / monthly paycheck and the monthly type', res.hidesTwice&&res.hidesMon&&res.hidesMonthlyType, JSON.stringify({twice:res.hidesTwice,mon:res.hidesMon,monthlyType:res.hidesMonthlyType}));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d?('  ['+r.d+']'):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.join(' | '));

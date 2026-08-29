@@ -20,12 +20,14 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     document.getElementById('conAmt').value='150';var wkCfg=readConCfg();
     document.getElementById('conType').value='biweekly';conTypeUI();
     var bwLabel=document.getElementById('conAmtLbl').textContent;
-    return {wkMonth:wk[0], wkFlat:wk.every(function(x){return Math.abs(x-wk[0])<0.005;}), bwMonth:bw[0],
+    // flat spread now carries the rounding remainder in December, so months 0–10 match and the annual is EXACT.
+    var wkSum=Math.round(wk.reduce(function(s,v){return s+v;},0)*100)/100;
+    return {wkMonth:wk[0], wkFlat:wk.slice(0,11).every(function(x){return Math.abs(x-wk[0])<0.005;}), wkSum, wkLast:wk[11], bwMonth:bw[0],
       wkAnnual, bwAnnual, wkUI, wkCfg, bwLabel, opts:[].map.call(document.getElementById('conType').options,function(o){return o.value;})};
   });
 
   ck('weekly + biweekly are options in the income Budget type list', res.opts.indexOf('weekly')>=0&&res.opts.indexOf('biweekly')>=0, JSON.stringify(res.opts));
-  ck('$100/week annualizes to ~$5200 (×52) spread flat across months', Math.abs(res.wkAnnual-5200)<1&&res.wkMonth===433.33&&res.wkFlat, JSON.stringify({m:res.wkMonth,a:res.wkAnnual}));
+  ck('$100/week annualizes to EXACTLY $5200 (×52); months 0–10 flat, remainder in Dec', res.wkSum===5200&&res.wkMonth===433.33&&res.wkFlat&&res.wkLast===433.37, JSON.stringify({m:res.wkMonth,sum:res.wkSum,dec:res.wkLast}));
   ck('$200 every 2 weeks annualizes to ~$5200 (×26)', Math.abs(res.bwAnnual-5200)<1&&res.bwMonth===433.33, JSON.stringify({m:res.bwMonth,a:res.bwAnnual}));
   ck('weekly form shows a simple amount row (no paycheck frequency), labeled per week', res.wkUI.amt&&res.wkUI.freqHidden&&res.wkUI.label==='Amount per week', JSON.stringify(res.wkUI));
   ck('biweekly amount labeled "Amount every 2 weeks"', res.bwLabel==='Amount every 2 weeks', res.bwLabel);
