@@ -93,6 +93,18 @@
   #splash .spname{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:27px;color:var(--ink)}
   #splash .sprow{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px}
   #splash .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;display:inline-block;animation:nwspin .8s linear infinite}
+  .feats{display:flex;flex-direction:column;margin-top:2px}
+  .feat{padding:15px 0;border-top:1px solid var(--line)}
+  .feat:first-child{border-top:0;padding-top:2px}
+  .feat h3{margin:0 0 3px;font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.35}
+  .feat p{margin:0;color:var(--ink-2);font-size:14.8px}
+  .wrencard{background:var(--green-soft)}
+  .wren-pic{width:134px;height:auto;display:block;margin:0 auto 6px}
+  .wrencard h2.disp{margin-bottom:12px}
+  .wren-line{margin:14px 0 0;font-size:15px;color:var(--ink)}
+  .wren-line b{color:var(--green-deep);font-family:"Fraunces",Georgia,serif}
+  .trust h2.disp{margin-bottom:12px}
+  .trust p{margin:0;color:var(--ink-2)}
 </style>
 </head>
 <body>
@@ -118,8 +130,49 @@
 
   <div class="card">
     <p class="eyebrow">What it is</p>
-    <h2 class="disp">A simple money tracker that lives on your phone.</h2>
-    <p style="margin:0;color:var(--ink-2)">Log what you spend in a couple of taps, see where it goes, set budgets you can actually keep, and watch your net worth grow over time — no spreadsheets to wrestle, nothing to download. NestWorth builds you a private space and does the math for you.</p>
+    <h2 class="disp">Money planning that understands real life.</h2>
+    <p style="margin:0;color:var(--ink-2)">Your spending, your paychecks, your savings goals, your cash flow and your net worth — working together in one private place, instead of scattered across five different apps. Log what you spend in a couple of taps, plan around your <b>actual</b> paydays, save toward what matters, and see where your year is headed. No spreadsheets to wrestle, nothing to download — NestWorth builds you a private space and quietly does the math for you.</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow">What makes it different</p>
+    <h2 class="disp">Built for real life.</h2>
+    <div class="feats">
+      <div class="feat">
+        <h3>Your paycheck isn't always monthly.</h3>
+        <p>NestWorth understands weekly and biweekly pay, the three-paycheck months, raises mid-year, and the money you set aside from each check before it ever reaches your spending budget.</p>
+      </div>
+      <div class="feat">
+        <h3>Saving shouldn't disappear from your net worth.</h3>
+        <p>Money you move toward a goal is treated as savings — not spending — and it stays properly reflected in your bigger financial picture. Putting $800 into a car fund doesn't look like $800 gone.</p>
+      </div>
+      <div class="feat">
+        <h3>Your budget remembers.</h3>
+        <p>Unused money in a category can carry forward, and a shared contingency cushion absorbs the months when real life doesn't follow the plan — so one tight week doesn't quietly break everything else.</p>
+      </div>
+      <div class="feat">
+        <h3>See a big decision before you make it.</h3>
+        <p>Wondering what buying the car — or taking the trip — would do to the rest of your year? NestWorth can model the choice against your real plan, not just tell you what you spent last month.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card wrencard">
+    <img class="wren-pic" src="wren/guiding.png" alt="Wren, the friendly NestWorth bird, holding a map" loading="lazy">
+    <p class="eyebrow">Meet Wren</p>
+    <h2 class="disp">Your money, explained in plain English.</h2>
+    <p style="margin:0;color:var(--ink-2)">Ask what's driving your spending this month, whether you're on pace for a goal, why things feel tighter than usual, or what a big purchase would mean for your plan. Wren answers from the very same numbers NestWorth uses everywhere else — it never makes up its own.</p>
+    <p class="wren-line"><b>NestWorth computes. Wren interprets.</b></p>
+  </div>
+  <div class="card trust">
+    <p class="eyebrow">The math matters here</p>
+    <h2 class="disp">Built carefully. Tested relentlessly.</h2>
+    <p>This isn't a play app. Your budget, your cash flow, your savings goals and your net worth should never tell four different stories — so NestWorth runs on <b>one</b> financial model across the whole app, and that model is checked against many thousands of real-life situations: refunds, irregular paydays, three-paycheck months, money moved into goals, future-dated transactions, and the messy edge cases real households actually run into. When the numbers show up, they agree. <a class="plainlink" href="about.html" style="font-weight:600">See how NestWorth works &amp; how we test it →</a></p>
+  </div>
+  <div class="privacy">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+    <div>
+      <h3>Your financial life doesn't live on our servers.</h3>
+      <p>NestWorth creates your budget inside your <b>own</b> Google Drive and connects to it straight from your browser, using a single limited Google permission. There's no NestWorth database holding your household's numbers, and no advertising profile built on your spending. Only you can see your budget — not the person who shared the app, not anyone else. <a class="plainlink" href="privacy.html" style="font-weight:600">Read the privacy policy</a>.</p>
+    </div>
   </div>
   <div class="card">
     <p class="eyebrow">Getting started</p>
@@ -130,16 +183,10 @@
       <li><div><b>Add it to your home screen.</b> <span class="sub">On iPhone (Safari): the Share button ▸ Add to Home Screen ▸ Add. On Android (Chrome): menu ⋮ ▸ Add to Home screen. Now it opens in one tap, like a real app.</span></div></li>
     </ol>
   </div>
-  <div class="privacy">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-    <div>
-      <h3>Your numbers stay yours.</h3>
-      <p>NestWorth creates your budget inside your <b>own</b> Google Drive, where only you can see it. Not the person who shared the app, not anyone else. Everyone who uses NestWorth gets their own private space — nothing is shared or pooled.</p>
-    </div>
-  </div>
   <p class="mini"><b>Personal and family?</b> Once you’re in, open <b>Settings &#9656; Your budgets &#9656; New budget</b> to create a shared household budget, then use <b>Settings &#9656; Share this budget</b> to invite your family. A name pill appears at the top to switch between them &mdash; and everyone still keeps their own private one.</p>
   <p class="mini">Want to snap photos of receipts? It's optional — in the app, open <b>Settings ▸ Receipt scanning</b> and paste a free key. Skip it if you'd rather just type.</p>
   <footer>
+    <p class="who"><a class="mail" href="about.html">How it works</a> &nbsp;·&nbsp; <a class="mail" href="privacy.html">Privacy</a> &nbsp;·&nbsp; <a class="mail" href="terms.html">Terms</a></p>
     <p class="who">Questions or feedback? Email <a class="mail" href="mailto:czulmer@gmail.com">Dr. Candice Z. Ulmer Holland, Ph.D.</a></p>
     <p class="co">&ldquo;Created for you, with you in mind.&rdquo; <span class="dot">·</span> NestWorth, a product of Ulmer Consulting, LLC</p>
   </footer>
