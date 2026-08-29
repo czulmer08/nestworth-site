@@ -1,0 +1,340 @@
+<title>NestWorth Parity Audit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#F1F5EC; --panel:#FBFDF8; --panel2:#F4F8EF; --ink:#182A20; --ink2:#556259; --line:#DBE5D3;
+    --accent:#2E7D5B; --accent-d:#215E44;
+    --present:#2E7D5B; --present-bg:#E4F0E8;
+    --partial:#B07A16; --partial-bg:#F6EED9;
+    --missing:#B0442C; --missing-bg:#F6E0D9;
+    --shadow:0 1px 2px rgba(24,42,32,.04),0 14px 34px -20px rgba(24,42,32,.24);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0F1611; --panel:#16211A; --panel2:#131C16; --ink:#E8F0E7; --ink2:#9DB0A2; --line:#28362C;
+    --accent:#5DBE93; --accent-d:#7FCFAA;
+    --present:#5DBE93; --present-bg:#16281E;
+    --partial:#E0B65C; --partial-bg:#2A2413;
+    --missing:#E58C74; --missing-bg:#2C1912;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 40px -22px rgba(0,0,0,.7);
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0F1611; --panel:#16211A; --panel2:#131C16; --ink:#E8F0E7; --ink2:#9DB0A2; --line:#28362C;
+    --accent:#5DBE93; --accent-d:#7FCFAA;
+    --present:#5DBE93; --present-bg:#16281E;
+    --partial:#E0B65C; --partial-bg:#2A2413;
+    --missing:#E58C74; --missing-bg:#2C1912;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 40px -22px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:34px 20px 80px}
+  .disp{font-family:"Fraunces",Georgia,serif}
+  header.top{margin-bottom:8px}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+  h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(30px,6vw,46px);line-height:1.05;margin:6px 0 8px;text-wrap:balance;letter-spacing:-.01em}
+  .sub{color:var(--ink2);font-size:15.5px;max-width:64ch}
+  .meta{color:var(--ink2);font-size:12.5px;margin-top:10px;letter-spacing:.02em}
+  /* summary tiles */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0 8px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+  .tile .n{font-family:"Fraunces",Georgia,serif;font-size:34px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+  .tile .l{font-size:12.5px;font-weight:600;color:var(--ink2);margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+  .tile.present .n{color:var(--present)} .tile.partial .n{color:var(--partial)} .tile.missing .n{color:var(--missing)}
+  .tilebar{height:5px;border-radius:99px;margin-top:12px;background:var(--line);overflow:hidden}
+  .tilebar span{display:block;height:100%}
+  .tile.present .tilebar span{background:var(--present)} .tile.partial .tilebar span{background:var(--partial)} .tile.missing .tilebar span{background:var(--missing)}
+  /* filter */
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 4px;align-items:center}
+  .filters .fl-lab{font-size:12.5px;color:var(--ink2);font-weight:600;margin-right:2px}
+  .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink2);font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:99px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .chip .dot{width:9px;height:9px;border-radius:99px;background:currentColor}
+  .chip[data-f="present"]{color:var(--present)} .chip[data-f="partial"]{color:var(--partial)} .chip[data-f="missing"]{color:var(--missing)} .chip[data-f="all"]{color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--panel2);border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor}
+  /* priority callout */
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:14px;padding:18px 20px;margin:26px 0 10px;box-shadow:var(--shadow)}
+  .callout h2{font-family:"Fraunces",Georgia,serif;font-size:20px;font-weight:600;margin:0 0 4px}
+  .callout p{margin:0 0 12px;color:var(--ink2);font-size:14px}
+  .prio{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+  .prio li{display:flex;gap:11px;align-items:baseline;font-size:14.5px}
+  .prio .rank{flex:0 0 auto;font-family:"Fraunces",Georgia,serif;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;min-width:1.4em}
+  .prio b{font-weight:700}
+  .prio .why{color:var(--ink2)}
+  /* domain sections */
+  section.domain{margin-top:30px}
+  .dhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .dhead h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:23px;margin:0;letter-spacing:-.01em}
+  .dhead .dcount{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-left:auto}
+  .dhead .dcount b{font-weight:700}
+  ul.items{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+  li.item{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:11px 12px;border-radius:12px}
+  li.item:nth-child(odd){background:var(--panel2)}
+  li.item .badge{flex:0 0 auto;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:99px;white-space:nowrap;margin-top:2px}
+  li.item.present .badge{color:var(--present);background:var(--present-bg)}
+  li.item.partial .badge{color:var(--partial);background:var(--partial-bg)}
+  li.item.missing .badge{color:var(--missing);background:var(--missing-bg)}
+  li.item .body .feat{font-weight:700;font-size:14.5px}
+  li.item .body .note{color:var(--ink2);font-size:13.5px;margin-top:1px}
+  li.item[hidden]{display:none}
+  .impossible{margin-top:30px;background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:18px 20px}
+  .impossible h2{font-family:"Fraunces",Georgia,serif;font-size:18px;font-weight:600;margin:0 0 6px}
+  .impossible p{margin:0 0 8px;color:var(--ink2);font-size:13.8px}
+  .impossible ul{margin:0;padding-left:18px;color:var(--ink2);font-size:13.8px;display:flex;flex-direction:column;gap:5px}
+  .impossible b{color:var(--ink)}
+  footer{margin-top:40px;color:var(--ink2);font-size:12.5px;text-align:center;border-top:1px solid var(--line);padding-top:18px}
+  @media (max-width:560px){ .tiles{grid-template-columns:repeat(3,1fr);gap:8px} .tile{padding:12px 12px} .tile .n{font-size:26px} .tile .l{font-size:10px} li.item{grid-template-columns:1fr;gap:5px} }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Old Google Apps Script app &rarr; new NestWorth PWA</div>
+    <h1 class="disp">NestWorth Parity Audit</h1>
+    <p class="sub">Every user-facing capability from the old app, checked against the rewrite &mdash; so the gaps are one complete list to decide from, not a discovery a message at a time.</p>
+    <div class="meta" id="meta">Reviewed section by section against the 4,148-line original &middot; app phase 4f</div>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="filters" id="filters">
+    <span class="fl-lab">Filter</span>
+    <button class="chip" data-f="all" aria-pressed="true">All</button>
+    <button class="chip" data-f="present" aria-pressed="true"><span class="dot"></span>Present</button>
+    <button class="chip" data-f="partial" aria-pressed="true"><span class="dot"></span>Partial</button>
+    <button class="chip" data-f="missing" aria-pressed="true"><span class="dot"></span>Missing</button>
+  </div>
+
+  <div class="callout">
+    <h2 class="disp">If you build in one order, this one</h2>
+    <p>The genuinely impactful user-facing gaps, roughly highest-value first. Everything else below is either already there or a smaller refinement.</p>
+    <ol class="prio">
+      <li><span class="rank">1</span><span><b>Multi-year budgets.</b> <span class="why">The new app is locked to the current calendar year &mdash; no way to view or build a past or future year. The old app had a year selector and "+ Add year."</span></span></li>
+      <li><span class="rank">2</span><span><b>Insights depth.</b> <span class="why">The old Insights had a month-by-month spend chart, a this-year / last-12-months toggle, year-over-year movers, a "trending up" read, per-category trend sparklines, and a full-year projection. The new one shows only this-month-vs-last-month + top 3.</span></span></li>
+      <li><span class="rank">3</span><span><b>Search filters.</b> <span class="why">New search is text-only. The old one filtered by category, month, and amount range, with scope (this year / all time) and sort.</span></span></li>
+      <li><span class="rank">4</span><span><b>Net-worth reconcile step.</b> <span class="why">After importing balances, the old app prompted you to earmark set-aside goals into their holding account so money isn't double-counted. Now you must remember to do it in each goal.</span></span></li>
+      <li><span class="rank">5</span><span><b>Backdated deposits &amp; prior-year entries.</b> <span class="why">Logging into a past month shows no deposit target/progress, and expense feedback only works within the current year.</span></span></li>
+      <li><span class="rank">6</span><span><b>Category-linked goals that truly integrate.</b> <span class="why">A goal tied to a category is just a tag now &mdash; it doesn't raise that category's budget or show nested under its card the way the old app did.</span></span></li>
+      <li><span class="rank">7</span><span><b>Smaller wins:</b> <span class="why">wipe/blank data, hide-payee/reimbursed form prefs, merge several categories into one at once, a one-tap "budget from last year," link a budget by URL, and remove a budget from the list.</span></span></li>
+    </ol>
+  </div>
+
+  <div id="domains"></div>
+
+  <div class="impossible">
+    <h2 class="disp">Deliberately not carried over</h2>
+    <p>These depended on Google Apps Script running on a server or writing formulas into the sheet. The pure client-side rewrite handles them a different way, or can't.</p>
+    <ul>
+      <li><b>Emailed reminders</b> &mdash; no server to send mail. Replaced by the in-app reminder card on the Month tab (same five nudges), but nothing arrives when the app is closed, and there's no recipient list or schedule.</li>
+      <li><b>Two-way sheet sync &amp; the checkbox-to-import trigger</b> &mdash; relied on Apps Script <code>onEdit</code>. The app now reads the Import tab on a button tap and manages itemized bills in-app instead.</li>
+      <li><b>"Setup &amp; Help" tab and on-sheet itemized detail rows</b> &mdash; the app is the interface now; bills live in its hidden meta sheet rather than as formula rows on the summary tab.</li>
+    </ul>
+  </div>
+
+  <footer>NestWorth parity review &middot; generated from a section-by-section read of the original app</footer>
+</div>
+
+<script>
+const DATA = [
+  { name:"Onboarding, budgets &amp; sharing", items:[
+    ["present","Create your first budget from a template","Sign-in &rarr; welcome card &rarr; wizard; copies the template into your Drive."],
+    ["present","Join a budget shared with you","Settings &rarr; Open a shared or old budget, via the Google Picker."],
+    ["present","Switch between multiple budgets","Budget pill + list with Switch."],
+    ["present","Create additional budgets","Each is its own private spreadsheet."],
+    ["present","Rename a budget","Wired in the new app (the old backend had it but no button)."],
+    ["present","Share a budget by link (editor access)","Get a share link; anyone-with-link can edit."],
+    ["present","Invite a specific person by email","New capability &mdash; the old app only did anyone-with-link."],
+    ["present","Share the app itself","Web Share / copy link to the app URL."],
+    ["present","Add to Home Screen guidance","Dedicated Settings card with Safari + Android steps."],
+    ["present","NestWorth Drive folder + shortcuts for shared budgets","Owned budgets moved in; shared ones get a shortcut."],
+    ["present","Import data from an old-app budget sheet","Reads the old Account Ledger via the picker."],
+    ["partial","Link an existing sheet by pasting a URL/ID","Old app accepted a pasted link; now only the Google Picker (which needs the one-time key)."],
+    ["missing","Share a blank &lsquo;starter copy&rsquo; of your categories","Old app handed someone your category setup minus your data. Gone."],
+    ["missing","Remove / delete a budget from the list","No remove action (the old backend had one, also never wired to a button)."],
+  ]},
+  { name:"Logging transactions (Add tab)", items:[
+    ["present","Add expense (company, category, amount, date, payee, note, reimbursed)","Same ledger shape as the old app."],
+    ["present","Add deposit / income","Category forced to Deposit, source stored like the old app."],
+    ["present","Receipt scanning prefills the form","Now fully on-device with your Gemini key."],
+    ["present","Duplicate detection with a confirm","Same-month company+amount / source+amount, with &lsquo;Add anyway.&rsquo;"],
+    ["present","Undo a just-added entry","6-second Undo link removes the row."],
+    ["present","Edit an entry (incl. category, date, amount, source)","Covers everything the old edit did, plus goal transfers."],
+    ["present","Delete an entry with confirm",""],
+    ["present","Safe-to-spend header","Left this month, budgeted/spent, goal hold, unbudgeted, % used, bar."],
+    ["present","Live per-category feedback as you type","Monthly + annual-left + envelope &lsquo;banked&rsquo; rollover."],
+    ["present","Payee (who paid) kept separate from income source","Add/remove payees."],
+    ["present","Top-5 frequent categories pinned in the picker",""],
+    ["present","Guard when logging a goal name as an expense","Steers you to Goals instead."],
+    ["present","Backdated entry writes to the correct month",""],
+    ["partial","Backdated expense feedback","Only handles past months within the current year; a prior year shows no remaining."],
+    ["partial","Quick-log recurring bills","Logs at today's date only; drops the old cadence handling, due-date sort, and logged/due state; monthly bills not offered."],
+    ["partial","Concurrent-edit safety guard","Old app re-checked the amount before edit/delete so another device couldn't hit the wrong row."],
+    ["missing","Backdated deposit target &amp; progress","No date listener on deposits; target/progress shows for the current month only."],
+    ["missing","Deposit-target result in the save confirmation","Old save toast said &lsquo;$X to go / target met&rsquo;."],
+  ]},
+  { name:"Budget builder", items:[
+    ["present","All category types","Monthly, once-a-year, split-across-months, one-time, save-up, custom, itemized."],
+    ["present","Split a yearly total across specific months","Tap-to-toggle month chips."],
+    ["present","Itemized bills with per-bill frequency &amp; amount","Monthly / Annual / Annual save-up / Custom (12-month grid) + due day."],
+    ["present","Income: paycheck with keep-% or set-aside-$, plus monthly / one-time / custom","Weekly, biweekly, twice-a-month, monthly."],
+    ["present","Fold a standalone category into an itemized one","Carries its logged history to the parent."],
+    ["present","Rename a category / income &rarr; past transactions follow","Relinks the ledger."],
+    ["present","Contingency: resets monthly / banks leftover / shared buffer","Plus prior-year carry-in into envelopes."],
+    ["present","Contingency panel with upcoming-bill coverage","Banked vs needed, gap, per-month set-aside."],
+    ["present","Feasibility (income &minus; budget &minus; goals), plan &amp; actual","Blends logged actuals through the current month."],
+    ["present","12-month cash-flow stress test + starting cash + month drill-down",""],
+    ["present","&lsquo;Use last year&rsquo; autofill per category",""],
+    ["present","Setup wizard with per-category full editor","Rename, itemize, contingency, and all types reachable in the wizard."],
+    ["present","Delete a category / income line, keeping history",""],
+    ["partial","One-tap &lsquo;budget everything from last year&rsquo;","Only per-category and the wizard&rsquo;s Suggest exist; no single Budget-tab action for all categories at once."],
+    ["partial","Fold keeps the source&rsquo;s simple cadence","Folded bills are always stored as Custom; monthly/annual shape is coarsened (amounts kept)."],
+    ["partial","Plan-vs-actual toggle on the category list amounts","Applies to feasibility &amp; stress, but category/income cards always show planned amounts."],
+    ["missing","Multiple-year budgets","Locked to the current year; no way to view or build another year."],
+    ["missing","Merge / pull several categories into one itemized at once","Only one-at-a-time folding (reaches the same end state, more taps)."],
+  ]},
+  { name:"Insights, forecast &amp; stress", items:[
+    ["present","12-month stress grid with running balance + low-point warning",""],
+    ["present","Starting-cash input feeding the grid","Single stored value (old app stored it per year)."],
+    ["present","Plan-vs-actual toggle on the stress test",""],
+    ["present","Tap a month &rarr; budget-vs-actual breakdown, most-over first",""],
+    ["present","Feasibility surplus / gap with $/mo free",""],
+    ["present","Safe-to-spend + Month-tab category cards with progress bars",""],
+    ["present","Weekly spending recap","Now an in-app reminder instead of an email."],
+    ["present","Over-budget / due-soon / not-logged / goal reminders",""],
+    ["partial","Insights card overall","Shows only this-month-vs-last-month + top 3 categories."],
+    ["partial","This month&rsquo;s forecast","Single aggregate projection; old app listed per-category over-budget projections."],
+    ["partial","Actual-mode stress verdict","Missing the &lsquo;$X spent vs $Y planned, ends year near $&hellip;&rsquo; drift line."],
+    ["missing","Month-by-month spend bar chart with tap-a-month + &lsquo;highest month&rsquo;",""],
+    ["missing","This-year / last-12-months trailing window toggle",""],
+    ["missing","Year-over-year comparison (biggest movers, up/down vs last year)",""],
+    ["missing","&lsquo;Trending up&rsquo; (last 3 months vs prior 3)",""],
+    ["missing","Per-category trend drill-down (12-month sparkline, avg/peak/total)",""],
+    ["missing","Stat tiles + full-year projection (&lsquo;at this pace ~$X this year&rsquo;)",""],
+  ]},
+  { name:"Goals &amp; savings", items:[
+    ["present","Create / edit a goal (target, monthly plan, date, note)",""],
+    ["present","Live balance from the ledger + opening balance + this-month contributions",""],
+    ["present","Progress bar, percent, &lsquo;Funded&rsquo; badge",""],
+    ["present","Auto monthly plan from target &divide; months-until-date",""],
+    ["present","Target-date pacing (&lsquo;save $X/mo to reach by&hellip;&rsquo;, behind/ahead)",""],
+    ["present","Add money / take money, logged to the ledger",""],
+    ["present","Locked goals hide withdrawals",""],
+    ["present","&lsquo;Fund $X&rsquo; shortfall + &lsquo;Fund this month&rsquo; across all goals",""],
+    ["present","Fund-from-leftover (residual) goals","% or even split of the leftover pool."],
+    ["present","Goals held in an account, shown earmarked under it in net worth",""],
+    ["present","Mark done / archive / restore + show-archived",""],
+    ["present","Per-goal recent-activity history",""],
+    ["present","Goal commitments feed feasibility",""],
+    ["partial","Add / withdraw dialog","Amount only; auto-dates today, no payee/custom date/note (old app had all three)."],
+    ["partial","Residual split editor","Single &lsquo;% of leftover&rsquo; field; old app showed every residual goal&rsquo;s share in one editable panel."],
+    ["partial","Goals summary card","Missing the &lsquo;this month: $X of $Y funded&rsquo; progress bar."],
+    ["partial","Category-linked goals","Stored as a tag; doesn&rsquo;t raise the category&rsquo;s budget or render nested under its card."],
+    ["missing","Target-date &lsquo;catch-up&rsquo; bump nudge","Old app suggested &lsquo;you have room &mdash; bump to $X/mo to finish on time.&rsquo;"],
+    ["missing","Bulk wipe all goals","Only per-goal remove (arguably fine)."],
+  ]},
+  { name:"Net worth", items:[
+    ["present","Scan an Empower / Personal Capital statement","Same AI prompt, retries, model fallback."],
+    ["present","Group into Cash / Investments / Credit cards / Loans","Even adds HSA to Investments."],
+    ["present","Recalculate net worth (log today&rsquo;s value)",""],
+    ["present","Net-worth trend / history (monthly bars + change)",""],
+    ["present","Per-account trend (&lsquo;up/down $X since&hellip;&rsquo;)",""],
+    ["present","Staleness note (&gt;45 days)",""],
+    ["present","Goals earmarked under their holding account (earmarked / free / over-allocated)",""],
+    ["present","Assign a goal to a holding account","Account picker in the goal editor."],
+    ["present","Manual add / edit / remove accounts &amp; debts",""],
+    ["present","Import updates existing accounts by name (no duplicates)",""],
+    ["present","As-of date captured from a scanned statement",""],
+    ["partial","Manual grouped quick-entry","Old app prefilled Cash/Investments/Credit cards/Loans rows; now starts with one blank asset + one blank debt."],
+    ["partial","As-of date on manual entry","No date field; hand-entered balances always stamp today (as-of survives only via scan)."],
+    ["missing","Reconcile step after import","Old app prompted you to assign set-aside goals to their account to avoid double-counting."],
+    ["missing","Import preview with a running net-worth total","Values now drop straight into the editable list; no net-total preview line."],
+  ]},
+  { name:"Reminders, search &amp; settings", items:[
+    ["present","Five reminder types with per-type toggles","Over-budget, bills due soon, not-logged, goal milestones, weekly recap."],
+    ["present","Log recurring bills from the Month tab",""],
+    ["present","Payees: add / remove / list",""],
+    ["present","Gemini key: save / clear / test","Stored on your device."],
+    ["present","Receipt-scan setup + test",""],
+    ["present","Theme: Auto / Light / Dark",""],
+    ["present","CSV export of the full ledger",""],
+    ["present","Tidy / merge duplicate company spellings","Auto-detects variants (old app used a curated brand map)."],
+    ["present","Auto-create each new year&rsquo;s summary tab","Automatic, replacing the old manual &lsquo;Add year&rsquo; menu."],
+    ["partial","Reminders delivery","In-app only &mdash; no email when the app is closed, no recipients, no schedule."],
+    ["partial","Annual-bill save-up nudge","Folded into the &lsquo;due soon&rsquo; check (needs a due day)."],
+    ["partial","Search","Text-only across company/category/note/amount; no category/month/amount filters, scope, or sort."],
+    ["partial","Import tab","Creates the tab &amp; imports on a button tap; the old checkbox auto-run is gone. Adds paste, scan, pull-from-sheet, CSV template."],
+    ["missing","Reminder cadence + recipient list","Old app scheduled weekly/monthly emails to chosen people."],
+    ["missing","Form prefs (hide payee / reimbursed on the add form)",""],
+    ["missing","Wipe / blank data (keep categories, erase transactions/goals/history)",""],
+    ["missing","Test-send a reminder","Nothing to test &mdash; reminders render live."],
+  ]},
+];
+
+(function(){
+  const filters = new Set(["present","partial","partial","missing"]);
+  const active = {present:true, partial:true, missing:true};
+  const domainsEl = document.getElementById("domains");
+  const order = ["present","partial","missing"];
+  const rank = {present:0, partial:1, missing:2};
+
+  // render domains
+  DATA.forEach(d=>{
+    const items = d.items.slice().sort((a,b)=> rank[a[0]]-rank[b[0]]);
+    const counts = {present:0,partial:0,missing:0};
+    items.forEach(i=>counts[i[0]]++);
+    const sec = document.createElement("section");
+    sec.className="domain";
+    sec.innerHTML = `<div class="dhead"><h2 class="disp">${d.name}</h2>
+      <span class="dcount"><b style="color:var(--present)">${counts.present}</b> present &middot; <b style="color:var(--partial)">${counts.partial}</b> partial &middot; <b style="color:var(--missing)">${counts.missing}</b> missing</span></div>
+      <ul class="items">${items.map(it=>`
+        <li class="item ${it[0]}" data-status="${it[0]}">
+          <span class="badge">${it[0]}</span>
+          <div class="body"><div class="feat">${it[1]}</div>${it[2]?`<div class="note">${it[2]}</div>`:""}</div>
+        </li>`).join("")}</ul>`;
+    domainsEl.appendChild(sec);
+  });
+
+  // tiles
+  const totals = {present:0,partial:0,missing:0};
+  DATA.forEach(d=>d.items.forEach(i=>totals[i[0]]++));
+  const grand = totals.present+totals.partial+totals.missing;
+  const tiles = document.getElementById("tiles");
+  const labels = {present:"Present", partial:"Partial", missing:"Missing"};
+  order.forEach(s=>{
+    const pct = Math.round(totals[s]/grand*100);
+    const t = document.createElement("div");
+    t.className = "tile "+s;
+    t.innerHTML = `<div class="n">${totals[s]}</div><div class="l">${labels[s]}</div><div class="tilebar"><span style="width:${pct}%"></span></div>`;
+    tiles.appendChild(t);
+  });
+  document.getElementById("meta").innerHTML += ` &middot; ${grand} capabilities checked`;
+
+  // filtering
+  function apply(){
+    document.querySelectorAll("li.item").forEach(li=>{
+      li.hidden = !active[li.getAttribute("data-status")];
+    });
+    document.querySelectorAll("section.domain").forEach(sec=>{
+      const any = [...sec.querySelectorAll("li.item")].some(li=>!li.hidden);
+      sec.style.display = any ? "" : "none";
+    });
+  }
+  document.getElementById("filters").addEventListener("click", e=>{
+    const b = e.target.closest(".chip"); if(!b) return;
+    const f = b.getAttribute("data-f");
+    if(f==="all"){
+      const turnOn = !(active.present&&active.partial&&active.missing);
+      active.present=active.partial=active.missing=turnOn;
+    } else {
+      active[f] = !active[f];
+    }
+    // reflect pressed state
+    document.querySelectorAll(".chip").forEach(c=>{
+      const cf=c.getAttribute("data-f");
+      if(cf==="all") c.setAttribute("aria-pressed", (active.present&&active.partial&&active.missing));
+      else c.setAttribute("aria-pressed", active[cf]);
+    });
+    apply();
+  });
+})();
+</script>

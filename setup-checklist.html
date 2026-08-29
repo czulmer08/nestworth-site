@@ -1,0 +1,262 @@
+<title>NestWorth Go-Live Checklist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF3E8; --card:#FFFFFF; --card-2:#F6F9F1;
+    --ink:#1B3327; --ink-2:#4C5E52; --ink-3:#6E7E71;
+    --line:#D8E1CF; --line-2:#E7EDDE;
+    --green:#2E7D5B; --green-deep:#215E44; --green-soft:#E3EFE7;
+    --honey:#B87F22; --honey-soft:#F6E9CC;
+    --shadow:0 1px 2px rgba(27,51,39,.05), 0 14px 34px -18px rgba(27,51,39,.28);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1712; --card:#17211A; --card-2:#1C271F;
+      --ink:#EAF1E7; --ink-2:#A7B7AA; --ink-3:#8A9A8D;
+      --line:#2A372C; --line-2:#232E26;
+      --green:#5FC094; --green-deep:#7FD0AB; --green-soft:#1C2C22;
+      --honey:#E4B457; --honey-soft:#33291593;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1712; --card:#17211A; --card-2:#1C271F;
+    --ink:#EAF1E7; --ink-2:#A7B7AA; --ink-3:#8A9A8D;
+    --line:#2A372C; --line-2:#232E26;
+    --green:#5FC094; --green-deep:#7FD0AB; --green-soft:#1C2C22;
+    --honey:#E4B457; --honey-soft:#33291593;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+    padding:34px 18px 64px;
+  }
+  .wrap{max-width:680px;margin:0 auto}
+  .disp{font-family:"Fraunces",Georgia,"Times New Roman",serif}
+
+  header{margin-bottom:8px}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:0 0 8px}
+  h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(30px,7vw,42px);line-height:1.05;letter-spacing:-.01em;margin:0;text-wrap:balance}
+  .lede{color:var(--ink-2);font-size:16px;margin:14px 0 0;max-width:56ch}
+  .lede b{color:var(--ink);font-weight:600}
+
+  .progress{display:flex;align-items:center;gap:12px;margin:22px 0 4px}
+  .bar{flex:1;height:8px;border-radius:99px;background:var(--line-2);overflow:hidden}
+  .bar span{display:block;height:100%;width:0;background:var(--green);border-radius:99px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+  .count{font-size:13px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .quick{display:flex;gap:13px;align-items:flex-start;background:var(--green-soft);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:24px 0 8px}
+  .quick .ic{flex:0 0 24px;height:24px;color:var(--green);margin-top:1px}
+  .quick h3{margin:0 0 3px;font-size:15.5px;font-weight:700}
+  .quick p{margin:0;color:var(--ink-2);font-size:14.5px}
+
+  section{margin-top:26px}
+  .sechd{display:flex;align-items:baseline;gap:10px;margin:0 2px 12px}
+  .sechd .n{font-family:"Fraunces",serif;font-weight:600;font-size:15px;color:var(--green);background:var(--green-soft);width:30px;height:30px;flex:0 0 30px;border-radius:9px;display:flex;align-items:center;justify-content:center;align-self:center}
+  .sechd h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:20px;margin:0;letter-spacing:-.01em}
+  .sechd .where{margin:2px 0 0;font-size:12.5px;color:var(--ink-3)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .item{display:flex;gap:14px;padding:16px 18px;border-top:1px solid var(--line-2);cursor:pointer;align-items:flex-start;transition:background .12s ease}
+  .item:first-child{border-top:none}
+  .item:hover{background:var(--card-2)}
+  .box{flex:0 0 24px;width:24px;height:24px;border:2px solid var(--line);border-radius:7px;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s ease;background:var(--card)}
+  .box svg{width:15px;height:15px;color:#fff;opacity:0;transform:scale(.5);transition:all .15s ease}
+  .item.done .box{background:var(--green);border-color:var(--green)}
+  :root[data-theme="dark"] .item.done .box svg,
+  :root:not([data-theme="light"]) .item.done .box svg{color:#0c1a12}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .item.done .box svg{color:#0c1a12}}
+  .item.done .box svg{opacity:1;transform:scale(1)}
+  .body{flex:1;min-width:0}
+  .ttl{font-weight:600;font-size:15.5px;color:var(--ink);display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+  .item.done .ttl{color:var(--ink-2)}
+  .val{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--card-2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--green-deep);word-break:break-all}
+  :root[data-theme="dark"] .val,:root:not([data-theme="light"]) .val{color:var(--green-deep)}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .val{color:var(--green-deep)}}
+  .why{margin:6px 0 0;font-size:13.5px;color:var(--ink-2);line-height:1.5}
+  .why b{color:var(--ink);font-weight:600}
+  .chip{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:6px;white-space:nowrap;align-self:center}
+  .chip.req{background:var(--honey-soft);color:var(--honey)}
+  .chip.opt{background:var(--line-2);color:var(--ink-3)}
+
+  .note{margin-top:10px;font-size:13px;color:var(--ink-2);padding:0 4px}
+  .note a,.body a,footer a{color:var(--green);font-weight:600;word-break:break-all;text-decoration-color:color-mix(in srgb, var(--green) 45%, transparent)}
+
+  footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12.5px;line-height:1.6}
+  footer b{color:var(--ink-2)}
+  .reset{margin-top:14px;background:none;border:1px solid var(--line);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer}
+  .reset:hover{border-color:var(--green);color:var(--green)}
+  :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:6px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">Before you share the link</p>
+    <h1>NestWorth go-live checklist</h1>
+    <p class="lede">A few settings on Google's side decide whether the people you invite can actually sign in and use NestWorth. Work through these once — most take a single click to confirm.</p>
+  </header>
+
+  <div class="progress">
+    <div class="bar"><span id="barFill"></span></div>
+    <div class="count" id="count">0 of 0 done</div>
+  </div>
+
+  <div class="quick">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <div>
+      <h3>The one-minute proof it works</h3>
+      <p>Open your site in a <b>private / incognito window</b> and sign in with a <b>different</b> Google account than your own. If you get through the permission screen and land in the app, sharing will work for others too. If you're blocked or stuck, the items below are why.</p>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <section>
+    <div class="sechd"><span class="n">1</span><div><h2>Who can sign in (consent)</h2><p class="where">Google Cloud Console ▸ <b>Google Auth Platform</b> (the left-sidebar pages: Audience, Branding, Data Access)</p></div></div>
+    <div class="card" data-sec>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Publishing status is <span class="val">In production</span> <span style="color:var(--ink-3);font-weight:400">— Audience page</span><span class="chip req">Needed to invite others</span></div>
+          <p class="why">If it says <b>Testing</b>, only people you add as test users can sign in — everyone else is blocked. Click <b>Publish app</b> to move it to production. <b>Or</b>, if you'd rather keep it in Testing, add each family member's email under <b>Test users</b> first.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">User type is <span class="val">External</span> <span style="color:var(--ink-3);font-weight:400">— Audience page</span><span class="chip req">Required</span></div>
+          <p class="why"><b>Internal</b> limits sign-in to one Google Workspace organization. <b>External</b> lets anyone with a Google account use it — what you want for family and friends.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Only one scope is listed: <span class="val">.../auth/drive.file</span> <span style="color:var(--ink-3);font-weight:400">— Data Access page</span><span class="chip req">Required</span></div>
+          <p class="why">This is the single permission NestWorth uses — access to only the files it creates. If extra scopes are listed, remove them: more scopes mean more warnings and can force Google verification.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">App name, support email &amp; developer email are filled in <span style="color:var(--ink-3);font-weight:400">— Branding page</span><span class="chip opt">Recommended</span></div>
+          <p class="why">These show on the sign-in screen. A real app name and your email make the "unverified app" step feel trustworthy rather than sketchy.</p>
+        </div>
+      </label>
+    </div>
+    <p class="note">Heads-up: with an unverified app, people will see a one-time <b>"Google hasn't verified this app"</b> screen and tap <b>Advanced ▸ Continue</b>. That's normal and safe — the Read me now explains it. Full Google verification removes that screen but isn't required to share.</p>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <div class="sechd"><span class="n">2</span><div><h2>Sign-in client (OAuth Client ID)</h2><p class="where"><b>Google Auth Platform</b> ▸ <b>Clients</b> ▸ your <b>Web application</b> client</p></div></div>
+    <div class="card" data-sec>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Authorized JavaScript origins includes <span class="val">https://czulmer08.github.io</span><span class="chip req">Required to sign in</span></div>
+          <p class="why">This is the big one: the "Sign in with Google" button will fail from your site if this exact origin isn't listed. Add it with no path and no trailing slash.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Client ID matches the app<span class="chip opt">Sanity check</span></div>
+          <p class="why">It should start <span class="val">1048635246954-…</span> — the same value in <b>app.html</b>. If you ever created a second client, make sure the app points at the one whose origins you just checked.</p>
+        </div>
+      </label>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <div class="sechd"><span class="n">3</span><div><h2>Picker key (the one GitHub flagged)</h2><p class="where">APIs &amp; Services ▸ Credentials ▸ the browser API key "NestWorth Picker"</p></div></div>
+    <div class="card" data-sec>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Application restriction: HTTP referrers → <span class="val">czulmer08.github.io/*</span><span class="chip req">Required</span></div>
+          <p class="why">This is what makes it safe for the key to live in the code. It stops the key working from any other website even though it's public.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">API restriction: restrict to <span class="val">Google Picker API</span> only<span class="chip req">Required</span></div>
+          <p class="why">Limits the key to opening the file picker and nothing else — so even if it's copied, it can't be used for anything sensitive.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Optional: rotate the key to clear the GitHub alert<span class="chip opt">Optional</span></div>
+          <p class="why">Create a <b>new</b> browser key with the same two restrictions, send it to me to swap into the app, then delete the old one. That fully closes GitHub's "Possible valid secrets" email. If you'd rather not, mark that alert <b>Won't fix</b> — it's a public browser key, protected by the restrictions above.</p>
+        </div>
+      </label>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <div class="sechd"><span class="n">4</span><div><h2>Enabled APIs</h2><p class="where">APIs &amp; Services ▸ Enabled APIs &amp; services</p></div></div>
+    <div class="card" data-sec>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Google Drive API — enabled<span class="chip req">Required</span></div>
+          <p class="why">Creates each person's budget file and handles sharing. Without it, setup fails at "Setting up your budget."</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Google Sheets API — enabled<span class="chip req">Required</span></div>
+          <p class="why">Reads and writes the budget itself. Without it, nothing loads or saves.</p>
+        </div>
+      </label>
+      <label class="item"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><input type="checkbox" hidden>
+        <div class="body">
+          <div class="ttl">Google Picker API — enabled<span class="chip req">Required for sharing</span></div>
+          <p class="why">Powers "Join a budget shared with me" and "Open a shared budget." Without it, the family-join flow can't open the shared file.</p>
+        </div>
+      </label>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>Not part of this setup:</b> receipt scanning uses a separate free key that each person adds themselves inside the app (from <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>). It's on-device only and never touches this project — so nothing here affects it.</p>
+    <p style="margin-top:10px"><b>Files to have live in your <span style="font-family:ui-monospace,monospace">mynestworth</span> folder:</b> index.html · app.html · apple-touch-icon.png · nestworth-template.xlsx · manifest.webmanifest · the logo &amp; QR images. Then the link to share is <a href="https://czulmer08.github.io/mynestworth/">czulmer08.github.io/mynestworth/</a></p>
+    <button class="reset" id="reset">Reset checklist</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var KEY="nestworth_golive_v1";
+  var items=[].slice.call(document.querySelectorAll(".item"));
+  var saved={};
+  try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){saved={};}
+  items.forEach(function(it,i){
+    var cb=it.querySelector("input");
+    if(saved[i]){cb.checked=true;it.classList.add("done");}
+    it.addEventListener("click",function(e){
+      // let the native label toggle the checkbox, then sync — but avoid double-toggle on the input itself
+      if(e.target.tagName==="A")return;
+      setTimeout(sync,0);
+    });
+    cb.addEventListener("change",sync);
+  });
+  function sync(){
+    var st={},done=0;
+    items.forEach(function(it,i){
+      var on=it.querySelector("input").checked;
+      it.classList.toggle("done",on);
+      st[i]=on; if(on)done++;
+    });
+    try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}
+    var total=items.length;
+    document.getElementById("count").textContent=done+" of "+total+" done";
+    document.getElementById("barFill").style.width=(total?Math.round(done/total*100):0)+"%";
+  }
+  document.getElementById("reset").addEventListener("click",function(){
+    items.forEach(function(it){it.querySelector("input").checked=false;});
+    try{localStorage.removeItem(KEY);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>

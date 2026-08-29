@@ -1,0 +1,24 @@
+# NEVER commit real household financial data
+*.xlsx
+
+# Build artifacts / deploy bundles / backups
+*.zip
+*_backup.html
+app_2d_backup.html
+
+# Scratch, extracted temp, and render/preview images
+tpl_unzip/
+landing-*.png
+shot-*.png
+wren-card.png
+
+# Marketing / doc screenshots (keep out of the code repo; store elsewhere if needed)
+slide*.png
+goalhit.png
+growing_empty.png
+suite_report.png
+v2_*.png
+
+# Node
+node_modules/
+package-lock.json

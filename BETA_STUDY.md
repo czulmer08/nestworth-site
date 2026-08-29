@@ -204,3 +204,22 @@ information architecture on a hunch.
 4. Recruit **five** people who are **not** finance experts and were **not** taught NestWorth. Run Parts 2–3.
 5. Score against Part 4. Run Part 5 with whoever's available.
 6. Fix, re-baseline, repeat at the next version.
+
+---
+
+## Part 7 — Scope boundaries (what this exercise does NOT cover)
+
+Named explicitly so they don't quietly creep back into the beta-readiness work.
+
+- **The automated journeys are application-E2E, not literal UI-E2E.** `verify-new-user-journey.js` drives the real
+  functions (`addEntry`, `addGoal`, `saveEdit`, `wrenAnalyze`) against a simulated backend and reconciles *user-sees =
+  engine = persisted*. It does **not** tap through the onboarding wizard and visible forms as a stranger's fingers would.
+  So: application-E2E ✅, persistence/engine/UI reconciliation ✅, **unfamiliar-user UI journey ❌** — and that last one is
+  deliberately the job of the **human study (Parts 2–5)**, not a harness. This limitation is disclosed inside the harness.
+
+- **Floor-aware cash-flow reconciliation is deferred — it is NOT part of beta-readiness.** The Nest Egg Floor is a
+  *path/cash-flow* constraint (it's about *when* balances cross a minimum), so it does not fully reconcile into a single
+  monthly affordability number. v0.68.15 correctly stops at the safe boundary: it exposes the year-projection floor warning
+  and `drawsReserves`/`overflow` rather than pretending one month's figure settles the floor. A proper floor-aware,
+  multi-month cash-flow reconciliation is a **future, targeted financial feature + test** — booked separately so this phase
+  stays about *whether strangers can use the product*, not about expanding the math engine again.

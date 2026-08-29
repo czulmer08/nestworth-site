@@ -145,7 +145,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('exact-zero net buffer (+500 & −500 → $0 available, $0 deficit)', near(res.exactZero.rawBuf,0)&&near(res.exactZero.avail,0)&&near(res.exactZero.bufDef,0), JSON.stringify(res.exactZero));
   ck('total always reconciles: totalUncovered = uncoveredEnvelope + bufferDeficit', near(res.negBufNegEnv.total,res.negBufNegEnv.uncovEnv+res.negBufNegEnv.bufDef), JSON.stringify(res.negBufNegEnv));
   // ---- Wren distinguishes the four questions ----
-  ck('Wren "how much contingency do I have?" → $0 available (pool overspent)', /\$0\.00 of contingency available|no contingency|\$0\.00 (of )?contingency/i.test(res.wren.have)&&!/3,000|2,000/.test(res.wren.have), res.wren.have);
+  ck('Wren "how much contingency do I have?" → $0 available (pool overspent)', /\$0 available in contingency|\$0\.00 of contingency available|no contingency/i.test(res.wren.have)&&/overspent by|pool is overspent/.test(res.wren.have)&&!/3,000|2,000/.test(res.wren.have), res.wren.have);
   ck('Wren "is my contingency overspent?" → yes, buffer deficit $1,000', /overspent by \$1,000\.00|overspent.*\$1,000/i.test(res.wren.overspent), res.wren.overspent);
   ck('Wren "how much of my envelopes isn\'t covered?" → $2,000 (envelope-only)', /\$2,000\.00/.test(res.wren.envUncov), res.wren.envUncov);
   ck('Wren "rollover shortfall altogether?" → $3,000 total (envelopes + buffer)', /\$3,000\.00/.test(res.wren.total), res.wren.total);

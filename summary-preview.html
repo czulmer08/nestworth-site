@@ -1,0 +1,49 @@
+<title>Summary Breakdown Preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--bg:#F3F6EF;--card:#fff;--ink:#1B3327;--ink2:#4C5E52;--line:#DCE4D4;--green:#2E7D5B;--soft:#EAF0E4;--honey:#C99334;--sub:#F7FAF3}
+  @media (prefers-color-scheme:dark){:root{--bg:#0F1712;--card:#17211A;--ink:#EAF1E7;--ink2:#B7C6BA;--line:#2A372C;--green:#5FC094;--soft:#1C2C22;--honey:#E0B457;--sub:#141E17}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:26px 16px;line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto}
+  h1{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:22px;margin:0 0 4px}
+  p.lede{color:var(--ink2);font-size:14.5px;margin:0 0 20px}
+  .sheet{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(27,51,39,.05),0 14px 34px -22px rgba(27,51,39,.25)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+  th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{background:var(--soft);color:var(--ink2);font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+  .grp th{font-size:10.5px}
+  tr.parent td{font-weight:700}
+  tr.parent td:first-child{color:var(--ink)}
+  tr.bill td{color:var(--ink2);background:var(--sub);font-size:12.5px}
+  tr.bill td:first-child{padding-left:30px;font-style:italic}
+  tr.bill td:first-child::before{content:"↳ ";color:var(--green);font-style:normal;font-weight:700}
+  tr.total td{font-weight:700;background:var(--soft);border-top:2px solid var(--line);border-bottom:none}
+  .cap{color:var(--ink2);font-size:12.5px;margin-top:14px}
+  .k{display:inline-block;margin-top:16px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--ink2)}
+  .k b{color:var(--ink)}
+  .g{color:var(--green);font-weight:700}
+  .scroll{overflow-x:auto}
+</style>
+<div class="wrap">
+  <h1>Account Summary — itemized breakdown</h1>
+  <p class="lede">How an <b>itemized</b> category would look in the spreadsheet: the category keeps its main line, with each bill indented beneath it. This is a live recalculated preview — the numbers below are the real formula results.</p>
+  <div class="sheet"><div class="scroll">
+    <table>
+      <thead>
+        <tr class="grp"><th rowspan="2">Category</th><th rowspan="2">Annual<br>Budget</th><th colspan="2">January</th><th colspan="2">February</th></tr>
+        <tr class="grp"><th>Budgeted</th><th>Spent</th><th>Budgeted</th><th>Spent</th></tr>
+      </thead>
+      <tbody>
+        <tr class="parent"><td>Subscriptions</td><td>$379</td><td>$159</td><td>$159</td><td>$20</td><td>$0</td></tr>
+        <tr class="bill"><td>Netflix</td><td>$240</td><td>$20</td><td>$20</td><td>$20</td><td>$0</td></tr>
+        <tr class="bill"><td>Amazon Prime</td><td>$139</td><td>$139</td><td>$139</td><td>$0</td><td>$0</td></tr>
+        <tr class="parent"><td>Groceries</td><td>$6,000</td><td>$500</td><td>$472</td><td>$500</td><td>$0</td></tr>
+        <tr class="total"><td>TOTAL</td><td>$6,379</td><td>$659</td><td>$631</td><td>$520</td><td>$0</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+  <p class="cap">Groceries (a normal category) is shown for contrast — no sub-rows. The <b>TOTAL</b> row deliberately skips the indented bill lines, so the $159 Subscriptions total is counted once, never doubled.</p>
+  <div class="k">Verified on a template copy: parent Spent = <b>$159</b> (all bills) · Netflix = <b class="g">$20</b> · Amazon Prime = <b class="g">$139</b> · TOTAL Spent = <b>$159</b>, not $318.</div>
+</div>

@@ -677,6 +677,7 @@ body.is-offline #offlineBar{display:block}
       <div class="row"><label>Nest Egg Floor</label><span class="mfield">$<input id="stFloor" class="money" inputmode="decimal" placeholder="optional"></span></div>
       <div class="hintline" style="text-align:left;margin-top:-2px">The lowest you'd want your available cash to fall. Wren checks every decision against it — leave blank to skip.</div>
       <div class="seg2" id="stModeSeg" style="margin-top:10px"><button data-sm="plan" class="on">Plan</button><button data-sm="actual">Plan + actual</button></div>
+      <div id="stBaseNote" style="display:none"></div>
       <div id="stGrid"></div>
       <div id="stVerdict" class="fbline" style="border-top:0;padding-top:4px"></div>
     </div>
@@ -1285,6 +1286,9 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.20 — Aug 29, 2026 · Build 20260829.108 · Cash-flow clarity (from real-use confusion: "how is the balance positive if my contingency is overspent?"). The running-total column read as "money I have" — it isn't. (1) Renamed the column "Balance" → "Projected cash". (2) When Starting savings is $0, a conspicuous note now says these figures are a cash-flow TREND from a $0 baseline, not actual cash on hand, and to enter start-of-year cash for a true projection. (3) The verdict now connects the two pools the screen used to leave separate: when the contingency buffer is overspent it says plainly that projected cash is NOT the contingency and a positive cash trend doesn't refill it (and a neutral "separate from your contingency" line when it's in the black). NO math change — an investigation of the current-month "so far + plan" net (verify-cashflow-current-month.js) proved it is NOT double-counting income or producing a catch-up artifact: current-month income = max(actual-to-date, plan) and outflow = max(actual-to-date, plan), income enters once, and the net only SHRINKS as real spending is logged (conservative on outflow). The large recovering month is a real deposit already received paired with at-least-planned spending; the ambiguity was purely the label/baseline. New verify-cashflow-current-month.js (5, the decomposition/no-double-count proof) + verify-cashflow-presentation.js (5, the clarity UI), both break-audited with permanent verify-mutation.js entries.
+//   v0.68.19 — Aug 29, 2026 · Build 20260829.107 · Wren temporal-contingency routing (found by ordinary use). "When did my contingency become overspent?" is a TIME question and was being answered as the STATE question "IS my contingency overspent?" — it just repeated the current −$X balance. New authoritative engine helper getContingencyFacts() exposes the CURRENT state AND a month-by-month pool history: firstNegativeMonth (the month the pooled buffer balance first crossed from ≥0 to <0), lastPositiveMonth + balance, the carry-in baseline, and the biggest single-month drop. Wren now NARRATES it (narrator-not-calculator, same contract as getGoalFacts) — a temporal question ("when/what month/last positive/before it went negative/how has it changed") names the month; it never re-repeats the current balance. Also fixes an over-answer: "How much is in my contingency after my bills?" now gives a CLEAN state answer (balance + $0-available + why) instead of dragging in uncovered-envelope totals and year-end envelope risk the user didn't ask about; questions that DO ask about covering an overage still get the fuller coverage answer. New verify-contingency-history.js (9 cases, break-audited) + a permanent verify-mutation.js entry (removing the temporal route makes it fail).
+//   v0.68.18 — Aug 29, 2026 · Build 20260829.106 · Fixes a cross-category-offset gap in goalFundingStatus() found by adversarial audit. When one category was over budget and ANOTHER was under by an offsetting amount (e.g. Living +$100, Dining −$100 → the household spent exactly its plan, coverageReport().monthLeft = $0), the goal-funding model still treated the GROSS $100 overage as cash consumed and wrongly reported residual "% of leftover" saving as reduced (planned $1,000 → supported $900). It now nets a plain category's overage against genuine under-budget slack in OTHER plain categories (cr.fixedTot − cr.underRoom) before deciding what truly hits cash — so an offset month leaves residual untouched, and the household cash identity (income + envelope-self + shared-contingency − consumption − fixed − residualSupported = −overflow) reconciles. The "Can you cover it?" coverage line was made consistent (it now offsets the overage by real under-budget-elsewhere slack, not just net leftover), so coverage and goal-funding can no longer contradict each other on an offset month. Envelope self-coverage and shared contingency stay distinct and are not double-counted. verify-goal-funding.js extended with GF-007…GF-012 (exact/partial offset, more-underspend-than-overage, offset+envelope-self, offset+contingency, order-invariance); verify-contingency-goals.js CASE 7 asserts the two surfaces agree; both mutation-audited (the restored gross behavior makes GF-007/008 and CASE 7 fail). NOTE: whether plain under-budget slack should also offset an ENVELOPE/buffer deficit is deliberately left to future reconciliation work; the fix keeps the offset and cushion mechanisms separate and non-double-counted.
 //   v0.68.17 — Aug 29, 2026 · Build 20260829.105 · Buffer categories that go over their monthly budget now appear in the "Can you cover it?" assessment with an explicit note — "X went $Y over its budget — absorbed by your shared contingency buffer" (or, if the buffer pool is itself overspent, that the excess comes from cash) — instead of either a bare red over-budget alarm or vanishing entirely. Refines v0.68.16: a buffer doing its job (absorbing a lump) is shown as covered, not alarmed, and every over-budget category now gets a matching coverage answer.
 //   v0.68.16 — Aug 29, 2026 · Build 20260829.104 · Month "Can you cover it?" clarity fixes (from real-use feedback). (1) Order: the OVER BUDGET list now renders BEFORE the coverage assessment, so you see what's over budget first, then whether you're covered. (2) The over-budget reminder now excludes buffer categories too (not just envelopes) — matching the coverage assessment exactly — so every "over budget" row is one the assessment also speaks to; a buffer category doing its job (absorbing a lump) no longer false-alarms as a red over-budget item. (3) The goal-impact line no longer prints a vacuous "your planned $0.00 of residual saving is fully supported" when there's no leftover pool to fund residual goals — it only speaks to residual when there's an actual pool, and to fixed goals when there are fixed contributions; otherwise it stays silent. Same gating applied to Wren.
 //   v0.68.15 — Aug 29, 2026 · Build 20260829.103 · Corrects and deepens v0.68.14. Goal money is NOT simply "unaffected" by an over-budget month — that conflated the plan staying the same with what's actually affordable. New authoritative helper goalFundingStatus() distinguishes PLANNED goal funding from what THIS month's performance can SUPPORT: only the slice of overage that this month's CASH absorbs (not an envelope covering its own overage from its own banked balance, and not the shared contingency pool) erodes residual "% of leftover" capacity; fixed goal contributions are protected first. Reconciles exactly (overage = envelope-self + shared-contingency + cash-absorbed; supported residual = planned − cash-absorbed). The Month "Can you cover it?" block and Wren now narrate this one fact — reassuring only when residual is truly intact, otherwise showing planned vs currently-supported honestly. Terminology fixed: an envelope covering its own overage is envelope coverage, not shared contingency. New verify-goal-funding.js (6 scenarios + reconciliation invariants); verify-contingency-goals.js reworked to the honest narration.
@@ -1675,8 +1679,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.17"; // SemVer — what changed functionally (display only)
-var BUILD="20260829.105"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.20"; // SemVer — what changed functionally (display only)
+var BUILD="20260829.108"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -3090,13 +3094,16 @@ function computeRollover(){
 //   • envRisk — envelopes projected to end the YEAR negative if spending continues at the year-to-date pace (allSolvent = none do).
 function coverageReport(){
   var roll=computeRollover(),cm=curMonth(),remMonths=13-cm;
-  var fixedOver=[],fixedTot=0,budTot=0,usedTot=0;
+  var fixedOver=[],fixedTot=0,budTot=0,usedTot=0,underRoom=0;
   state.cats.forEach(function(c){
     var mb=c.mbud||0,u=budUsed(c);budTot=r2(budTot+mb);usedTot=r2(usedTot+u);
     if(catRoll(c.name)!=="none")return; // envelopes/buffers are handled below — a monthly overspend there is expected
     var cfg=catCfg(c.name);if(cfg&&cfg.type==="itemized"&&cfg.items&&cfg.items.some(function(it){return it.cadence==="Annual"||it.cadence==="AnnualSaveUp";}))return;
     var over=r2(u-mb);if(mb>0.005&&over>0.005){fixedOver.push({name:c.name,over:over});fixedTot=r2(fixedTot+over);}
+    else if(over<-0.005)underRoom=r2(underRoom-over); // genuine under-budget slack in a PLAIN category — free cash that offsets a plain overage this month
   });
+  // underRoom counts PLAIN categories only: an envelope's or buffer's underspend banks into its OWN cushion (envelope balance /
+  // shared contingency pool), so it's already credited there — counting it here too would double-cover the same dollar.
   var monthLeft=r2(budTot-usedTot);
   var envOver=[],envRisk=[],allSolvent=true,hasEnv=false;
   state.cats.forEach(function(c){
@@ -3125,11 +3132,12 @@ function coverageReport(){
   envOver.forEach(function(o){var c=covByName[o.name.toLowerCase()];if(c){o.covered=c.covered;o.uncovered=c.uncovered;}});
   return {buffer:roll.buffer,rawBuffer:roll.rawBuffer,bufferDeficit:roll.bufferDeficit,availableBuffer:roll.availableBuffer,remainingContingency:roll.remainingContingency,contingencyUsed:roll.contingencyUsed,
     totalEnvelopeDeficit:roll.totalEnvelopeDeficit,uncoveredDeficit:roll.uncoveredDeficit,
-    fixedOver:fixedOver,fixedTot:fixedTot,monthLeft:monthLeft,envOver:envOver,bufOver:bufOver,envRisk:envRisk,allSolvent:allSolvent,remMonths:remMonths,hasEnv:hasEnv};
+    fixedOver:fixedOver,fixedTot:fixedTot,monthLeft:monthLeft,underRoom:underRoom,envOver:envOver,bufOver:bufOver,envRisk:envRisk,allSolvent:allSolvent,remMonths:remMonths,hasEnv:hasEnv};
 }
 // ===== Planned vs currently-SUPPORTABLE goal funding — the AUTHORITATIVE fact the Nest Review and Wren both narrate (neither
 // computes it independently). It distinguishes what the PLAN allocated to goals from what this month's ACTUAL performance can
-// support. Coverage hierarchy (from computeRollover): category budget → the envelope's own accumulated balance → shared
+// support. Coverage hierarchy (from computeRollover): category budget → CROSS-CATEGORY OFFSET (a plain overage cancelled by
+// under-budget slack in another plain category, cr.fixedTot − cr.underRoom) → the envelope's own accumulated balance → shared
 // contingency (the pooled buffer categories) → uncovered, which is absorbed by THIS month's cash. That last, cash-absorbed
 // slice is exactly what erodes residual ("% of leftover") capacity; FIXED goal commitments are protected first.
 //   Reconciliation invariants (see verify-goal-funding.js):
@@ -3140,15 +3148,23 @@ function coverageReport(){
 function goalFundingStatus(){
   var roll=computeRollover(),cr=coverageReport();
   var availPool=r2(Math.max(0,roll.remainingContingency||0)); // shared contingency CURRENTLY available (after cumulative envelope deficits)
-  // THIS MONTH's overages, absorbed first by each envelope's OWN accumulated balance (balance before this month = balance now + this month's over):
+  // THIS MONTH's envelope overages, absorbed first by each envelope's OWN accumulated balance (balance before this month = balance
+  // now + this month's over). Envelope spend comes from spentByMonth() (via cr.envOver), NOT budUsed — the two can disagree.
   var envSelf=0,envDeficit=0;
   (cr.envOver||[]).forEach(function(e){var over=Math.max(0,e.over||0);var balBefore=r2((e.balance||0)+over);var self=Math.max(0,Math.min(over,balBefore));envSelf=r2(envSelf+self);envDeficit=r2(envDeficit+r2(over-self));});
-  var fixedOver=r2(Math.max(0,cr.fixedTot||0)); // non-envelope categories over budget — no cushion of their own
-  // then the shared contingency absorbs this month's NEW deficits (envelope-into-deficit first, then non-envelope overages), up to what's available; the rest is cash:
+  // NON-envelope (plain) categories over budget — NETTED against genuine under-budget slack in OTHER plain categories. THE FIX
+  // (adversarial audit, GF gap): the old code used cr.fixedTot (GROSS plain overage), which double-charged an offset month — it
+  // treated Living +$100 / Dining −$100 as $100 of cash consumed when the household spent exactly its plan. A plain category $X over
+  // matched by another plain category $X under is NOT a household cash overage. (Only PLAIN slack nets here: an envelope's/buffer's
+  // underspend banks into its OWN cushion — envelope balance or the shared-contingency pool — so it's already credited there; letting
+  // it also offset a plain overage would double-cover the same dollar. Whether plain slack should offset an envelope/buffer DEFICIT
+  // is a deeper reconciliation left to future work — the auditor's cases keep the two mechanisms separate and non-double-counted.)
+  var fixedOver=r2(Math.max(0,r2((cr.fixedTot||0)-(cr.underRoom||0)))); // NET plain overage after plain-vs-plain cross-category offsets
+  // then the shared contingency absorbs this month's NEW deficits (envelope-into-deficit first, then the NET non-envelope overage), up to what's available; the rest is cash:
   var sharedForEnv=r2(Math.min(availPool,envDeficit));
   var sharedForFixed=r2(Math.min(r2(availPool-sharedForEnv),fixedOver));
   var sharedContingencyUsed=r2(sharedForEnv+sharedForFixed);
-  var cashAbsorbed=r2(r2(envDeficit-sharedForEnv)+r2(fixedOver-sharedForFixed)); // what THIS month's cash flow absorbs
+  var cashAbsorbed=r2(r2(envDeficit-sharedForEnv)+r2(fixedOver-sharedForFixed)); // what THIS month's cash flow absorbs, after offsets + cushions
   var overTotal=r2(envSelf+envDeficit+fixedOver); // by construction: overTotal === envSelf + sharedContingencyUsed + cashAbsorbed
   var fixedPlanned=r2((typeof fixedGoalMonthly==="function")?fixedGoalMonthly(state.goals):0);
   var residualPlanned=r2((typeof residualPool==="function")?residualPool():0);
@@ -3163,6 +3179,35 @@ function goalFundingStatus(){
     hasResidual:(state.goals||[]).some(function(g){return g&&g.residual&&!g.archived;}),
     hasFixed:(fixedPlanned>0.005),floor:r2((typeof nestFloor==="function")?nestFloor():0)
   };
+}
+// ===== AUTHORITATIVE contingency facts — CURRENT state AND month-by-month HISTORY. Wren narrates this; she never re-derives the
+// historical crossing herself (the "narrator, not calculator" rule, same contract as getGoalFacts). The contingency pool is the
+// POOLED balance of every buffer category (§contingency). Its running month-end balance is carry-in + Σ (this-month budget − spent
+// − linked-goal) across buffer categories, accumulated over COMPLETED months only — the exact horizon catBalance/computeRollover
+// use for the current rawBuffer (the in-progress current month is excluded, so history[last].bal === rawBuffer). This is what makes
+// a temporal question ("when did my contingency become overspent?") answerable as a DIFFERENT question from the current state
+// ("is my contingency overspent?"): firstNegativeMonth is the month the cumulative pool first crossed from ≥0 to <0.
+function getContingencyFacts(){
+  var roll=computeRollover();
+  var cm=(bYear()===curYear())?curMonth():13,lastIdx=cm-2; // last COMPLETED month index — matches the catBalance horizon behind rawBuffer
+  var bufs=(state.cats||[]).filter(function(c){return catRoll(c.name)==="buffer";});
+  var carry=0;bufs.forEach(function(c){carry+=carryInFor(c.name);});carry=r2(carry);
+  var hist=[],running=carry,firstNeg=-1,drop={m:0,amt:0};
+  for(var m=0;m<=lastIdx&&m<12;m++){
+    var delta=0;bufs.forEach(function(c){var b=(c.bud12&&c.bud12[m])||0,sp=spentByMonth(c.name),lk=catLinkedGoal12(c.name);delta+=b-(sp[m]||0)-(lk[m]||0);});
+    delta=r2(delta);running=r2(running+delta);hist.push({m:m+1,bal:running,delta:delta});
+    if(firstNeg<0&&running<-0.005)firstNeg=m;                 // 0-indexed month the pool first went negative
+    if(delta<drop.amt-0.005){drop={m:m+1,amt:delta};}         // biggest single-month decrease — the "biggest contributor to the change"
+  }
+  // last month the pool was still ≥0 before it first went negative (else the carry-in baseline)
+  var lastPos=0,lastPosBal=carry;
+  if(firstNeg>=0){for(var i=firstNeg-1;i>=0;i--){if(hist[i].bal>=-0.005){lastPos=i+1;lastPosBal=hist[i].bal;break;}}}
+  return {rawBuffer:roll.rawBuffer,availableBuffer:roll.availableBuffer,remainingContingency:roll.remainingContingency,
+    bufferDeficit:roll.bufferDeficit,contingencyUsed:roll.contingencyUsed,hasBuffer:bufs.length>0,isOverspent:(roll.rawBuffer<-0.005),
+    carryIn:carry,history:hist,
+    firstNegativeMonth:(firstNeg>=0?firstNeg+1:0),firstNegativeBal:(firstNeg>=0?hist[firstNeg].bal:0),      // 1-indexed month (0 = never went negative)
+    lastPositiveMonth:lastPos,lastPositiveBal:r2(lastPosBal),                                               // 1-indexed month (0 = never positive after carry-in)
+    dropMonth:drop.m,dropAmt:r2(drop.amt)};                                                                 // month of the largest single-month decrease
 }
 // ---- Goals (savings earmarks — money movements, NOT expenses) ----
 function loadGoals(){
@@ -5405,9 +5450,14 @@ function coverageHtml(){
     var names=r.fixedOver.map(function(f){return esc(f.name);}).join(" & ");
     var lead="You're <b>"+money(r.fixedTot)+"</b> over on "+names+" this month.";
     var verdict,cls;
+    // The gross overage is first offset by genuine under-budget slack in OTHER plain categories (free cash, not earmarked
+    // envelope/buffer banking — see coverageReport.underRoom), THEN by available contingency; only the remainder hits cash. This
+    // matches goalFundingStatus's NET treatment, so the coverage verdict and the goal-funding line can't contradict each other on
+    // an offset month ($100 over on Living, $100 under on Dining is fully covered here AND leaves residual intact below).
+    var underElse=r2(Math.max(0,r.underRoom||0));
     if(avail>0.005&&avail>=r.fixedTot-0.005){verdict="Your <b>"+money(avail)+"</b> of available contingency covers it — "+money(r2(avail-r.fixedTot))+" would be left.";cls="good";}
-    else if(r2(avail+Math.max(0,r.monthLeft))>=r.fixedTot-0.005){verdict=(avail>0.005?("Your "+money(avail)+" available contingency plus being "):"You're still ")+"<b>"+money(Math.max(0,r.monthLeft))+"</b> under budget elsewhere this month covers it.";cls="good";}
-    else{var short=r2(r.fixedTot-r2(avail+Math.max(0,r.monthLeft)));verdict="Your cushions come up <b>"+money(short)+"</b> short, so that much comes out of this month’s cash.";cls="warn";}
+    else if(r2(avail+underElse)>=r.fixedTot-0.005){var byElse=r2(Math.min(underElse,r.fixedTot));verdict=(avail>0.005?("Your "+money(avail)+" available contingency plus being "):"You're ")+"<b>"+money(byElse)+"</b> under budget elsewhere this month covers it.";cls="good";}
+    else{var short=r2(r.fixedTot-r2(avail+underElse));verdict=(underElse>0.005||avail>0.005?("Your cushions cover "+money(r2(avail+underElse))+", so <b>"+money(short)+"</b> comes out of this month’s cash."):("That <b>"+money(short)+"</b> comes out of this month’s cash."));cls="warn";}
     rows.push({cls:cls,ico:"💰",text:lead+" "+verdict});
   }else if(avail>0.005){
     rows.push({cls:"good",ico:"💰",text:"Contingency: <b>"+money(avail)+"</b> available"+(r.contingencyUsed>0.005?(" (after covering "+money(r.contingencyUsed)+" of envelope deficits)"):"")+"."});
@@ -5819,7 +5869,7 @@ function renderStress(){
     var net=mm.net,bal=mm.bal;
     rows+='<div class="strow sttap" data-mo="'+(m+1)+'"><span class="stm">'+MONTHS[m]+tag+'</span><span class="stn '+(net<0?"neg":"pos")+'">'+(net<0?"-":"+")+money(Math.abs(net))+'</span><span class="stb '+(bal<-0.005?"neg":"")+'">'+money(bal)+'</span></div>';
   });
-  $("stGrid").innerHTML='<div class="strow sthead"><span class="stm">Month</span><span class="stn">Net</span><span class="stb">Balance</span></div>'+rows;
+  $("stGrid").innerHTML='<div class="strow sthead"><span class="stm">Month</span><span class="stn">Net</span><span class="stb">Projected cash</span></div>'+rows;
   Array.prototype.forEach.call($("stGrid").querySelectorAll(".sttap"),function(row){row.addEventListener("click",function(){openMonthDetail(Number(this.getAttribute("data-mo")));});});
   var v;
   if(low<-0.005)v='<span class="neg">⚠ Your savings run dry — dipping to '+money(low)+' around '+MONTHS[lowM]+'.</span> Add income, trim a category, or spread big bills with "split per month".';
@@ -5834,6 +5884,24 @@ function renderStress(){
     if(bnd>1&&pSpent>0.005)driftLine='Through '+MONTHS[bnd-2]+', you spent <b>'+money(r2(aSpent))+'</b> vs '+money(r2(pSpent))+' planned — <span class="'+(drift>0?"neg":"pos")+'">'+money(Math.abs(drift))+' '+(drift>0?"over":"under")+' plan</span>. ';
     v='<span style="color:var(--ink2)">'+driftLine+'Months before '+MONTHS[bnd-1]+' use what you actually logged.</span><br>'+v;
   }
+  // Baseline note: when Starting savings is $0 the "Projected cash" column is a TREND from an artificial $0 baseline, NOT the money
+  // you actually have. Say so conspicuously, above the table — a positive running total here does not mean that much cash is in hand.
+  var bn=$("stBaseNote");
+  if(bn){
+    if(Math.abs(start)<0.005){
+      bn.className="hintline neg";bn.style.cssText="text-align:left;margin:6px 0 2px";
+      bn.innerHTML='⚠ <b>Starting savings isn’t set.</b> This “Projected cash” column is your cash-flow <i>trend</i> from a $0 starting point — not the money you actually have. Enter the cash you had at the start of the year (above) for a true projected balance.';
+      bn.style.display="block";
+    }else bn.style.display="none";
+  }
+  // Connect the two concepts the screen otherwise leaves separate: a positive PROJECTED CASH trend does NOT refill an overspent
+  // CONTINGENCY. They are different pools — surface the contingency alongside so the running total isn't misread as "all covered".
+  try{var _cf=getContingencyFacts();
+    if(_cf.hasBuffer){
+      if(_cf.isOverspent)v+='<br><span class="neg" style="font-size:12px">This is projected cash flow, not your contingency — your contingency pool is still overspent by '+money(_cf.bufferDeficit)+' ($0 available), and a positive cash trend here doesn’t refill it.</span>';
+      else v+='<br><span style="color:var(--ink2);font-size:12px">Projected cash is separate from your contingency ('+money(_cf.remainingContingency)+' available there).</span>';
+    }
+  }catch(e){}
   $("stVerdict").innerHTML=v;
 }
 function openMonthDetail(mo,yr){
@@ -7233,14 +7301,40 @@ function wrenAnalyze(text){
     if(_envNeg&&/(why).{0,20}(negative|red|minus|below)/.test(t)&&!/still|cover|contingency/.test(t)){
       return {answer:_envNeg.name+" is "+anMoney(_envNeg.rawBalance)+" because it has outspent everything it banked so far this year — spending in it has run "+anMoney(-_envNeg.rawBalance)+" past its accumulated budget. "+((_envNeg.coveredByContingency||0)>0.005?("Contingency covers "+anMoney(_envNeg.coveredByContingency)+" of that for spending purposes."):"There's no contingency available to cover it right now."),go:{v:"budget"}};
     }
-    // "is my contingency overspent?" → the raw buffer / buffer deficit (capacity is a separate question)
+    // ===== TEMPORAL / HISTORY questions (checked BEFORE current-state so "WHEN did it become overspent" isn't answered as "IS it
+    // overspent"). Narrated from getContingencyFacts()'s month-by-month history — a time question is a DIFFERENT question.
+    var _temporal=/\b(when|what month|which month|how long|since|first|last|before it|before that|used to|over time|history|each month|month[- ]by[- ]month|trend|changed|change since|run out|ran out)\b|(became|become|went|going|gone|cross)/.test(t);
+    if(_temporal){
+      var cf=getContingencyFacts();
+      var MN=function(m){return (m>=1&&m<=12)?MONF[m-1]:"";},MNY=function(m){return MN(m)+" "+bYear();};
+      if(!cf.hasBuffer)return {answer:"You don't have a contingency buffer set up, so there's no balance history to trace. Mark a category as a buffer on the Budget tab to pool a shared cushion.",go:{v:"budget"}};
+      // "when was it last positive / how much did I have before it went negative?"
+      if(/(last (positive|in the black|ok|okay|fine|healthy)|before .{0,12}(negative|went|overspent|red|cross)|how much.{0,20}(before|had before|used to))/.test(t)){
+        if(cf.firstNegativeMonth&&cf.lastPositiveMonth)return {answer:"Your contingency was last positive in "+MN(cf.lastPositiveMonth)+", at about "+anMoney(cf.lastPositiveBal)+" — then it went negative the following month ("+MN(cf.firstNegativeMonth)+"). It's now at "+anMoney(cf.rawBuffer)+".",go:{v:"budget"}};
+        if(cf.firstNegativeMonth)return {answer:"Your contingency was already in the red from "+MN(cf.firstNegativeMonth)+" onward; before that it sat at its carry-in of "+anMoney(cf.carryIn)+". It's now at "+anMoney(cf.rawBuffer)+".",go:{v:"budget"}};
+        return {answer:"Your contingency hasn't gone negative this year — it's currently at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"budget"}};
+      }
+      // "when did it become overspent / go negative / run out?" (also the plain "how has it changed / over time" trend)
+      if(cf.firstNegativeMonth){
+        var beforeTxt=cf.lastPositiveMonth?("the month before ("+MN(cf.lastPositiveMonth)+") it was still positive at about "+anMoney(cf.lastPositiveBal)):("it started the year at its carry-in of "+anMoney(cf.carryIn));
+        return {answer:"Your contingency first went negative in "+MNY(cf.firstNegativeMonth)+", ending that month at about "+anMoney(cf.firstNegativeBal)+"; "+beforeTxt+". It's now at "+anMoney(cf.rawBuffer)+"."+(cf.dropMonth&&cf.dropAmt<-0.005?(" The biggest single-month drop was in "+MN(cf.dropMonth)+" ("+anMoney(cf.dropAmt)+")."):""),go:{v:"budget"}};
+      }
+      return {answer:"Your contingency has never gone negative this year — it started at "+anMoney(cf.carryIn)+" and is now at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"budget"}};
+    }
+    // "is my contingency overspent?" → the raw buffer / buffer deficit (capacity is a separate question). Guarded against temporal
+    // phrasings above so "WHEN did it become overspent" doesn't fall in here.
     if(/(contingency|buffer|cushion).{0,20}(overspent|over ?spent|negative|in the red|underwater|below zero|deficit|gone|empty|ok|okay|fine|healthy|left)/.test(t)||/is (my|the|our) (contingency|buffer|cushion)/.test(t)){
       if(roll.rawBuffer<-0.005)return {answer:"Yes — your contingency pool is overspent by "+anMoney(roll.bufferDeficit)+" (raw balance "+anMoney(roll.rawBuffer)+"), so it has $0 available to cover other envelopes and counts as a shortfall of its own.",go:{v:"budget"}};
       return {answer:"No — your contingency pool is in the black at "+anMoney(roll.rawBuffer)+", with "+anMoney(roll.remainingContingency)+" available to cover envelope deficits.",go:{v:"budget"}};
     }
-    // "how much contingency do I actually have (available)?"
-    if(/(how much|what).{0,24}(contingency|buffer|cushion).{0,16}(do i |i |we )?(have|available|left|to (use|draw|cover))|available (contingency|buffer|cushion)|contingency available/.test(t)&&!/overspent|uncover|total|altogether|rollover|shortfall|which/.test(t)){
-      return {answer:"You have "+anMoney(roll.remainingContingency)+" of contingency available to cover overspending"+(roll.contingencyUsed>0.005?(" — that's after "+anMoney(roll.contingencyUsed)+" is already covering envelope deficits"):(roll.rawBuffer<-0.005?", because the pool itself is overspent by "+anMoney(roll.bufferDeficit):""))+".",go:{v:"budget"}};
+    // "how much is IN my contingency / how much do I have / available / after my bills?" → the clean current STATE only: balance,
+    // available, and why. It does NOT dump uncovered-envelope or year-end lines — those are separate questions (that over-answering
+    // was the bug this screenshot exposed). Temporal phrasings are handled above.
+    if((/(how much|what).{0,24}(is |do i |i |we )?(in |left in |left |available in |available )?(my |the |our )?(contingency|buffer|cushion)|(contingency|buffer|cushion).{0,12}(balance|available|left)|available (contingency|buffer|cushion)|contingency available/.test(t))&&!/overspent|uncover|total|altogether|rollover|shortfall|which|cover|overage|over ?budget|enough|afford|handle|envelope|survive|make it|year/.test(t)){
+      var cf2=getContingencyFacts();
+      if(!cf2.hasBuffer)return {answer:"You don't have a contingency buffer set up. Mark a category as a buffer on the Budget tab to pool a shared cushion.",go:{v:"budget"}};
+      if(cf2.isOverspent)return {answer:"Your contingency balance is "+anMoney(cf2.rawBuffer)+", so you have $0 available in contingency after this month's bills — the pool is overspent by "+anMoney(cf2.bufferDeficit)+". Want to see when it went negative or what's driving the shortfall?",go:{v:"budget"}};
+      return {answer:"Your contingency balance is "+anMoney(cf2.rawBuffer)+", with "+anMoney(cf2.remainingContingency)+" available"+(cf2.contingencyUsed>0.005?(" — that's after "+anMoney(cf2.contingencyUsed)+" is covering envelope deficits"):"")+".",go:{v:"budget"}};
     }
     // "how much rollover shortfall do I have ALTOGETHER?" → total uncovered deficit (uncovered envelopes + overspent buffer)
     if(/(total|altogether|overall|combined|all together|in total|everything).{0,28}(shortfall|deficit|uncover|rollover|red|overspend|behind)|(shortfall|deficit|uncover|overspend).{0,20}(total|altogether|overall|combined|all told)|how much.*(rollover|overspend).*(total|altogether|all|overall)/.test(t)){

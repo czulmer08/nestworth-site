@@ -75,6 +75,19 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     try{$('remBody')&&renderReminders();}catch(e){}
     var remHtml=($('remBody')&&$('remBody').innerHTML)||"";
     Rz.buffer={note:/absorbed by your shared contingency buffer/.test(h6),mentionsMortgage:/Mortgage/.test(h6),notInOverBudget:remHtml.indexOf('Over budget')<0};
+
+    // CASE 7 — CONSISTENCY on an EXACT cross-category offset (adversarial audit, GF gap). Living $100 over, Dining $100 under →
+    // the household spent exactly its plan. The coverage "can you cover it?" fixed line and the goal-funding line must AGREE: the
+    // fixed line says it's covered by being under budget elsewhere (NOT "comes out of cash"), and the goal line reassures that goal
+    // funding is not reduced. Before the fix they contradicted — coverage said "$100 out of cash" while the model netted to $0.
+    base([{name:'Emergency',monthly:1000,target:20000,balance:5000},{name:'Vac',residual:true,residualPct:100,target:8000,balance:0}]);
+    state.cons=[{name:'Inc',annual:120000,bud12:fill(10000)}];
+    state.cats=[plain('Living',7000,7100,84000),plain('Dining',1000,900,12000)]; // +$100 / −$100 → net $0
+    var g7=goalFundingStatus(),h7=coverageHtml();
+    Rz.offset={cash:g7.cashAbsorbed,reduced:g7.residualReduced,
+      coverReassures:/under budget elsewhere this month covers it/.test(h7),
+      coverNoCashClaim:!/comes out of this month/.test(h7),
+      goalReassures:/doesn’t reduce your goal funding|doesn't reduce your goal funding/.test(h7)};
     return Rz;
   });
 
@@ -85,6 +98,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('CASE 4 — residual goal with NO leftover pool ($0): the vacuous "$0.00 fully supported" line is NOT shown', R.zeroPool.noVacuous&&R.zeroPool.stillRendered, JSON.stringify(R.zeroPool));
   ck('CASE 5 — ORDER: "Over budget" renders BEFORE "Can you cover it?"', R.order.before===true, JSON.stringify(R.order));
   ck('CASE 6 — a buffer category over budget shows a "contingency buffer" note in the assessment, not a bare over-budget alarm', R.buffer.note&&R.buffer.mentionsMortgage&&R.buffer.notInOverBudget, JSON.stringify(R.buffer));
+  ck('CASE 7 — EXACT cross-category offset: coverage ("covered by being under elsewhere", not "out of cash") and goal-funding ("doesn’t reduce your goal funding") AGREE — no contradiction', R.offset.cash<0.005&&!R.offset.reduced&&R.offset.coverReassures&&R.offset.coverNoCashClaim&&R.offset.goalReassures, JSON.stringify(R.offset));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.slice(0,3).join(' | '));
