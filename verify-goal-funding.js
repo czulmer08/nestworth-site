@@ -108,6 +108,37 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     Rz.gf012={cashA:Ga.cashAbsorbed,cashB:Gb.cashAbsorbed,overA:Ga.overTotal,overB:Gb.overTotal,rsA:Ga.residualSupported,rsB:Gb.residualSupported,
       identical:near(Ga.cashAbsorbed,Gb.cashAbsorbed)&&near(Ga.overTotal,Gb.overTotal)&&near(Ga.residualSupported,Gb.residualSupported),
       netCash:near(Ga.cashAbsorbed,150),recon:recon(Ga)&&recon(Gb),inv:invB(Ga)&&invB(Gb)};
+
+    // ===== UNBUDGETED / UNCATEGORIZED consumption (adversarial audit, GF gap #2). goalFundingStatus's inputs were all budget-line
+    // based; spending with NO budget line is real consumption (canonical monthActualTotals includes it) yet never reduced supportable
+    // residual. residualPlanned is $1,000 here (income $120k − budget $96k [Living] − fixed $12k). row() builds an Aug-2026 expense row.
+    var row=function(cat,amt,co){return [2026,8,'2026-08-10','',cat,co||'',amt,'',''];};
+
+    // GF-013 — pure unbudgeted $500, all budgeted on plan → $500 hits cash, residual $1,000 → $500
+    base();state.cats=[plainCat('Living',8000,8000,96000)];state.rows=[row('Misc',500)];G=goalFundingStatus();
+    Rz.gf013={cash:G.cashAbsorbed,rp:G.residualPlanned,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-014 — unbudgeted $500 partially offset by $300 of plain under-budget room (Living $300 under) → only $200 hits cash
+    base();state.cats=[plainCat('Living',8000,7700,96000)];state.rows=[row('Misc',500)];G=goalFundingStatus();
+    Rz.gf014={cash:G.cashAbsorbed,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-015 — unbudgeted $1,500 exceeds residual $1,000 → residual $0 + overflow $500 (draws reserves)
+    base();state.cats=[plainCat('Living',8000,8000,96000)];state.rows=[row('Misc',1500)];G=goalFundingStatus();
+    Rz.gf015={cash:G.cashAbsorbed,rs:G.residualSupported,overflow:G.overflow,draws:G.drawsReserves,recon:recon(G),inv:invB(G)};
+
+    // GF-016 — an UNCATEGORIZED expense ('') behaves identically to a named-unbudgeted one ('Misc')
+    base();state.cats=[plainCat('Living',8000,8000,96000)];state.rows=[row('Misc',500)];var gNamed=goalFundingStatus();
+    base();state.cats=[plainCat('Living',8000,8000,96000)];state.rows=[row('',500)];var gUncat=goalFundingStatus();
+    Rz.gf016={named:gNamed.cashAbsorbed,uncat:gUncat.cashAbsorbed,identical:near(gNamed.cashAbsorbed,gUncat.cashAbsorbed)&&near(gUncat.cashAbsorbed,500)};
+
+    // GF-017 — a refund against unbudgeted spending restores capacity (net unbudgeted $0)
+    base();state.cats=[plainCat('Living',8000,8000,96000)];state.rows=[row('Misc',500),row('Misc',-500)];G=goalFundingStatus();
+    Rz.gf017={cash:G.cashAbsorbed,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-018 — a GOAL movement in an unbudgeted-looking name is NOT consumption (isExpenseRow excludes goal-tagged rows); 'Vacation'
+    // is a residual goal, so a $500 row tagged to it must not touch residual capacity.
+    base();state.cats=[plainCat('Living',8000,8000,96000)];state.rows=[row('Vacation',500)];G=goalFundingStatus();
+    Rz.gf018={cash:G.cashAbsorbed,rs:G.residualSupported,reduced:G.residualReduced};
     return Rz;
   });
 
@@ -123,6 +154,12 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('GF-010 offset + ENVELOPE self-coverage: no double subtraction → cash $0, envelopeSelf $300 (distinct), residual UNCHANGED; invariants hold', near(R.gf010.cash,0)&&near(R.gf010.envelopeSelf,300)&&near(R.gf010.shared,0)&&near(R.gf010.rs,R.gf010.rp)&&!R.gf010.reduced&&R.gf010.recon&&R.gf010.inv, JSON.stringify(R.gf010));
   ck('GF-011 offset + SHARED CONTINGENCY: no double subtraction → cash $0, shared>0 (distinct from offset), residual UNCHANGED; invariants hold', near(R.gf011.cash,0)&&R.gf011.shared>0.005&&near(R.gf011.envelopeSelf,0)&&near(R.gf011.rs,R.gf011.rp)&&!R.gf011.reduced&&R.gf011.recon&&R.gf011.inv, JSON.stringify(R.gf011));
   ck('GF-012 MULTIPLE over/under, ORDER-INVARIANT: net $150 hits cash and reordering categories gives an identical result; invariants hold', R.gf012.identical&&R.gf012.netCash&&R.gf012.recon&&R.gf012.inv, JSON.stringify(R.gf012));
+  ck('GF-013 UNBUDGETED $500 (all budgeted on plan) → $500 hits cash, supported residual $500 of $1,000; invariants hold', near(R.gf013.cash,500)&&near(R.gf013.rp,1000)&&near(R.gf013.rs,500)&&R.gf013.reduced&&R.gf013.recon&&R.gf013.inv, JSON.stringify(R.gf013));
+  ck('GF-014 unbudgeted $500 partially offset by $300 plain under-room → only $200 hits cash, residual $800; invariants hold', near(R.gf014.cash,200)&&near(R.gf014.rs,800)&&R.gf014.reduced&&R.gf014.recon&&R.gf014.inv, JSON.stringify(R.gf014));
+  ck('GF-015 unbudgeted $1,500 exceeds residual → residual $0 + overflow $500 (draws reserves); invariants hold', near(R.gf015.rs,0)&&near(R.gf015.overflow,500)&&R.gf015.draws&&R.gf015.recon&&R.gf015.inv, JSON.stringify(R.gf015));
+  ck('GF-016 uncategorized expense behaves identically to named-unbudgeted (both absorb $500 of cash)', R.gf016.identical, JSON.stringify(R.gf016));
+  ck('GF-017 refund against unbudgeted restores capacity → cash $0, residual back to $1,000, not reduced; invariants hold', near(R.gf017.cash,0)&&near(R.gf017.rs,1000)&&!R.gf017.reduced&&R.gf017.recon&&R.gf017.inv, JSON.stringify(R.gf017));
+  ck('GF-018 a goal movement in an unbudgeted-looking name is NOT consumption → cash $0, residual unchanged at $1,000', near(R.gf018.cash,0)&&near(R.gf018.rs,1000)&&!R.gf018.reduced, JSON.stringify(R.gf018));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.slice(0,3).join(' | '));

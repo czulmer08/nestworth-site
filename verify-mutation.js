@@ -26,10 +26,12 @@ const MUT=[
   {n:'FIN-ASOF-001: as-of dropped from monthActualTotals',       find:'else if(typeof _asOfOK==="function"&&!_asOfOK(r))return;',                repl:'else if(false)return;',                                                  by:'verify-engine-invariants.js'},
   {n:'FIN-ASOF-002: as-of dropped from goalContribMonth',        find:'Number(r[1])!==mo||(typeof _asOfOK==="function"&&!_asOfOK(r)))return;',   repl:'Number(r[1])!==mo)return;',                                              by:'verify-engine-invariants.js'},
   {n:'FIN-NW-001: net worth drops stand-alone goals',            find:'reduce(function(a,x){return a+(x.bal||0);},0)+stTot;',                   repl:'reduce(function(a,x){return a+(x.bal||0);},0)+0;',                        by:'verify-engine-invariants.js'},
-  {n:'GF gap: gross plain overage (cross-category offset ignored)',find:'r2(Math.max(0,r2((cr.fixedTot||0)-(cr.underRoom||0))))',                 repl:'r2(Math.max(0,cr.fixedTot||0))',                                         by:'verify-goal-funding.js'},
+  {n:'GF gap: cross-category offset ignored (underRoom dropped)',   find:'underAvail=r2((cr.underRoom||0)+Math.max(0,-unb));',                     repl:'underAvail=r2(0+Math.max(0,-unb));',                                     by:'verify-goal-funding.js'},
   {n:'contingency temporal routing removed (WHEN answered as IS)', find:'if(_temporal){',                                                        repl:'if(false&&_temporal){',                                                  by:'verify-contingency-history.js'},
   {n:'cash-flow current month double-counts income (max→sum)',     find:'im=Math.max(ai[m],inc[m])',                                             repl:'im=ai[m]+inc[m]',                                                        by:'verify-cashflow-current-month.js'},
   {n:'$0-baseline cash-flow note suppressed',                      find:'if(Math.abs(start)<0.005){',                                            repl:'if(false){',                                                            by:'verify-cashflow-presentation.js'},
+  {n:'contingency trend chart removed from the card',              find:'h+=contingencyTrendHTML();',                                            repl:'h+="";',                                                                by:'verify-contingency-trend.js'},
+  {n:'unbudgeted consumption ignored in goal funding',             find:'var unb=r2((typeof unbudgetedConsumption==="function")?unbudgetedConsumption():0);', repl:'var unb=0;',                                        by:'verify-goal-funding.js'},
 ];
 
 // Run a suite; capture exit code + combined output so we can classify WHY it passed/failed (not just the exit code).

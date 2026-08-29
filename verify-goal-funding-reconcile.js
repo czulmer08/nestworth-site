@@ -28,7 +28,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     var fill=function(v){var a=[];for(var i=0;i<12;i++)a.push(v);return a;};
     window.catSpend12=function(n){return (SPEND[(""+n).toLowerCase()]||fill(0)).slice();};window.spentByMonth=window.catSpend12;
     window.isGoalName=function(x){return (state.goals||[]).some(function(g){return g&&g.name&&g.name.toLowerCase()===(""+x).trim().toLowerCase();});};
-    function base(goals,floor){state.cons=[{name:'Inc',annual:120000,bud12:fill(10000)}];state.assets=[];state.debts=[];state.rows=[[2026,8,'2026-08-01','','x','y',1,'','']];CARRY={};SPEND={};
+    function base(goals,floor){state.cons=[{name:'Inc',annual:120000,bud12:fill(10000)}];state.assets=[];state.debts=[];state.rows=[[2026,8,'2026-08-01','','x','y',0,'','']];CARRY={};SPEND={}; // scaffolding row amount 0 so it isn't counted as unbudgeted spend
       state.meta={cats:{},cons:{},goals:[],payees:['Me'],floor:floor||0};state.goals=goals;}
     function plain(name,mbud,mused,annual){state.meta.cats[name.toLowerCase()]={type:'monthly'};return {name:name,mbud:mbud,mused:mused,annual:annual,bud12:fill(mbud)};}
     function env(name,mbud,annual,roll){state.meta.cats[name.toLowerCase()]={type:'monthly',roll:roll};return {name:name,mbud:mbud,annual:annual,bud12:fill(mbud)};}
@@ -36,6 +36,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     function cashIdentity(g){
       var I=(state.cons||[]).reduce(function(s,c){return s+((c.bud12&&c.bud12[7])||0);},0);
       var C=(state.cats||[]).reduce(function(s,c){var isEnv=(state.meta.cats[c.name.toLowerCase()]||{}).roll;var sp=isEnv?((SPEND[c.name.toLowerCase()]||fill(0))[7]||0):(c.mused!=null?c.mused:0);return s+sp;},0);
+      C=r2(C+((typeof unbudgetedConsumption==="function")?unbudgetedConsumption():0)); // canonical consumption INCLUDES unbudgeted/uncategorized spend
       // income + reserves drawn − consumption − fixed − residualSupported should equal −overflow (0 when balanced; negative = reserve/floor draw)
       var lhs=r2(I + g.envelopeSelf + g.sharedContingencyUsed - C - g.fixedSupported - g.residualSupported);
       return {I:r2(I),C:r2(C),lhs:lhs,expect:r2(-g.overflow)};
@@ -82,6 +83,14 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     base([{name:'Emergency',monthly:1000,target:20000,balance:5000},{name:'Vac',residual:true,residualPct:100,target:8000,balance:0}],3000);state.cats=[plain('Living',7000,9500,84000)];
     g=GF();ci=cashIdentity(g);
     Rz.floor={rs:g.residualSupported,overflow:g.overflow,draws:g.drawsReserves,floorSet:g.floor,identity:near(ci.lhs,ci.expect),identityVal:ci.lhs,expect:ci.expect};
+
+    // 8) UNBUDGETED consumption — $500 in a category with no budget line, all budgeted categories exactly on plan. It is real
+    //    cash consumption (canonical monthActualTotals includes it) with no cushion, so supportable residual falls by exactly the
+    //    $500, and the full household cash identity (C now includes unbudgeted spend) reconciles.
+    base([{name:'Emergency',monthly:1000,target:20000,balance:5000},{name:'Vac',residual:true,residualPct:100,target:8000,balance:0}],0);
+    state.cats=[plain('Living',8000,8000,96000)];state.rows=[[2026,8,'2026-08-10','','Misc','',500,'','']];
+    g=GF();ci=cashIdentity(g);
+    Rz.unbudg={cash:g.cashAbsorbed,rp:g.residualPlanned,rs:g.residualSupported,fallsByCash:near(g.residualPlanned-g.residualSupported,g.cashAbsorbed),identity:near(ci.lhs,ci.expect)};
     return Rz;
   });
 
@@ -92,6 +101,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('ENVELOPE self-coverage does NOT reduce residual and does NOT touch shared contingency (kept distinct); identity reconciles', near(R.envSelf.envelopeSelf,300)&&near(R.envSelf.shared,0)&&near(R.envSelf.cash,0)&&R.envSelf.rEqual&&R.envSelf.identity, JSON.stringify(R.envSelf));
   ck('SHARED CONTINGENCY covering a deficit does NOT reduce residual, kept distinct from envelope self-coverage; identity reconciles', R.sharedCov.shared>0.005&&near(R.sharedCov.cash,0)&&R.sharedCov.rEqual&&R.sharedCov.identity, JSON.stringify(R.sharedCov));
   ck('FLOOR case: a $2,500 overage zeroes residual and leaves $500 of overflow drawing on reserves/floor; identity = −overflow', near(R.floor.rs,0)&&near(R.floor.overflow,500)&&R.floor.draws&&R.floor.floorSet===3000&&R.floor.identity&&near(R.floor.identityVal,-500), JSON.stringify(R.floor));
+  ck('UNBUDGETED $500 (no budget line) reduces supportable residual by exactly the cash absorbed; full cash identity reconciles', near(R.unbudg.cash,500)&&near(R.unbudg.rp,1000)&&near(R.unbudg.rs,500)&&R.unbudg.fallsByCash&&R.unbudg.identity, JSON.stringify(R.unbudg));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.slice(0,3).join(' | '));
