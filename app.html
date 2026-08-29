@@ -1286,6 +1286,9 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.25 — Aug 29, 2026 · Build 20260829.113 · Surplus reconciliation is now VISIBLE (the product step after v0.68.24's engine). The Contingency card draws a "Where this month's cash is going" waterfall — deposits received → actual spending → fixed/linked goals → surplus → contingency repaired → residual goals funded → remaining projected cash — with a one-line interpretation ("Your August surplus first repaired $X of negative contingency (back to $0), then funded $Y of residual goals, and left $Z as spendable cash"). It also distinguishes RAW contingency (the buffer history shown as the total), what THIS month's surplus can repair, and the EFFECTIVE position if applied — so a user doesn't see the historical negative and assume the surplus didn't matter. A no-surplus month shows the reserve draw instead, and the card only appears once a deposit has landed this month. NO duplicated math — it renders straight from monthlyCashReconciliation(), the same helper Wren narrates. New verify-cash-recon-card.js (6, break-audited with a rendered screenshot). Still deferred: Decision Engine surfacing and floor-aware multi-month reconciliation.
+//   v0.68.24 — Aug 29, 2026 · Build 20260829.112 · SURPLUS ALLOCATION — a model-level gap found in real use ("I got a big July deposit; where did the surplus go?"). NestWorth modelled expense COVERAGE (category → envelope → contingency → cash) but had no authoritative answer to the inverse: when actual income exceeds what the month required, where does the surplus go? New computed (non-writing) helper monthlyCashReconciliation() implements the hierarchy: actual income → actual consumption → protected fixed/linked goal commitments → REPAIR the contingency deficit → residual goals → unallocated reserves, with an exact identity (income + reserveDraw === consumption + protectedGoals + contingencyRepair + residualFunding + unallocated). CRITICAL correctness point: only the deficit ENTERING the month is repairable from that month's surplus — the current month's own buffer overspend is already inside consumption, so repairing the current end-of-month deficit would double-count it (this is why the auditor's "repair the negative contingency" is applied to the entering position, = rawBuffer, which excludes the in-progress month). Wren now (1) routes "projected cash" to the cash-flow projection instead of month spending pace, recording it as conversational state, and (2) answers the allocation follow-up "will it go into contingency or fund my goals?" from the reconciliation — resolving "it" to the prior projected-cash figure, answering BOTH halves, leading with the direct answer, and never implying positive projected cash auto-fills contingency. New verify-cash-allocation.js (CASH-ALLOC-001…012 incl. the identity, refund/goal-move/three-paycheck, and the no-double-count case) + verify-wren-cash-alloc.js (WREN-CASH-001…008); all break-audited. DEFERRED (unchanged): surfacing the reconciliation in the Contingency card / Decision Engine UI, and floor-aware multi-month reconciliation.
+//   v0.68.23 — Aug 29, 2026 · Build 20260829.111 · Wren now answers the CAUSAL contingency question (from real use: "despite the large deposit in July, why do I still have no contingency?"). Before, that got the generic current-state answer (pool overspent, $0 available), which never addressed the premise. A deposit does NOT build the contingency pool — only UNSPENT budget in buffer categories banks there; income/deposits add to cash and net worth, a separate place. Wren now corrects that premise directly: it explains the deposit went to cash/net worth, states the current pool (overspent by $X / in the black at $Y / no buffer set up), and — when overspent — that rebuilding it needs buffer categories to come in under budget, not another deposit. Guarded so a plain "will my paycheck cover the overage?" (a cash question) still routes to coverage. New cases in verify-contingency-history.js (deposit-causal answer + a non-hijack control), break-audited.
 //   v0.68.22 — Aug 29, 2026 · Build 20260829.110 · Second goal-funding gap found by adversarial audit: UNBUDGETED / uncategorized spending didn't reduce supportable residual. goalFundingStatus()'s inputs were all budget-line based (fixedTot/underRoom, envelope deficits, contingency), so a transaction in a category with no budget line — or an uncategorized expense — was real cash consumption (canonical monthActualTotals includes it) yet invisibly left residual "% of leftover" capacity untouched. New unbudgetedConsumption() sums this month's expense rows that aren't in any budgeted category (uncategorized included; credits/refunds net down; goal movements excluded via isExpenseRow), and goalFundingStatus folds it into the no-cushion cash pressure alongside the plain overage, net of genuine plain under-budget room. Budgeted categories are skipped (their spend is already in mspent/budUsed), so nothing is double-charged, and the full household cash identity still reconciles with C = canonical consumption. verify-goal-funding.js extended with GF-013…GF-018 (unbudgeted reduces residual, partial offset by under-room, exceeds→$0+overflow, uncategorized≡named, refund restores, goal-move-not-consumption); verify-goal-funding-reconcile.js adds an unbudgeted identity case; mutation-audited (ignoring unbudgeted makes GF-013/015 fail). Deferred as before: floor-aware multi-month cash-flow reconciliation, and whether plain slack should offset an accumulated envelope/buffer deficit.
 //   v0.68.21 — Aug 29, 2026 · Build 20260829.109 · The contingency history is now VISIBLE (v0.68.19 gave Wren the month-by-month history to narrate, but there was nowhere to SEE it). The Contingency card now draws a compact bar sparkline of the pooled buffer's month-end balance across the completed months — green above the zero line, red below — with the month it first crossed negative highlighted, and a plain caption ("Went negative in July · last in the black in June at $100 · now −$400" or "In the black every month"). It reads from the same getContingencyFacts() history Wren narrates, so the picture and Wren's answer can't disagree. New verify-contingency-trend.js (6, break-audited).
 //   v0.68.20 — Aug 29, 2026 · Build 20260829.108 · Cash-flow clarity (from real-use confusion: "how is the balance positive if my contingency is overspent?"). The running-total column read as "money I have" — it isn't. (1) Renamed the column "Balance" → "Projected cash". (2) When Starting savings is $0, a conspicuous note now says these figures are a cash-flow TREND from a $0 baseline, not actual cash on hand, and to enter start-of-year cash for a true projection. (3) The verdict now connects the two pools the screen used to leave separate: when the contingency buffer is overspent it says plainly that projected cash is NOT the contingency and a positive cash trend doesn't refill it (and a neutral "separate from your contingency" line when it's in the black). NO math change — an investigation of the current-month "so far + plan" net (verify-cashflow-current-month.js) proved it is NOT double-counting income or producing a catch-up artifact: current-month income = max(actual-to-date, plan) and outflow = max(actual-to-date, plan), income enters once, and the net only SHRINKS as real spending is logged (conservative on outflow). The large recovering month is a real deposit already received paired with at-least-planned spending; the ambiguity was purely the label/baseline. New verify-cashflow-current-month.js (5, the decomposition/no-double-count proof) + verify-cashflow-presentation.js (5, the clarity UI), both break-audited with permanent verify-mutation.js entries.
@@ -1681,8 +1684,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.22"; // SemVer — what changed functionally (display only)
-var BUILD="20260829.110"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.25"; // SemVer — what changed functionally (display only)
+var BUILD="20260829.113"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -3233,6 +3236,45 @@ function getContingencyFacts(){
     firstNegativeMonth:(firstNeg>=0?firstNeg+1:0),firstNegativeBal:(firstNeg>=0?hist[firstNeg].bal:0),      // 1-indexed month (0 = never went negative)
     lastPositiveMonth:lastPos,lastPositiveBal:r2(lastPosBal),                                               // 1-indexed month (0 = never positive after carry-in)
     dropMonth:drop.m,dropAmt:r2(drop.amt)};                                                                 // month of the largest single-month decrease
+}
+// ===== SURPLUS ALLOCATION / monthly cash reconciliation. The expense-coverage hierarchy (category → envelope → contingency →
+// cash) answers "where does an OVERAGE come from"; this answers the INVERSE, which the model was missing: when a month's ACTUAL
+// income exceeds what the month actually required, where does the SURPLUS go? Order: actual income → actual consumption →
+// protected fixed/category-linked goal commitments → REPAIR a depleted contingency → residual ("% of leftover") goals →
+// unallocated reserves. COMPUTED/advisory — nothing is written to the ledger (same philosophy as the contingency coverage layer);
+// it does not move rawBuffer, it says how a surplus WOULD restore it. Exact reconciliation identity (verify-cash-allocation.js):
+//   income + reserveDraw === consumption + protectedGoals + contingencyRepair + residualFunding + unallocated
+// CRITICAL SUBTLETY (no double-count): only the contingency deficit ENTERING the month can be repaired from that month's surplus.
+// The current month's OWN buffer overspend is already inside `consumption`, so repairing the current end-of-month deficit would
+// subtract that overspend twice. The entering position is the pool balance at the end of the PRIOR month — which is exactly what
+// rawBuffer is (it excludes the in-progress current month by design), and getContingencyFacts().history gives it for past months.
+function _contingencyEntering(mo){
+  if(typeof getContingencyFacts!=="function")return 0;
+  var cf=getContingencyFacts();if(mo<=1)return cf.carryIn||0;
+  var h=cf.history||[];for(var i=0;i<h.length;i++){if(h[i].m===mo-1)return h[i].bal;}
+  return cf.rawBuffer||0; // fallback: the current entering position
+}
+function monthlyCashReconciliation(y,mo){
+  y=y||curYear();mo=mo||curMonth();
+  var mt=(typeof monthActualTotals==="function")?monthActualTotals(y,mo):{income:0,expense:0};
+  var income=r2(mt.income||0),consumption=r2(mt.expense||0);                 // ACTUAL deposits & ACTUAL spend (excl. goal moves, incl. unbudgeted; refunds net consumption down)
+  var IE=(typeof actualIE==="function")?actualIE(state.rows,y):{agf:[],agc:[],ag:[]};
+  var protFixed=r2((IE.agf&&IE.agf[mo-1])||0),protLinked=r2((IE.agc&&IE.agc[mo-1])||0); // actual fixed + category-linked goal contributions (goal moves — NOT in consumption)
+  var protectedGoals=r2(protFixed+protLinked),actualGoalMoves=r2((IE.ag&&IE.ag[mo-1])||0);
+  var preSurplus=r2(income-consumption-protectedGoals);                      // + = surplus to allocate; − = the month drew on reserves
+  var entering=r2(_contingencyEntering(mo)),enteringDeficit=r2(Math.max(0,-entering));
+  var contingencyRepair=r2(Math.min(Math.max(0,preSurplus),enteringDeficit));// surplus repairs the ENTERING deficit first
+  var afterRepair=r2(Math.max(0,preSurplus-contingencyRepair));
+  var residualPlanned=r2((typeof residualPool==="function")?residualPool():0);
+  var residualFunding=r2(Math.min(afterRepair,residualPlanned));             // then residual goals, up to their plan
+  var unallocated=r2(Math.max(0,afterRepair-residualFunding));               // then true excess cash / reserves
+  var reserveDraw=r2(Math.max(0,-preSurplus));                               // income didn't cover consumption + protected commitments
+  return {year:y,month:mo,income:income,consumption:consumption,
+    protectedFixed:protFixed,categoryLinkedGoalFunding:protLinked,protectedGoals:protectedGoals,actualGoalMoves:actualGoalMoves,
+    preAllocationSurplus:preSurplus,surplus:r2(Math.max(0,preSurplus)),reserveDraw:reserveDraw,
+    contingencyEntering:entering,contingencyEnteringDeficit:enteringDeficit,contingencyRepair:contingencyRepair,contingencyAfterRepair:r2(entering+contingencyRepair),
+    residualPlanned:residualPlanned,residualFunding:residualFunding,unallocated:unallocated,
+    hasSurplus:(preSurplus>0.005),drawsReserves:(reserveDraw>0.005)};
 }
 // ---- Goals (savings earmarks — money movements, NOT expenses) ----
 function loadGoals(){
@@ -6240,6 +6282,34 @@ async function gtxSubmit(){
 // (getContingencyFacts()) — so the number Wren quotes and the picture on the card can't disagree. Bars are the month-END pool
 // balance for each COMPLETED month (the horizon behind rawBuffer); green above the zero line, red below; the month it first
 // crossed negative is highlighted. Theme-aware via the palette vars. Returns "" when there's no buffer or too little to trend.
+// A visual "where this month's cash is going" waterfall — the SAME facts monthlyCashReconciliation() computes and Wren narrates,
+// no math duplicated here. Shows deposits → spending → protected goals → surplus → contingency repair → residual → remaining, with
+// a one-line interpretation. Returns "" until a deposit has landed this month (nothing to reconcile yet).
+function cashReconCardHTML(){
+  var rc;try{rc=monthlyCashReconciliation();}catch(e){return "";}
+  if(!rc||rc.income<=0.005)return "";
+  var mn=(typeof MONF!=="undefined"&&MONF[(rc.month||1)-1])||"This month";
+  var line=function(label,amt,sign,cls,indent){return '<div class="totrow" style="margin-top:4px"><span'+(indent?' style="padding-left:12px;color:var(--ink2)"':'')+'>'+esc(label)+'</span><span class="'+(cls||'')+'">'+(sign==="+"?"+":(sign==="-"?"−":""))+money(Math.abs(amt))+'</span></div>';};
+  var h='<div style="margin:14px 0 2px;padding-top:12px;border-top:1px solid var(--line)">';
+  h+='<div class="hintline" style="text-align:left;margin:0 0 4px;font-weight:600;color:var(--ink)">Where '+esc(mn)+'’s cash is going · so far</div>';
+  h+=line('Deposits received',rc.income,"+","bpos");
+  h+=line('Actual spending',rc.consumption,"-","bneg");
+  if(rc.protectedGoals>0.005)h+=line('Fixed / linked goals',rc.protectedGoals,"-","bneg");
+  h+='<div class="totrow" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)"><span>'+(rc.hasSurplus?"Surplus to allocate":"Short this month")+'</span><b class="'+(rc.hasSurplus?"bpos":"bneg")+'">'+(rc.hasSurplus?"":"−")+money(rc.hasSurplus?rc.surplus:rc.reserveDraw)+'</b></div>';
+  if(rc.hasSurplus){
+    if(rc.contingencyRepair>0.005)h+=line('Contingency repaired',rc.contingencyRepair,"-","bneg",true);
+    if(rc.residualFunding>0.005)h+=line('Residual goals funded',rc.residualFunding,"-","bneg",true);
+    h+='<div class="totrow" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)"><span>Remaining projected cash</span><b>'+money(rc.unallocated)+'</b></div>';
+    var bits=[];
+    if(rc.contingencyRepair>0.005)bits.push("first repaired "+money(rc.contingencyRepair)+" of negative contingency"+(rc.contingencyAfterRepair>=-0.005?" (back to $0)":""));
+    if(rc.residualFunding>0.005)bits.push((bits.length?"then funded ":"funded ")+money(rc.residualFunding)+" of residual goals");
+    if(rc.unallocated>0.005)bits.push((bits.length?"and ":"")+"left "+money(rc.unallocated)+" as spendable cash");
+    if(bits.length)h+='<div class="hintline" style="text-align:left;margin:6px 0 0">Your '+esc(mn)+' surplus '+bits.join(", ")+'.</div>';
+  }else{
+    h+='<div class="hintline" style="text-align:left;margin:4px 0 0">After actual spending and protected goals, '+esc(mn)+' is drawing '+money(rc.reserveDraw)+' from reserves — no surplus to repair contingency or fund residual goals.</div>';
+  }
+  h+='</div>';return h;
+}
 function contingencyTrendHTML(){
   var cf;try{cf=getContingencyFacts();}catch(e){return "";}
   if(!cf.hasBuffer||!cf.history||cf.history.length<2)return "";
@@ -6272,7 +6342,17 @@ function renderContingency(){
   // Contingency = a shared SECONDARY cushion. Show what's banked, what it's currently covering, and what's actually left.
   h+='<div class="totrow"><span>Contingency</span><b class="'+(r.rawBuffer<-0.005?"bneg":"")+'">'+money(r.rawBuffer)+'</b></div>';
   h+='<div class="hintline" style="text-align:left;margin:4px 0 0">A shared secondary cushion — every buffer category\'s unspent money pools here, ready to cover a category that outspends its own envelope.</div>';
+  // Raw vs repaired vs effective: the total above is the RAW buffer history; if THIS month's surplus can repair some of a deficit,
+  // show what it would restore and the effective position — so a user doesn't see the historical negative and assume the surplus
+  // didn't matter. Advisory only (nothing is moved automatically); the "available to cover" number below stays the actual figure.
+  var _rrc=null;try{_rrc=monthlyCashReconciliation();}catch(e){}
+  if(_rrc&&_rrc.contingencyRepair>0.005){
+    h+='<div class="totrow" style="margin-top:6px"><span style="padding-left:12px;color:var(--ink2)">This month’s surplus can repair</span><span class="bpos">+'+money(_rrc.contingencyRepair)+'</span></div>';
+    h+='<div class="totrow" style="margin-top:2px"><span style="padding-left:12px">Effective if applied</span><b class="'+(_rrc.contingencyAfterRepair<-0.005?"bneg":"bpos")+'">'+money(_rrc.contingencyAfterRepair)+'</b></div>';
+    h+='<div class="hintline" style="text-align:left;margin:2px 0 0">The figure above is your raw buffer history; this month’s surplus could restore '+money(_rrc.contingencyRepair)+' of it (advisory — nothing is moved automatically).</div>';
+  }
   h+=contingencyTrendHTML(); // month-by-month trend of the pooled balance — the history Wren narrates, now visible
+  h+=cashReconCardHTML();    // "where this month's cash is going" waterfall — same monthlyCashReconciliation() facts, drawn
   if(r.contingencyUsed>0.005){
     h+='<div class="totrow" style="margin-top:6px"><span style="padding-left:12px;color:var(--ink2)">Covering envelope deficits</span><span class="neg">−'+money(r.contingencyUsed)+'</span></div>';
     h+='<div class="totrow" style="margin-top:2px"><span style="padding-left:12px">Available</span><b class="'+(r.remainingContingency>0.005?"pos":"")+'">'+money(r.remainingContingency)+'</b></div>';
@@ -7149,7 +7229,9 @@ function wrenDecisionMsg(res){
 //   goal/cat/envelope — last-referenced entity of each type (for pronoun + bare follow-ups)
 //   why   — a re-derivable descriptor of the last CLAIM {kind:'goal'|'overbudget'|'nwchange'|'lowcash', …} so a bare "why?" substantiates it
 //   scenario — the last hypothetical passed to the Decision Engine, so "would that put us below our floor?" re-runs it
-var wrenCtx={goal:null,cat:null,envelope:null,why:null,scenario:null};
+var wrenCtx={goal:null,cat:null,envelope:null,why:null,scenario:null,lastFact:null};
+//   lastFact — the last DATA fact Wren stated (e.g. {type:'projectedCash', amount, ending}), so a follow-up like "will IT go into
+//   contingency or fund my goals?" resolves "it" to that figure instead of being treated as a fresh generic contingency query.
 function _wrenFindCat(nm){return (state.cats||[]).filter(function(x){return x.name.toLowerCase()===(""+nm).toLowerCase();})[0];}
 // Narrate a specific sub-question about the carried hypothetical from its authoritative Decision-Engine result.
 function wrenScenarioSub(res,tt){
@@ -7285,6 +7367,46 @@ function wrenAnalyze(text){
   if(!state.rows||!state.rows.length)return null;
   var _epi=wrenEpistemic(t);if(_epi)return _epi;
   var _fu=wrenFollowup(t);if(_fu)return _fu; // conversational follow-up (bare "why?", carried hypothetical, category pronoun) resolves from wrenCtx
+  // ===== PROJECTED CASH (current-month cash-flow projection). Routed BEFORE the spending-pace branch, which used to grab the word
+  // "projected" and answer with month spending pace instead. Answered from the SAME engine the Cash Flow screen uses, and records
+  // the figure as wrenCtx.lastFact so an allocation follow-up ("will IT go into contingency or fund my goals?") can resolve "it".
+  if(/\bcash\b/.test(t)&&/(projected cash|cash projection|projected balance|ending cash|cash (flow )?(this|end)|what happens.{0,24}cash|where.{0,24}cash (end|land|go|sit)|how much cash.{0,14}(end|left|this month)|my (projected )?cash this month)/.test(t)&&!/(spending pace|budget pace|spent on|how much did i spend|per category)/.test(t)){
+    try{
+      var _cfp=computeCashflow(currentPlan(),{mode:"actual",year:curYear()}),_cm=curMonth(),_mm=_cfp.months[_cm-1];
+      var _net=_mm.net,_bal=_mm.bal,_start=(state.meta&&Number(state.meta.startCash))||0;
+      wrenCtx.lastFact={type:"projectedCash",period:"currentMonth",amount:_net,ending:_bal,sourceIntent:"cashflowCurrentMonth"};
+      var _ans="This month you're on track for "+(_net>=0?("a projected gain of "+anMoney(_net)):("a projected draw of "+anMoney(-_net)))+" in cash — income minus spending, blending what you've logged so far with your plan for the rest of the month. It lands your running cash at about "+anMoney(_bal)+" by month-end.";
+      if(Math.abs(_start)<0.005)_ans+=" (Starting savings is $0, so that's a cash-flow trend from a $0 baseline, not money in the bank.)";
+      var _fl=(typeof nestFloor==="function")?nestFloor():0;if(_fl>0&&_bal<_fl-0.005)_ans+=" ⚠️ That's below your "+anMoney(_fl)+" Nest Egg Floor.";
+      return {answer:_ans,go:{v:"budget"}};
+    }catch(e){}
+  }
+  // ===== ALLOCATION follow-up — "will IT go into my contingency or fund my goals?" resolves "it/that/the surplus" against the
+  // projected-cash fact from the prior turn (or an explicit surplus mention), and answers the actual decision question from
+  // monthlyCashReconciliation() (surplus → repair the ENTERING contingency deficit → residual goals → reserves). Answers BOTH
+  // halves when both are asked, and leads with the direct answer.
+  var _allocAsk=/(contingency|buffer)|goal|fund\b|saving|reserve|allocat|where.{0,12}(it|that|the money).{0,8}go/.test(t);
+  var _refPrior=wrenCtx.lastFact&&wrenCtx.lastFact.type==="projectedCash"&&/\b(it|that|this|the (extra|surplus|rest|leftover|left)|what.?s left|the money)\b/.test(t);
+  var _explicitSurplus=/(\bsurplus\b|extra cash|excess (cash|income)|remaining cash|the rest of (my|the) (cash|money))/.test(t); // NOT "leftover" — residual goals are "% of leftover", a different topic
+  if(_allocAsk&&(_refPrior||_explicitSurplus)){
+    try{
+      var rc=monthlyCashReconciliation(),ga=goalFundingStatus(),askCont=/(contingency|buffer)/.test(t),askGoal=/(goal|fund\b|saving)/.test(t),P=[];
+      if(!rc.hasSurplus){
+        P.push("There isn't a surplus this month to send anywhere"+(rc.drawsReserves?(" — after actual spending and your protected commitments, the month is drawing about "+anMoney(rc.reserveDraw)+" from reserves"):"")+".");
+        if(askCont||!askGoal)P.push("So nothing refills your contingency"+(rc.contingencyEnteringDeficit>0.005?(", which is still overspent by "+anMoney(rc.contingencyEnteringDeficit)+" ($0 available)"):"")+" — and a positive projected-cash trend doesn't automatically refill it either.");
+        if(askGoal){var gb=[];if(ga.hasFixed)gb.push("your fixed goal contributions ("+anMoney(ga.fixedSupported)+") stay protected first");if(ga.hasResidual&&rc.residualPlanned>0.005)gb.push("about "+anMoney(rc.residualFunding)+" of your planned "+anMoney(rc.residualPlanned)+" residual goal funding is supported");P.push(gb.length?("For goals, "+gb.join(", and ")+"."):"You don't have goals set up for this to fund.");}
+        return {answer:P.join(" "),go:{v:"budget"}};
+      }
+      P.push("Here's where this month's surplus of "+anMoney(rc.surplus)+" (actual income after actual spending and protected commitments) goes — not swept anywhere automatically, but in order:");
+      if(rc.contingencyRepair>0.005)P.push("first "+anMoney(rc.contingencyRepair)+" repairs your contingency"+(rc.contingencyAfterRepair>=-0.005?" (back to $0)":(" (from "+anMoney(rc.contingencyEntering)+" to "+anMoney(rc.contingencyAfterRepair)+", still short)"))+";");
+      else if(rc.contingencyEntering<-0.005)P.push("your contingency is overspent but this surplus is already accounted for, so none repairs it;");
+      else P.push("your contingency is in the black, so none is diverted to it;");
+      var gb2=[];if(ga.hasFixed)gb2.push("fixed goal contributions ("+anMoney(ga.fixedSupported)+") are protected first");if(ga.hasResidual&&rc.residualPlanned>0.005)gb2.push(anMoney(rc.residualFunding)+" of your planned "+anMoney(rc.residualPlanned)+" residual goals is supported");
+      P.push(gb2.length?("then "+gb2.join(", and ")+";"):"you don't have goals set up, so none funds goals;");
+      P.push(rc.unallocated>0.005?("the remaining "+anMoney(rc.unallocated)+" stays as cash unless you move it."):"nothing is left after that.");
+      return {answer:P.join(" "),go:{v:"budget"}};
+    }catch(e){}
+  }
   var _inc=wrenIncome(t);if(_inc)return _inc;
   // ===== Decisions: run the whole model on a hypothetical (fires before the read-only analytics) =====
   var _amt=(function(){var m=t.match(/\$?\s?([0-9][0-9,]*(?:\.[0-9]+)?)\s?(k|thousand)?/);if(!m)return 0;var v=parseFloat((m[1]||"").replace(/,/g,""))||0;return m[2]?v*1000:v;})();
@@ -7373,6 +7495,17 @@ function wrenAnalyze(text){
         return {answer:"Your contingency first went negative in "+MNY(cf.firstNegativeMonth)+", ending that month at about "+anMoney(cf.firstNegativeBal)+"; "+beforeTxt+". It's now at "+anMoney(cf.rawBuffer)+"."+(cf.dropMonth&&cf.dropAmt<-0.005?(" The biggest single-month drop was in "+MN(cf.dropMonth)+" ("+anMoney(cf.dropAmt)+")."):""),go:{v:"budget"}};
       }
       return {answer:"Your contingency has never gone negative this year — it started at "+anMoney(cf.carryIn)+" and is now at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"budget"}};
+    }
+    // "despite my big deposit, why is there no contingency?" — a CAUSAL premise to correct. A deposit does NOT build the
+    // contingency pool: only UNSPENT budget in buffer categories banks here. Income/deposits add to cash & net worth (a separate
+    // place), so a large deposit can't create or refill contingency. Requires a deposit/income term + a contingency term + a
+    // why/despite/still/negation framing, so a plain "will my paycheck cover the overage?" (a cash question) doesn't fall in here.
+    if(/(deposit|paycheck|pay ?check|income|raise|got paid|direct deposit|money (came|coming) in)/.test(t)&&/(contingency|buffer|cushion)/.test(t)&&/(despite|still|why|does ?n.?t|did ?n.?t|is ?n.?t|no |not |refill|rebuild|\bbuild\b|go(es)? in|into|feed|replenish|help|create|empty|nothing|missing|gone)/.test(t)){
+      var cf3=getContingencyFacts();
+      var lead="A deposit doesn’t build your contingency — only the money your <b>buffer categories don’t spend</b> pools into it. Your deposit added to your income and cash (they show up in projected cash and net worth), which is a separate place from this pool.";
+      if(!cf3.hasBuffer)return {answer:lead+" You don’t have a contingency buffer set up yet — set a category’s leftover to “Contingency buffer” and its unspent budget will start banking here.",go:{v:"budget"}};
+      if(cf3.isOverspent)return {answer:lead+" Right now your contingency is overspent by "+anMoney(cf3.bufferDeficit)+" (raw balance "+anMoney(cf3.rawBuffer)+"), so it still shows $0 available. To rebuild it, your buffer categories need to come in under budget — the deposit alone won’t move it.",go:{v:"budget"}};
+      return {answer:lead+" Your contingency is "+anMoney(cf3.rawBuffer)+" right now — that came from what your buffer categories haven’t spent, not from the deposit.",go:{v:"budget"}};
     }
     // "is my contingency overspent?" → the raw buffer / buffer deficit (capacity is a separate question). Guarded against temporal
     // phrasings above so "WHEN did it become overspent" doesn't fall in here.

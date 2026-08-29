@@ -1,8 +1,8 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.22 · Build 20260829.110
-**app.html SHA-256:** `0f6d4d96f6f141ed29fe15f52f4dce650bfd143c597a93d0d1b6fed2ad97768d`
-**Executed:** 2026-08-29 18:35 UTC
+**Build under test:** v0.68.25 · Build 20260829.113
+**app.html SHA-256:** `8a37b3522c7b7016e169f39384b37855a501650ed1dd5c1fca8343f3470e1ce8`
+**Executed:** 2026-08-29 20:31 UTC
 **Environment:** headless Chromium 141.0.7390.37 (Playwright) on Node v22.22.2, Linux cloud container.
 
 ## Execution provenance (read this first)
@@ -19,13 +19,13 @@ These are **actual run results** from executing the suites against the exact bui
 
 | | |
 |---|---|
-| Test files | **97** (96 functional suites + mutation) |
-| Functional suites | **96 / 96 pass**, 0 failed |
+| Test files | **100** (99 functional suites + mutation) |
+| Functional suites | **99 / 99 pass**, 0 failed |
 | Total assertions | **~1,015** (819 `passed`-style + 64 golden invariants + 133 Wren-golden) |
 | Randomized households (fuzz) | **9,000**, 9/9 identity invariants |
 | Beta-readiness harnesses | new-user journey **6/6**, household journeys (H1,H3–H8) **8/8**, chaos-user **9/9**, first-run tour timing **5/5** — each break-audited |
 | Goal-funding (planned vs supportable) | helper golden **18/18** (incl. GF-007…GF-012 cross-category offset and GF-013…GF-018 unbudgeted consumption), engine reconciliation **8/8**, contingency↔goals narration **8/8** (incl. CASE 7 coverage↔goal consistency) — full cash identity reconciles; each break-audited |
-| Mutation (validity-gated, run alone) | **18 / 18 CAUGHT by genuine assertion failure**; app.html restored byte-exact |
+| Mutation (validity-gated, run alone) | **23 / 23 CAUGHT by genuine assertion failure**; app.html restored byte-exact |
 
 ## The requested release-artifact suites (explicit)
 
@@ -39,7 +39,7 @@ These are **actual run results** from executing the suites against the exact bui
 | `verify-property.js` | **8 / 8** |
 | `verify-fuzz.js` | **9 / 9** over **9,000** randomized households |
 | `verify-wren-golden.js` | **122 / 122 cases · 133 / 133 assertions** |
-| `verify-mutation.js` (validity gate) | **18 / 18 CAUGHT**, byte-exact restore |
+| `verify-mutation.js` (validity gate) | **23 / 23 CAUGHT**, byte-exact restore |
 | `verify-chaos.js` | **9 / 9** (single-client fault injection) |
 | `verify-security.js` | **18 / 18** |
 | `verify-starter-share.js` | **20 / 20** (fail-closed sharing) |
@@ -53,12 +53,15 @@ These are **actual run results** from executing the suites against the exact bui
 | `verify-goal-funding.js` | **18 / 18** — planned vs supportable residual: under/on-plan, envelope-self, shared-contingency, uncovered, floor + **GF-007…GF-012 cross-category offset** + **GF-013…GF-018 unbudgeted/uncategorized consumption** (reduces residual, partial offset by under-room, exceeds→$0+overflow, uncategorized≡named, refund restores, goal-move-not-consumption); reconciliation invariants |
 | `verify-goal-funding-reconcile.js` | **8 / 8** — engine-level cash identity across every goal type (fixed, category-linked, residual, capped) + coverage layer + floor + **unbudgeted consumption** (C = canonical actual consumption) |
 | `verify-contingency-goals.js` | **8 / 8** — Review + Wren narrate planned-vs-supported honestly; order fix, no vacuous $0.00 line, buffer-over contingency-buffer note, **CASE 7 coverage↔goal consistency on an offset month** |
-| `verify-contingency-history.js` | **9 / 9** — Wren TEMPORAL contingency questions: `getContingencyFacts()` month-by-month history + firstNegativeMonth/lastPositiveMonth; "when did it become overspent?" names the month (≠ the current-state answer); "how much is in my contingency after my bills?" is a clean balance/available/why answer (no uncovered-envelope or year-end over-answer) |
+| `verify-contingency-history.js` | **11 / 11** — Wren TEMPORAL contingency questions + the CAUSAL "despite my deposit, why no contingency?" (a deposit doesn't build the pool — only unspent buffer budget does; with a non-hijack control): `getContingencyFacts()` month-by-month history + firstNegativeMonth/lastPositiveMonth; "when did it become overspent?" names the month (≠ the current-state answer); "how much is in my contingency after my bills?" is a clean balance/available/why answer (no uncovered-envelope or year-end over-answer) |
 | `verify-cashflow-current-month.js` | **5 / 5** — proves the "so far + plan" current-month net does NOT double-count income or produce a catch-up artifact: income = max(actual, plan) counted once, outflow = max(actual, plan), net only SHRINKS as spending is logged |
 | `verify-cashflow-presentation.js` | **5 / 5** — column reads "Projected cash" (not "Balance"); a $0 Starting savings shows a trend-not-cash note; an overspent contingency is surfaced alongside so a positive projected total isn't misread as "all covered" |
+| `verify-cash-allocation.js` | **12 / 12** — SURPLUS ALLOCATION: monthlyCashReconciliation() (income → consumption → protected goals → REPAIR entering contingency deficit → residual → reserves); CASH-ALLOC-001…012 incl. the exact identity, refund/goal-move/three-paycheck, and the no-double-count (only the ENTERING deficit is repairable) |
+| `verify-wren-cash-alloc.js` | **8 / 8** — Wren routes "projected cash" to the cash-flow projection (not spending pace) and answers the allocation follow-up "will it go into contingency or fund my goals?" from the reconciliation — resolving "it" to the prior fact, both halves, direct answer first |
+| `verify-cash-recon-card.js` | **6 / 6** — the surplus reconciliation is VISIBLE: the Contingency card draws a "where this month's cash is going" waterfall + the raw/repaired/effective contingency distinction, straight from monthlyCashReconciliation() (no duplicated math); no-surplus month shows the reserve draw; no card until a deposit lands. Rendered-screenshot check |
 | `verify-contingency-trend.js` | **6 / 6** — the contingency history is now VISIBLE: the Contingency card draws a month-by-month bar sparkline (green above / red below the zero line) with the crossing month highlighted and a caption naming it; healthy buffer reads "in the black"; no chart when there's no buffer |
 
-**All requested suites executed on v0.68.22 and passed.**
+**All requested suites executed on v0.68.25 and passed.**
 
 ## Full per-suite output (all 93 files)
 
@@ -158,7 +161,10 @@ verify-write-contract.js         10 passed, 0 failed
 verify-mutation.js               12/12 CAUGHT (run alone) · app.html restored byte-exact
 ```
 
-## What's new since the prior report (v0.68.10 → v0.68.22)
+## What's new since the prior report (v0.68.10 → v0.68.25)
+- **Surplus reconciliation is now visible (v0.68.25)** — the product step after v0.68.24's engine. The Contingency card draws a "where this month's cash is going" waterfall (deposits → spending → protected goals → surplus → contingency repaired → residual → remaining) with a one-line interpretation, and distinguishes RAW contingency, what this month's surplus can repair, and the EFFECTIVE position if applied — so a historical negative buffer no longer reads as "the surplus didn't matter". It renders straight from `monthlyCashReconciliation()` — the same helper Wren narrates, no duplicated math. `verify-cash-recon-card.js` (6 cases, break-audited, rendered-screenshot check).
+- **Surplus allocation — the missing inverse of expense coverage (v0.68.24)** — NestWorth modelled where an overage comes from, but had no authoritative answer to where excess cash goes when actual income exceeds the month's requirements. New computed (non-writing) `monthlyCashReconciliation()`: income → consumption → protected fixed/linked goals → repair the contingency deficit → residual → reserves, with an exact identity. Correctness point caught while building: only the deficit ENTERING the month is repairable from that month's surplus — the current month's own buffer overspend is already in consumption, so repairing the current end-of-month deficit would double-count it (the auditor's example used the entering position, which is what `rawBuffer` is). Wren now routes "projected cash" to the cash-flow projection and answers the allocation follow-up from the reconciliation (resolving "it" to the prior figure, both halves, direct answer first). `verify-cash-allocation.js` (CASH-ALLOC-001…012) + `verify-wren-cash-alloc.js` (WREN-CASH-001…008), break-audited. Deferred: surfacing this in the Contingency card / Decision Engine UI, and floor-aware multi-month reconciliation.
+- **Wren answers the causal deposit↔contingency question (v0.68.23)** — "despite the large deposit in July, why do I still have no contingency?" used to get the generic overspent-state answer, which never addressed the premise. A deposit doesn't build the contingency pool — only unspent buffer-category budget does (income/deposits go to cash and net worth). Wren now corrects that directly and, when overspent, says rebuilding needs buffer categories under budget, not another deposit. Guarded so a plain "will my paycheck cover the overage?" still routes to coverage. `verify-contingency-history.js` +2 cases, break-audited.
 - **Unbudgeted/uncategorized consumption now reduces supportable residual (v0.68.22, adversarial audit)** — `goalFundingStatus()`'s inputs were all budget-line based, so a transaction in a category with no budget line, or an uncategorized expense, was real cash consumption (canonical `monthActualTotals` includes it) that never reduced residual capacity. New `unbudgetedConsumption()` sums this month's expense rows not in any budgeted category (uncategorized included; refunds net down; goal movements excluded), folded into the no-cushion cash pressure net of plain under-budget room — budgeted categories skipped so nothing double-charges, and the full cash identity still reconciles. `verify-goal-funding.js` GF-013…GF-018 + a reconcile identity case, mutation-audited.
 - **Contingency history is now VISIBLE on the card (v0.68.21)** — v0.68.19 gave Wren the month-by-month history to narrate, but there was nowhere to *see* it. The Contingency card now draws a compact bar sparkline of the pooled buffer's month-end balance across the completed months (green above the zero line, red below), highlights the month it first crossed negative, and captions it in plain language. It reads from the same `getContingencyFacts()` history Wren narrates, so the picture and Wren's answer can't disagree. `verify-contingency-trend.js` (6 cases, break-audited, with a rendered screenshot check).
 - **Cash-flow clarity + a decomposition proof (v0.68.20, from real-use confusion)** — a user asked how the cash-flow BALANCE could be positive while contingency is overspent. Two different pools: the running total is projected *cash*, the contingency is a budget buffer. The column is renamed **"Projected cash"**, a **$0-Starting-savings** note flags that the figures are a trend from an artificial $0 baseline (not cash on hand), and an overspent contingency is now surfaced beside the projection so a positive trend isn't read as "all covered". Crucially, before assuming it was only labeling, the large recovering month (July −$20k → August +$20.5k) was **investigated**: `verify-cashflow-current-month.js` proves the current-month "so far + plan" net does NOT double-count income and is NOT a catch-up artifact — income = max(actual, plan) counted once, and the net only shrinks as real spending is logged. It's a real deposit already received; the math is correct, the ambiguity was the label. Both new suites break-audited with permanent `verify-mutation.js` entries.

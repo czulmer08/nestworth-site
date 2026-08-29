@@ -44,7 +44,9 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
       lastPos:A("When was my contingency last positive?"),
       before:A("How much contingency did I have before it went negative?"),
       state:A("How much is in my contingency this month after my bills?"),
-      isOver:A("Is my contingency overspent?")
+      isOver:A("Is my contingency overspent?"),
+      deposit:A("Can you explain how despite the large deposit in July, I still don't have a contingency?"),
+      cover:A("Will my paycheck cover the overage this month?") // control: a cash-coverage question, must NOT get the deposit-causal answer
     };
   });
 
@@ -63,6 +65,12 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
      /June/.test(R.lastPos)&&/last positive|in the black/i.test(R.lastPos), R.lastPos);
   ck('"How much did I have before it went negative?" → gives the pre-crossing balance (≈ $100), not the current −$400',
      R.before.indexOf('$100.00')>=0&&R.before.indexOf('-$400.00')>=0&&/before|last positive|June/i.test(R.before), R.before);
+  // CAUSAL: "despite the deposit, why no contingency?" corrects the premise — a deposit doesn't build the pool; only unspent
+  // buffer-category budget does. It must NOT just repeat the generic overspent-state answer, and must name the deposit↔cash split.
+  ck('"despite the deposit, why no contingency?" → explains a deposit doesn’t build contingency (only unspent buffer budget does), names the overspend, doesn’t just repeat state',
+     /does(n’|n')t build your contingency/i.test(R.deposit)&&/buffer categories/i.test(R.deposit)&&/income and cash|projected cash|net worth/i.test(R.deposit)&&/overspent by \$400\.00|rebuild/i.test(R.deposit), R.deposit);
+  ck('control: "will my paycheck cover the overage this month?" does NOT get hijacked by the deposit-causal answer',
+     !/does(n’|n')t build your contingency/i.test(R.cover), R.cover);
 
   // STATE answer is CLEAN: balance + available + why — and does NOT drag in uncovered-envelope or year-end lines.
   ck('"How much is in my contingency after my bills?" → clean balance/$0-available/why answer',
