@@ -67,6 +67,47 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     // 6) BIG overage — Living $9,500 of $7,000 (over $2,500 > $2,000 residual) → residual to $0 AND draws reserves
     base();state.cats=[plainCat('Living',7000,9500,84000)];G=goalFundingStatus();
     Rz.big={cash:G.cashAbsorbed,rp:G.residualPlanned,rs:G.residualSupported,draws:G.drawsReserves,overflow:G.overflow,fixed:G.fixedSupported,recon:near(G.overTotal,G.envelopeSelf+G.sharedContingencyUsed+G.cashAbsorbed),inv:near(G.residualSupported,Math.max(0,G.residualPlanned-G.cashAbsorbed))};
+
+    // ===== CROSS-CATEGORY OFFSET scenarios (adversarial audit, GF gap) — the six current scenarios all had an overage that was
+    // either unoffset, envelope-self-covered, or contingency-covered; NONE had one plain category over while ANOTHER plain
+    // category was under by an offsetting amount. Gross per-category overages double-charged such a month. residualPlanned is
+    // $1,000 in GF-007..009 (income $120k − budget $96k [Living $84k + Dining $12k] − fixed $12k = $12k/yr).
+    function recon(G){return near(G.overTotal,G.envelopeSelf+G.sharedContingencyUsed+G.cashAbsorbed);}
+    function invB(G){return near(G.residualSupported,Math.max(0,G.residualPlanned-G.cashAbsorbed));}
+
+    // GF-007 — EXACT cross-category offset: Living +$100 / Dining −$100 → monthLeft $0 → residual UNCHANGED
+    base();state.cats=[plainCat('Living',7000,7100,84000),plainCat('Dining',1000,900,12000)];G=goalFundingStatus();
+    Rz.gf007={over:G.overTotal,cash:G.cashAbsorbed,rp:G.residualPlanned,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-008 — PARTIAL offset: Living +$500 / Dining −$300 → only $200 net hits cash → residual −$200
+    base();state.cats=[plainCat('Living',7000,7500,84000),plainCat('Dining',1000,700,12000)];G=goalFundingStatus();
+    Rz.gf008={cash:G.cashAbsorbed,rp:G.residualPlanned,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-009 — MORE underspend than overage: Living +$100 / Dining −$300 → residual FULLY supported, NOT boosted above planned
+    base();state.cats=[plainCat('Living',7000,7100,84000),plainCat('Dining',1000,700,12000)];G=goalFundingStatus();
+    Rz.gf009={cash:G.cashAbsorbed,rp:G.residualPlanned,rs:G.residualSupported,reduced:G.residualReduced,notBoosted:(G.residualSupported<=G.residualPlanned+0.005),recon:recon(G),inv:invB(G)};
+
+    // GF-010 — cross-category offset PLUS envelope self-coverage (NO double subtraction): Living +$100 / Dining −$100 (net $0) AND
+    // Food envelope $300 over covered by its own banked balance → cash $0, residual UNCHANGED, envelopeSelf $300 kept distinct.
+    base();state.cats=[plainCat('Living',7000,7100,84000),plainCat('Dining',1000,900,12000),envCat('Food',500,6000,'envelope')];
+    SPEND['food']=[200,200,200,200,200,200,200,800,0,0,0,0]; // banks $300/mo Jan–Jul (2,100); Aug spends $800 (over $300, self-covered)
+    G=goalFundingStatus();
+    Rz.gf010={cash:G.cashAbsorbed,envelopeSelf:G.envelopeSelf,shared:G.sharedContingencyUsed,rp:G.residualPlanned,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-011 — cross-category offset PLUS shared contingency (NO double subtraction): Living +$100 / Dining −$100 (net $0) AND
+    // Kids envelope into deficit covered by a Buf buffer pool → cash $0, residual UNCHANGED, shared>0 kept distinct from the offset.
+    base();state.cats=[plainCat('Living',7000,7100,84000),plainCat('Dining',1000,900,12000),envCat('Kids',500,6000,'envelope'),envCat('Buf',300,3600,'buffer')];
+    SPEND['kids']=fill(600);SPEND['buf']=fill(0); // Kids −$700 cumulative, Aug over $100; Buf banks $2,100 → contingency covers the deficit
+    G=goalFundingStatus();
+    Rz.gf011={cash:G.cashAbsorbed,shared:G.sharedContingencyUsed,envelopeSelf:G.envelopeSelf,rp:G.residualPlanned,rs:G.residualSupported,reduced:G.residualReduced,recon:recon(G),inv:invB(G)};
+
+    // GF-012 — MULTIPLE over/under categories, ORDER-INVARIANT: A +$300 / B −$100 / C +$50 / D −$100 → net $150 hits cash.
+    // Reordering the category list must give an IDENTICAL result (a household's position can't depend on row order).
+    base();state.cats=[plainCat('A',1000,1300,12000),plainCat('B',1000,900,12000),plainCat('C',1000,1050,12000),plainCat('D',1000,900,12000)];var Ga=goalFundingStatus();
+    base();state.cats=[plainCat('D',1000,900,12000),plainCat('C',1000,1050,12000),plainCat('B',1000,900,12000),plainCat('A',1000,1300,12000)];var Gb=goalFundingStatus();
+    Rz.gf012={cashA:Ga.cashAbsorbed,cashB:Gb.cashAbsorbed,overA:Ga.overTotal,overB:Gb.overTotal,rsA:Ga.residualSupported,rsB:Gb.residualSupported,
+      identical:near(Ga.cashAbsorbed,Gb.cashAbsorbed)&&near(Ga.overTotal,Gb.overTotal)&&near(Ga.residualSupported,Gb.residualSupported),
+      netCash:near(Ga.cashAbsorbed,150),recon:recon(Ga)&&recon(Gb),inv:invB(Ga)&&invB(Gb)};
     return Rz;
   });
 
@@ -76,6 +117,12 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('OVER but SHARED CONTINGENCY covers the deficit: NO cash, residual UNCHANGED; invariants hold', R.sharedCov.shared>0.005&&near(R.sharedCov.cash,0)&&near(R.sharedCov.rs,R.sharedCov.rp)&&!R.sharedCov.reduced&&R.sharedCov.recon&&R.sharedCov.inv, JSON.stringify(R.sharedCov));
   ck('UNCOVERED $460 overage → cash absorbs it, supported residual = $2,000 − $460 = $1,540; invariants hold', near(R.uncovered.cash,460)&&near(R.uncovered.rs,1540)&&R.uncovered.reduced&&!R.uncovered.draws&&R.uncovered.recon&&R.uncovered.inv, JSON.stringify(R.uncovered));
   ck('BIG $2,500 overage → residual to $0 AND draws reserves ($500 over capacity); fixed still protected; invariants hold', near(R.big.rs,0)&&R.big.draws&&near(R.big.overflow,500)&&near(R.big.fixed,1000)&&R.big.recon&&R.big.inv, JSON.stringify(R.big));
+  ck('GF-007 EXACT offset: Living +$100 / Dining −$100 → net $0, cash $0, residual UNCHANGED at planned $1,000; invariants hold', near(R.gf007.over,0)&&near(R.gf007.cash,0)&&near(R.gf007.rp,1000)&&near(R.gf007.rs,1000)&&!R.gf007.reduced&&R.gf007.recon&&R.gf007.inv, JSON.stringify(R.gf007));
+  ck('GF-008 PARTIAL offset: Living +$500 / Dining −$300 → only $200 hits cash; supported residual $800 of $1,000; invariants hold', near(R.gf008.cash,200)&&near(R.gf008.rs,800)&&R.gf008.reduced&&R.gf008.recon&&R.gf008.inv, JSON.stringify(R.gf008));
+  ck('GF-009 MORE underspend than overage: Living +$100 / Dining −$300 → cash $0, residual FULLY supported and NOT boosted above planned', near(R.gf009.cash,0)&&near(R.gf009.rs,1000)&&!R.gf009.reduced&&R.gf009.notBoosted&&R.gf009.recon&&R.gf009.inv, JSON.stringify(R.gf009));
+  ck('GF-010 offset + ENVELOPE self-coverage: no double subtraction → cash $0, envelopeSelf $300 (distinct), residual UNCHANGED; invariants hold', near(R.gf010.cash,0)&&near(R.gf010.envelopeSelf,300)&&near(R.gf010.shared,0)&&near(R.gf010.rs,R.gf010.rp)&&!R.gf010.reduced&&R.gf010.recon&&R.gf010.inv, JSON.stringify(R.gf010));
+  ck('GF-011 offset + SHARED CONTINGENCY: no double subtraction → cash $0, shared>0 (distinct from offset), residual UNCHANGED; invariants hold', near(R.gf011.cash,0)&&R.gf011.shared>0.005&&near(R.gf011.envelopeSelf,0)&&near(R.gf011.rs,R.gf011.rp)&&!R.gf011.reduced&&R.gf011.recon&&R.gf011.inv, JSON.stringify(R.gf011));
+  ck('GF-012 MULTIPLE over/under, ORDER-INVARIANT: net $150 hits cash and reordering categories gives an identical result; invariants hold', R.gf012.identical&&R.gf012.netCash&&R.gf012.recon&&R.gf012.inv, JSON.stringify(R.gf012));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.slice(0,3).join(' | '));
