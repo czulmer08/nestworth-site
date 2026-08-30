@@ -23,7 +23,7 @@ function extractFunction(name){
 const fnNames=[
   'r2','_spread','_all12','paydaysPerMonth','monthsFor','detectCadence','billMonths','billAnnual',
   'isGoalName','isDepositRow','isGoalMovementRow','isExpenseRow','actualIE','monthActualTotals','goalContribMonth',
-  'fixedGoalMonthly','nestFloor','currentPlan','clonePlan','_cfArrays','computeCashflow','computeAnnualPlan',
+  'fixedGoalMonthly','nestFloor','currentPlan','clonePlan','_cfArrays','_cfCatExp','_cfFutureOut','computeCashflow','computeAnnualPlan',
   'netWorthNow','computeNetWorthTrajectory','planMetrics','goalCompletion','_scenBud12','_applyChange','evaluateDecision',
   'computeResidual','monthsUntil','goalFundMonths','yearEndSpendProjection'
 ];

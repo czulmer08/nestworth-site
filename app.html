@@ -204,6 +204,9 @@ body.is-offline #offlineBar{display:block}
   .s2s-bar span{display:block;height:100%;background:var(--green);border-radius:5px}
   .s2s-bar span.warn{background:var(--honey,#C99334)} .s2s-bar span.over{background:var(--bad)}
   .fbline{font-size:13px;color:var(--ink2);margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+  .deprog{display:flex;justify-content:space-between;gap:10px;font-size:15px;font-weight:700;color:var(--ink);margin-top:2px} .deprog span:last-child{color:var(--ink2);font-weight:600}
+  .mn-sum{cursor:pointer;color:var(--green);font-weight:600;font-size:13px;padding:2px 0;outline:none} .mn-sum:focus-visible{text-decoration:underline}
+  .mn-drow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;cursor:pointer;list-style:none;font-size:13.5px;color:var(--ink2);margin-top:2px} .mn-drow::-webkit-details-marker{display:none} .mn-drow .ck{display:inline-block;color:var(--green);font-size:11px;transition:transform .15s} details[open]>.mn-drow .ck{transform:rotate(90deg)}
   .fbline b{color:var(--ink)} .fbline .pos{color:var(--green);font-weight:600} .fbline .neg{color:var(--bad);font-weight:600}
   .feas.ok{border-color:var(--green)} .feas.bad{border-color:var(--bad)}
   .feas-big{font-size:18px;font-weight:700} .feas.ok .feas-big{color:var(--green)} .feas.bad .feas-big{color:var(--bad)}
@@ -437,6 +440,7 @@ body.is-offline #offlineBar{display:block}
   .msg{font-size:13px;color:var(--ink2);min-height:18px;margin-top:8px;text-align:center}
   .msg.bad{color:var(--bad)}
   .totrow{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
+  .num{white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums} .totrow>span:first-child,.mn-drow>span:first-child{min-width:0}
   .totrow b{font-family:inherit;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
   .catcard{padding:12px 0;border-bottom:1px solid var(--line)} .catcard:last-child{border-bottom:0}
   .catrow{display:flex;justify-content:space-between;gap:10px;font-size:15px;margin-bottom:7px}
@@ -612,6 +616,7 @@ body.is-offline #offlineBar{display:block}
 
   <div class="view" id="view-month">
     <div class="card"><div id="mTot"><div class="totrow"><span>This month</span><b><span class="spin"></span></b></div></div></div>
+    <div class="card" id="mGoalSafeCard" style="display:none"><div id="mGoalSafe"></div></div>
     <div class="card" id="reviewCard" style="display:none;padding:12px"><button class="addbtn" id="reviewOpenBtn" style="margin:0;background:linear-gradient(180deg,#EAD3A0,#DCBE85);color:#3A4A38">🪺 <span id="reviewBtnLabel">Last month in review</span></button></div>
     <div class="card" id="remCard" style="display:none"><p class="eyebrow">Reminders</p><div id="remBody"></div></div>
     <div class="card"><p class="eyebrow" id="mLabel">By category</p><div id="mBody"><div class="empty"><span class="spin"></span></div></div></div>
@@ -667,20 +672,11 @@ body.is-offline #offlineBar{display:block}
   <div class="view" id="view-budget">
     <div class="yearnav"><button type="button" id="yearPrev" class="yearbtn">‹</button><span id="yearLabel" class="disp">2026</span><button type="button" id="yearNext" class="yearbtn">›</button></div>
     <div class="card" id="yearBanner" style="display:none;background:var(--soft);border:1px solid var(--gold)"><div style="font-size:13.5px;color:var(--ink)"><b id="yearBannerText">Viewing a different year</b> — expenses you log still go to today. <button type="button" id="yearBackBtn" class="lnk2" style="margin-left:4px">Back to this year</button></div></div>
-    <div class="card" id="feasCard"><p class="eyebrow">Does this budget work?</p><div id="feasBody"><div class="empty">Add income and categories to check the yearly picture.</div></div>
+    <div class="card" id="feasCard"><p class="eyebrow">Does this budget work?</p><div id="feasBody"><div class="empty">Add income and categories below to check the yearly picture.</div></div>
       <button class="addbtn" id="decOpenBtn" style="margin-top:12px;background:linear-gradient(180deg,#EAD3A0,#DCBE85);color:#3A4A38">🔮 Run a what-if decision</button>
       <div class="hintline" style="text-align:left">Thinking about a purchase, a new payment, a trip, or funding a goal faster? See what it does to your whole plan.</div>
     </div>
-    <div class="card" id="stressCard" style="display:none">
-      <p class="eyebrow">Cash flow through the year</p>
-      <div class="row"><label>Starting savings</label><span class="mfield">$<input id="stStart" class="money" inputmode="decimal" placeholder="0.00"></span></div>
-      <div class="row"><label>Nest Egg Floor</label><span class="mfield">$<input id="stFloor" class="money" inputmode="decimal" placeholder="optional"></span></div>
-      <div class="hintline" style="text-align:left;margin-top:-2px">The lowest you'd want your available cash to fall. Wren checks every decision against it — leave blank to skip.</div>
-      <div class="seg2" id="stModeSeg" style="margin-top:10px"><button data-sm="plan" class="on">Plan</button><button data-sm="actual">Plan + actual</button></div>
-      <div id="stBaseNote" style="display:none"></div>
-      <div id="stGrid"></div>
-      <div id="stVerdict" class="fbline" style="border-top:0;padding-top:4px"></div>
-    </div>
+    <div id="checkupSlot"></div>
     <div class="card" id="wizCard" style="display:none">
       <p class="eyebrow">New here?</p>
       <div class="hintline" style="text-align:left;margin-top:0">Get a full starter budget in about a minute — pick a few packs, set amounts, add income.</div>
@@ -695,14 +691,12 @@ body.is-offline #offlineBar{display:block}
       <button type="button" class="gbtn" id="wizEditOpen" style="margin-top:8px;width:100%;display:none">✨ Adjust budget &amp; income in setup</button>
       <button type="button" class="gbtn" id="budPullBtn" style="margin-top:8px;width:100%;display:none">⤵ Pull logged names into budget</button>
     </div>
-    <div class="card" id="contCard"><p class="eyebrow">Contingency &amp; envelopes</p><div id="contBody"><div class="empty">Set a category's leftover to <b>Stays here</b> or <b>Contingency buffer</b> to start banking unspent money.</div></div></div>
     <div class="card">
       <p class="eyebrow">Expected income</p>
       <div id="conList"><div class="empty"><span class="spin"></span></div></div>
       <button type="button" class="addrow" id="conAddOpen">+ Add income line</button>
     </div>
   </div>
-
   <div class="view" id="view-goals">
     <div class="card">
       <p class="eyebrow">Savings goals</p>
@@ -734,6 +728,16 @@ body.is-offline #offlineBar{display:block}
       <div class="row"><label>Balance</label><span class="mfield">$<input id="dbBal" class="money" inputmode="decimal" placeholder="0.00"></span></div>
       <button class="addbtn" id="dbAdd">Add debt</button>
       <div class="msg" id="dbMsg"></div>
+    </div>
+    <div class="card" id="stressCard" style="display:none">
+      <p class="eyebrow">Cash flow through the year</p>
+      <div class="row"><label>Starting savings</label><span class="mfield">$<input id="stStart" class="money" inputmode="decimal" placeholder="0.00"></span></div>
+      <div class="row"><label>Nest Egg Floor</label><span class="mfield">$<input id="stFloor" class="money" inputmode="decimal" placeholder="optional"></span></div>
+      <div class="hintline" style="text-align:left;margin-top:-2px">The lowest you'd want your available cash to fall. Wren checks every decision against it — leave blank to skip.</div>
+      <div class="seg2" id="stModeSeg" style="margin-top:10px"><button data-sm="plan" class="on">Plan</button><button data-sm="actual">Plan + actual</button></div>
+      <div id="stBaseNote" style="display:none"></div>
+      <div id="stGrid"></div>
+      <div id="stVerdict" class="fbline" style="border-top:0;padding-top:4px"></div>
     </div>
   </div>
 
@@ -1286,6 +1290,26 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.47 - Aug 30, 2026 - Build 20260830.135 - MULTI-OBLIGATION sinking funds (final increment). One envelope can now fund several future bills (e.g. Car Maintenance -> tires in Nov + service in Dec). The link stores obligations[] (catObligations() normalizes single or array, earliest-due-first); catSinking accepts either shape. The forecast engine (_cfSinkFree) is generalized: a month's contribution is freed as a reservation IFF some linked bill is still due later AND the month isn't itself a bill's due month (there the bill is the outflow and max(bud,bill) subsumes the contribution) - so every bill lands at full at its own due month, no contribution is double-counted, and the single-bill case is the one-obligation special case (byte-identical to v0.68.44). sinkingAllocation() shows per-bill funding earliest-due-first: banked + planned contributions flow to the nearest bill first and each dollar funds at most one bill (no double-allocation). checkupAddObligation()/checkupSetEnvelope(obligations[]) write multi-bill links (cash-neutral). New verify-multi-obligation.js (ENV-FC-004/005 + engine correctness + single-bill back-compat), break-audited. Closes the sinking-fund feature set.
+//   v0.68.46 - Aug 30, 2026 - Build 20260830.134 - Forecast Checkup FORMATTING pass (display-only). The review card was crowded and same-sized throughout; reworked for hierarchy and breathing room: an eyebrow title + a "N things worth a look" headline; each item is a distinct block with an eyebrow tag (Possible match / Unusual budget), a bold category title, and a concise question; the before/after safe-to-move now sits in a soft highlighted box on its own line (big after-figure + green delta) instead of buried in a sentence; the oversized full-width green buttons are replaced by a compact "Link them" (gbtn) + a "Not now" text link that dismisses the item. No logic changed - forecastCheckup/diff/apply and all invariants are untouched; verify-forecast-checkup.js render assertions updated to the new copy.
+//   v0.68.45 - Aug 30, 2026 - Build 20260830.133 - FORECAST CHECKUP (increment 3) - the review-and-confirm migration surface for existing users. NOTHING is auto-converted. forecastCheckup() scans envelopes and flags: ones that may be saving for a specific future bill (a matching future logged bill exists), budgets that look unusually lumpy (lumpyCategories() - a one-time historical spike that would distort an average baseline, the -$36K guard), and ongoing spending envelopes. checkupBillCandidates() suggests matches (earliest-due first) but NEVER auto-links - explicit confirm only, and goal moves/deposits are never candidates (ENV-FC-007). checkupLinkDiff() shows the before/after safe-to-move a link would produce, via a DRY RUN that reverts the cfg exactly (no persist). checkupSetEnvelope()/checkupUnlink() write the classification (purpose/contribution/link, capturing the opening-funded balance AT link time) and MOVE NO CASH - balances, ledger, net worth and history are untouched (proven). doCheckupLink/doCheckupUnlink persist via the writeMeta contract then re-render; forecastCheckupHTML() renders the review card. New verify-forecast-checkup.js, break-audited in verify-mutation.js. Remaining: surfacing the card in the tab chrome and multi-obligation (one envelope -> several bills) allocation.
+//   v0.68.44 - Aug 30, 2026 - Build 20260830.132 - Sinking-fund FORECAST ENGINE (increment 2). The forward projection now reinterprets a LINKED sinking/split category's monthly contribution as a RESERVATION of existing cash - not recurring spend - in the months from now up to (not including) the obligation's due month, so the money you set aside monthly and the bill it funds are never counted twice. New _cfSinkFree(plan,m) computes that per-month reservation; computeCashflow subtracts it from the current-month plan (max() still lets real actual spending win) and from each future month's baseline (_cfFutureOut). goalSafeToMove reads this, so safe-to-move rises by EXACTLY the newly-recognized funded portion when the linked bill is the binding forward low, and the operational boundary still holds (move exactly safe -> forward low lands on the floor; +$1 breaches). Strictly GATED: fires only when an explicit link exists AND purpose is sinking/split - legacy/unlinked categories return 0, so the whole forecast is byte-identical without a real link (re-proven). Guarded typeof so isolated-eval engine tests stay green. New verify-sinking-engine.js (ENV-FC properties + boundary), break-audited in verify-mutation.js. Multi-bill-per-envelope allocation and the Forecast Checkup UI are the remaining increments.
+//   v0.68.43 - Aug 30, 2026 - Build 20260830.131 - Sinking-fund DATA MODEL (foundation, inert). Adds optional, prospective category semantics on state.meta.cats[k]: purpose ("ongoing"|"sinking"|"split"), contribution (monthly $ assigned to a linked obligation - a reservation of cash, not extra spend; consumption = budget - contribution), and a sinking LINK {id, obligation:{id,name,amount,dueYear,dueMonth,source}, openingFunded, openingISO} that ties an envelope to a specific future bill by STABLE id (never name-matched) and captures the banked balance AT LINK TIME (no fabricated history). New read helpers (catPurpose/catContributionMonthly/catConsumptionMonthly/catSinking/newSinkId/captureOpeningFunded) clamp defensively (contribution in [0, budget]); sinkingSummary() exposes the review read-model (alreadyBanked/plannedContributionsBeforeDueDate/expectedFundedAtDueDate/remainingUnfundedAtDueDate). NO engine reads these yet - presence is proven byte-for-byte inert (safe-to-move, cash flow, net worth, envelope balances, reserve all identical); fields survive the meta save/merge/load round-trip (cats merged wholesale). New verify-sinking-foundation.js, break-audited in verify-mutation.js. The forecast reinterpretation and the Forecast Checkup UI are the next increments.
+//   v0.68.42 - Aug 30, 2026 - Build 20260830.130 - Sinking-fund transparency (display-only): in "What is ahead," each logged known bill in an ENVELOPE category now shows how much of it is ALREADY banked in that envelope - "$1,500 already banked in your Tuition envelope - already part of your available cash above; $4,500 of this bill isn't set aside yet." The banked balance is attributed to the category's upcoming bills earliest-due first, so a banked dollar is never shown funding two bills. This is EXPLANATION ONLY: it never touches computeCashflow, the reserve, or safe-to-move (the banked dollars are already inside available cash and the bill draws them through the projection - crediting them against the bill again would double-count). Proven by verify-sinking-transparency.js (banked shown correctly AND safe-to-move byte-identical to the plain-category baseline), break-audited in verify-mutation.js. The deeper sinking-fund LINK (semantic envelope->obligation, future-contribution netting) is documented in MODEL_SPEC as the planned next phase, not built here.
+//   v0.68.41 - Aug 30, 2026 - Build 20260830.129 - Known-bills clarity: when a month scheduled transactions total more than the increment added above the recurring baseline (that category baseline already covers part of the bill), the expander now says so - "These total $X; $Y is already within your recurring budget, so $Z is added on top." Makes the per-category dedup visible, so a logged $6,248 tuition adding only $3,645 never looks like a discrepancy. Display-only.
+//   v0.68.40 — Aug 30, 2026 · Build 20260830.128 · HYBRID FORECAST — the forward projection stops treating your budget as if it already contained every future one-time bill, and stops ignoring the bills you have actually logged. Future months now = your RECURRING baseline (budget) PLUS the specific dated bills logged for that month, deduplicated PER CATEGORY: contribution = max(recurring baseline, sum of logged dated bills) — a logged bill equal to its budget counts once, a bigger one adds only the increment above baseline, a smaller one never drops the month below baseline (unlogged groceries never vanish), and a bill in a category with no baseline is added in full. goalSafeToMove() reads this hybrid, so safe-to-move reflects your real upcoming calendar (scheduling or removing a bill moves it immediately). The "What is ahead" breakdown now shows each month as Recurring plan · Known bills · Income, with a "See [month] known bills" expander listing the scheduled transactions. Envelope/buffer designation still does not change the figure (no double-reserve, re-proven). New verify-hybrid-forecast.js (8 cases), break-audited; verify-golden-invariants extraction list updated for the two new helpers.
+//   v0.68.39 — Aug 30, 2026 · Build 20260830.127 · Multiple goals handled honestly. The safe-to-move figure is goal-AGNOSTIC — it's the total household cash you can move to any savings/goal today, not a per-goal amount — but the card and Wren were naming the first goal even when several exist, implying the money was earmarked for it. New goalMoveName() (one source) names the goal only when there's exactly one; with several it says "your goals"; with none, "savings". When 2+ goals exist, the card adds one line: "This is the total you can move to savings — put it toward any one goal, or split it across them." moneyRightNow/goalSafeHTML and Wren all use the same helper. verify-money-now.js proves single-goal names it, multi-goal generalizes.
+//   v0.68.38 — Aug 30, 2026 · Build 20260830.126 · Money-card layout: money values on the right now hold on one line (white-space:nowrap, tabular figures, no shrink) so a long label can never split "−$3,800.00" across rows or shove into the amount; the label column shrinks/wraps on its own side instead. Dropped "· through Dec" from the collapsed "Reserved for what's ahead" row (it already leads the expansion, "What's ahead through Dec"), so the collapsed waterfall stays a clean one-line-per-row calculator. No functional/number changes.
+//   v0.68.37 — Aug 30, 2026 · Build 20260830.125 · Money card refinements from real-use review: (1) residual goal funding moves OUT of “Your protection” into a new “Your goals” section — it’s savings capacity, not a reserve. (2) “Available cash now” and “Nest Egg Floor” are now tappable for provenance/definition (available = modeled household cash as of today; floor = a total-cash minimum, explicitly distinguished from the contingency cushion). (3) Contingency and envelopes carry one-line descriptors so a new user won’t read contingency + floor as double-saved — and they are NOT (proven: the safe figure is identical whether a category is plain, an envelope, or a buffer; roll designations are labels on cash already in the projection, never extra deductions). (4) “Where did the extra go?” → “Where is my extra going?” with a plain-English, forward-looking explanation. (5) Redundant “stay protected” subtext removed to declutter; the collapsed waterfall reads like a calculator. verify-money-now.js adds the roll-independence (no-double-reserve) proof and the section split.
+//   v0.68.36 — Aug 30, 2026 · Build 20260830.124 · "Reserved for what's ahead" now answers "what IS ahead?" — tapping it opens a month-by-month reconciliation of the reserve instead of a methodology paragraph. New reserveBreakdown() attributes to each future month (through the tightest month) the amount that drives your projected cash to a NEW LOW below today; those "cash needed from today" figures are non-negative and sum EXACTLY to the displayed reserve (proven). Each month shows its planned expenses & commitments and the income arriving, with the amount today's cash must cover; the methodology paragraph is demoted behind a secondary "How is this calculated?" disclosure. Wording: "planned expenses and commitments" (not "bills"), since the forward model includes variable spending, envelopes and goal commitments too. verify-money-now.js grows to prove the exact reconciliation, the month window, and the two-level hierarchy; break-audited.
+//   v0.68.35 — Aug 30, 2026 · Build 20260830.123 · Money card polish: the floating hero safe-number on top is removed — the single answer is now the conclusion of the waterfall ("Safe to move to [goal]" in large green), so the figure is shown once, where the math earns it. The "Reserved for what’s ahead" row IS the disclosure now: tapping it opens, right there, what the reserve protects — of your available cash, how much must stay for upcoming bills and the floor, and whether anything more needs to be set aside before your tightest month (nothing, when covered). verify-money-now.js updated for the single-hero + inline-reserve-disclosure layout.
+//   v0.68.34 — Aug 30, 2026 · Build 20260830.122 · ONE MONEY STORY — "Your money right now" and the separate "Contingency & envelopes" card are consolidated into a single card on Month, organized by user meaning with progressive disclosure, so the screen never shows four competing "money remaining" numbers. Hierarchy: (1) the answer — one hero, "$X safe to move to [goal]"; (2) why — the shortest AUTHORITATIVE waterfall available cash → reserved for what's ahead → Nest Egg Floor → safe, proven floor-INDEPENDENT (vary the floor: reserve and forwardLow are unchanged, only safe moves — so the floor is never double-counted, and the decomposition comes straight from goalSafeToMove, not reverse-engineered); (3) this month — deposits, actual spending, and "Cash not yet spent" (the old, misleading "Surplus to allocate" is gone); (4) your protection — contingency available, banked in envelopes, residual goals supportable. The contingency trend chart, per-envelope balances, "what the reserve protects", and "where did the extra go" all move behind expandables — nothing removed, just disclosed progressively. No duplicate safe number, no "cash remaining $X" competing with the safe figure. verify-money-now.js extended: floor-independence proof, the This-month/Protection figures sourced from monthlyCashReconciliation/computeRollover/goalFundingStatus, no forbidden "surplus" wording; verify-tab-layout.js updated (contingency folded into the money card).
+//   v0.68.33 — Aug 30, 2026 · Build 20260830.121 · "Does this budget work?" moves back to the TOP of the Budget tab (from Worth) — the annual-feasibility verdict + Run-a-what-if now sit right above your categories, so the moment you set the plan you see whether it balances. The month-by-month cash-flow FORECAST stays on Worth (the forward/big-picture tab). Wren's annual-feasibility "Show me" re-points to Budget. Pure IA move — renderFeas and every handler are unchanged (same #feasBody / #decOpenBtn ids). verify-tab-layout.js updated to assert feasCard on Budget.
+//   v0.68.32 — Aug 30, 2026 · Build 20260830.120 · "YOUR MONEY RIGHT NOW" — the Month tab now reconciles your WHOLE available-cash position (not just this month’s above-plan income) into what is safe to move. The hero answers "where is my money committed, and what is safe to move?" via a PROVABLE identity read straight from the forward projection: available cash === must-stay-for-what’s-ahead + Nest Egg Floor + safe-to-move. It cannot double-count — upcoming bills, envelope set-asides and goal holds are already inside the projection (hence inside the reserve), so they are named there, never subtracted a second time; the safe-to-move figure is the exact same goalSafeToMove number. The above-plan deposit is shown as CONTEXT ("you brought in $X more than planned"), and an expandable "Where did the extra $X go?" traces this month’s income through monthlyCashReconciliation — explanation only, never the source of the safe number. No false one-to-one attribution: the panel states what cash must remain reserved now, and keeps the "what happened to the extra deposit" story separate. New moneyRightNow()/moneyNowHTML(); verify-money-now.js proves the identity, the single-source safe figure, the breach path, and the no-double-count rule; break-audited.
+//   v0.68.31 — Aug 30, 2026 · Build 20260830.119 · TABS CONSOLIDATED (no new tab) — the v0.68.29 Outlook tab is retired; NestWorth uses the tabs it already had, mapped to what each answers. BUDGET = the plan you set (categories, income, contingency rules) — the "Plan" label reverts to Budget. MONTH = the current outlook: it now leads with the ONE answer that matters — "how much is safe to move to your goal today" (the goal-safe panel moved here) — plus your contingency buffer status, above the usual this-month spending. WORTH = the forecast/big picture: net worth over time PLUS cash flow through the year, "does this budget work?", and run-a-what-if. Tab bar is back to six: Add · Month · Budget · Goals · Worth · Settings. Wren's "Show me" re-points accordingly (setup→Budget, buffer/this-month/safe-to-move→Month, cash-flow/afford/decision/feasibility→Worth); switchView keeps "plan"/"outlook" as back-compat aliases. Card IDs and every render/handler are unchanged, so the engines are untouched — this is pure information architecture. Tests updated for the six-tab layout; verify-tab-layout.js rewritten to assert the new homes, break-audited.
+//   v0.68.30 — Aug 30, 2026 · Build 20260830.118 · ADD-SCREEN CLARITY — deposit progress now tells you what actually happened, not just "met target." A source shows "$9,797.11 received / $8,297.73 planned" and then, explicitly, "+$1,499.38 above plan ✓" (or, when short, "$797.73 still expected"). "Target" is gone — it read like a savings goal or a minimum you had to hit; the plan-expected income is now labeled "planned." The above-plan amount is deliberately NOT called surplus / free / available / left over: it means only that more income arrived than the plan expected. Whether any of it is safe to move to a goal is a separate question the forward projection answers on the Month tab. The top card was tightened from "$357.26 left this month" to "$357.26 left in this month's budget" because that number is spending-budget capacity, not cash on hand. Three concepts kept strictly separate in the UI: budget-remaining ≠ income-above-plan ≠ safe-to-move. New verify-deposit-progress.js (above / below / exactly-on-plan, the no-forbidden-words rule, and the budget relabel), break-audited.
+//   v0.68.29 — Aug 30, 2026 · Build 20260830.117 · INFORMATION ARCHITECTURE — the one overloaded "Budget" tab (which mixed the setup you do once with the answers you check often, setup sandwiched in the middle) is split into TWO tabs organized by what a non-expert walks in to do. PLAN = the inputs you set: categories, expected income, contingency/envelope rules, quick setup, year picker. OUTLOOK = the answers, answer-first: cash flow through the year with the "safe to move to your goal" panel and bills-covered verdict, your contingency buffer, and "does this budget work?" + run-a-what-if. Tab bar is now Add · Month · Plan · Outlook · Goals · Worth · Settings. Month stays the rear-view mirror. Wren's "Show me" now lands on the right tab — setup questions → Plan, cash/buffer/goal/decision questions → Outlook. switchView keeps "budget" as a back-compat alias for Plan so nothing dangles. New verify-tab-layout.js proves each card lives in the correct view and the tab-bar order/labels; break-audited.
+//   v0.68.28 — Aug 30, 2026 · Build 20260830.116 · THE ANSWER PANEL — NestWorth finally says "here's what you can safely do," not just "here are six correct numbers." New goalSafeToMove() answers one question: how much can I move to my goal account TODAY without any future month's projected cash falling below my Nest Egg Floor? It is the JOIN the app was missing — it reads the EXISTING forward cash-flow projection (computeCashflow, the single source of truth), so future bills, envelope set-asides, banked balances, contingency effects, protected/linked/residual goals, and future income on their real timing are ALL already in the path; nothing is subtracted a second time (no double-count). The derivation is one line: moving $X out today shifts the whole forward curve down $X, so safe = max(0, forwardLow − floor), floor = your configured Nest Egg Floor (not $0). Proven OPERATIONALLY (verify-goal-safe.js): move exactly the safe amount as a one-time outflow, re-run the full projection, and the forward low lands EXACTLY on the floor; one dollar more breaches it. Rendered at the top of the Cash Flow card (bills covered ✓ · lowest projected cash after today · your floor · Safe to move to [goal]), with a plain sentence and a $0-starting-savings caveat. Wren answers "how much can I safely move to my car fund?" from the SAME helper (one source), guarded off what-if/decision questions. New verify-goal-safe.js (9, incl. the binding-boundary simulation, floor-awareness, single-source/no-double-count, breach, extra-income, sensitivity, Wren), break-audited.
 //   v0.68.27 — Aug 29, 2026 · Build 20260829.115 · Contingency state-model + language finish (product pass, no accounting rewrite). (1) The Contingency card now leads with the USEFUL current interpretation — "Contingency available now $0" — and shows RAW balance (history) vs "Covered by this month's surplus" vs "Effective balance" beneath, replacing the confusing "Effective if applied". It explains the surplus covers the shortfall "for planning" without moving or rewriting history, and says plainly when a month got you out of the hole but hasn't built a cushion above $0 yet. (2) Month reminders no longer repeat the whole contingency deficit on every over-budget category — each is a short "covered by this month's cash surplus", with ONE household-level line about the shortfall. (3) Cash Flow verdict uses the reconciled sentence (covers the shortfall, effective $0) not "doesn't refill it". (4) The recon card's intermediate "remaining projected cash" is renamed "Cash remaining after that" with a note that it is NOT the Cash Flow projected month-end figure (which also counts the rest of the month's planned spending). (5) NEW optional CONTINGENCY TARGET: after repairing to $0, surplus builds a positive cushion toward a user-set target before residual goals (hierarchy repair → build → residual → reserves; identity preserved, target 0 = unchanged). New verify-cross-surface-recon/verify-cash-recon-card cases + CASH-ALLOC-013/014, all break-audited. Deferred: full dollar-for-dollar bridge from the recon card to the Cash Flow ending figure, Decision-Engine surfacing, floor-aware multi-month reconciliation.
 //   v0.68.26 — Aug 29, 2026 · Build 20260829.114 · Cross-surface reconciliation LANGUAGE (from real use: the engine knew August's surplus could repair the overspent contingency, but the Cash-Flow verdict, the Month coverage line, and Wren still said "overspent, $0 available, comes out of cash / doesn't refill it / the deposit won't move it" — contradicting the Contingency card right below). No engine change. New single-source helpers contingencyReconNote()/contingencyReconSentence() describe the reconciled reality once — RAW overspent history vs what THIS month's surplus can repair (advisory) vs the effective position — and the Cash-Flow verdict, the Month buffer-over coverage line, and Wren's deposit answer now all speak from it: when a surplus can repair the deficit they say so (and that NestWorth doesn't move it automatically), and only when there's genuinely no surplus do they keep the "comes out of cash / rebuild via under-budget months" language. The Contingency card also now shows cash remaining after repair and notes that repairing to $0 refills the cushion but doesn't build a positive reserve. New verify-cross-surface-recon.js (5, break-audited). Deferred: a settable contingency TARGET (to build a positive reserve, not just repair to $0), Decision-Engine surfacing, and floor-aware multi-month reconciliation.
 //   v0.68.25 — Aug 29, 2026 · Build 20260829.113 · Surplus reconciliation is now VISIBLE (the product step after v0.68.24's engine). The Contingency card draws a "Where this month's cash is going" waterfall — deposits received → actual spending → fixed/linked goals → surplus → contingency repaired → residual goals funded → remaining projected cash — with a one-line interpretation ("Your August surplus first repaired $X of negative contingency (back to $0), then funded $Y of residual goals, and left $Z as spendable cash"). It also distinguishes RAW contingency (the buffer history shown as the total), what THIS month's surplus can repair, and the EFFECTIVE position if applied — so a user doesn't see the historical negative and assume the surplus didn't matter. A no-surplus month shows the reserve draw instead, and the card only appears once a deposit has landed this month. NO duplicated math — it renders straight from monthlyCashReconciliation(), the same helper Wren narrates. New verify-cash-recon-card.js (6, break-audited with a rendered screenshot). Still deferred: Decision Engine surfacing and floor-aware multi-month reconciliation.
@@ -1686,8 +1710,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.27"; // SemVer — what changed functionally (display only)
-var BUILD="20260829.115"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.47"; // SemVer — what changed functionally (display only)
+var BUILD="20260830.135"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -2835,6 +2859,195 @@ function catCfg(name){var k=name.toLowerCase();return (state.meta.cats&&state.me
 function conCfg(name){var k=name.toLowerCase();return (state.meta.cons&&state.meta.cons[k])||null;}
 // ---- Contingency / rollover engine (live-computed, nothing written to the sheet) ----
 function catRoll(name){var c=catCfg(name);var m=c&&c.roll;if(m==="envelope"||m==="buffer")return m;if(c&&c.type==="itemized"&&c.items&&c.items.some(function(it){return it.cadence==="AnnualSaveUp";}))return "envelope";return "none";}
+// ===== Sinking-fund semantics — data model FOUNDATION (v0.68.43). PROSPECTIVE + INERT: no engine reads these yet, so their
+// presence changes nothing (proven byte-for-byte in verify-sinking-foundation.js). A category MAY declare what its money is FOR;
+// legacy categories declare nothing → treated as "ongoing", exactly today's behavior. Fields (all OPTIONAL, on state.meta.cats[k]):
+//   purpose: "ongoing" | "sinking" | "split"        — semantic label; absent = "ongoing".
+//   contribution: number ≥ 0                         — monthly $ ASSIGNED toward a linked future obligation (a reservation of cash,
+//                                                       NOT extra spend). For "split", consumption = budget − contribution.
+//   sinking: { id, obligation:{id,name,amount,dueYear,dueMonth,source}, openingFunded, openingISO }
+//                                                     — a link to a specific obligation by STABLE id (never name-matched), plus the
+//                                                       banked balance captured AT LINK TIME (so we never fabricate past contributions).
+// Read helpers clamp defensively so a bad stored value can never reach an engine. The forecast reinterpretation and the review/
+// checkup UI are SEPARATE later increments; nothing here alters cash flow, net worth, envelope balances, the reserve, or safe-to-move.
+var SINK_PURPOSES={ongoing:1,sinking:1,split:1};
+function catPurpose(name){var c=catCfg(name);var p=c&&c.purpose;return (p&&SINK_PURPOSES[p])?p:"ongoing";}
+function _catObj(name){var k=(""+name).toLowerCase(),a=state.cats||[];for(var i=0;i<a.length;i++){if((""+a[i].name).toLowerCase()===k)return a[i];}return null;} // the CATEGORY object (carries bud12); distinct from catCfg's META config (carries roll/purpose/contribution)
+function _catBudMonth(name,m){var c=_catObj(name);if(!c)return 0;var mm=(typeof m==="number")?m:((bYear()===curYear())?curMonth()-1:0);if(mm<0)mm=0;if(mm>11)mm=11;return Number((c.bud12&&c.bud12[mm])||0)||0;}
+function catContributionMonthly(name,m){var cfg=catCfg(name);var v=cfg?(Number(cfg.contribution)||0):0;if(v<0)v=0;var bud=_catBudMonth(name,m);return r2(Math.min(v,bud));} // clamped to [0, this month's budget] — a contribution can never exceed the budget it's carved from
+function catConsumptionMonthly(name,m){return r2(Math.max(0,_catBudMonth(name,m)-catContributionMonthly(name,m)));} // recurring-spend portion = budget − contribution; legacy (no contribution) = the full budget, unchanged
+function catSinking(name){var c=catCfg(name);var s=c&&c.sinking;if(!s||typeof s!=="object")return null;if(!s.obligation&&!(Array.isArray(s.obligations)&&s.obligations.length))return null;return s;} // a link carries a single `obligation` OR an `obligations[]` array (multi-bill)
+function catObligations(name){ // the linked obligations, NORMALIZED to an array and sorted EARLIEST-DUE-FIRST (the deterministic allocation order)
+  var link=catSinking(name);if(!link)return [];
+  var obs=Array.isArray(link.obligations)?link.obligations.slice():(link.obligation?[link.obligation]:[]);
+  obs=obs.filter(function(o){return o&&(Number(o.amount)||0)>0;});
+  obs.sort(function(a,b){return (((Number(a.dueYear)||0)*12+(Number(a.dueMonth)||0))-((Number(b.dueYear)||0)*12+(Number(b.dueMonth)||0)))||((Number(b.amount)||0)-(Number(a.amount)||0));});
+  return obs;
+}
+function sinkingAllocation(name){ // per-obligation funding, earliest-due-first: banked + planned contributions flow to the nearest bill
+  var obs=catObligations(name);if(!obs.length)return null; // first; each banked dollar funds AT MOST ONE bill (never double-allocated).
+  var catObj=_catObj(name),banked=r2(Math.max(0,catObj?catBalance(catObj):0));
+  var cm=(bYear()===curYear())?curMonth():1,perMo=catContributionMonthly(name,cm-1);
+  var pool=banked,addedTo=cm-1,rows=[]; // addedTo = highest 0-indexed month whose contribution is already in the pool (start: before current)
+  obs.forEach(function(o){
+    var di=(Number(o.dueYear)===bYear())?((Number(o.dueMonth)||12)-1):11; // 0-indexed due within this plan year
+    for(var mm=addedTo;mm<di;mm++){if(mm>=cm-1)pool=r2(pool+perMo);} // accumulate contributions for months up to (not incl.) this due month
+    if(di>addedTo)addedTo=di;
+    var amt=r2(Number(o.amount)||0),funded=r2(Math.min(pool,amt)),remaining=r2(Math.max(0,amt-funded));
+    pool=r2(Math.max(0,pool-funded));                                  // the funded portion is consumed — it can't fund a later bill too
+    rows.push({name:(o.name||name),amount:amt,dueMonth:(Number(o.dueMonth)||12),dueYear:(Number(o.dueYear)||bYear()),funded:funded,remaining:remaining});
+  });
+  return {name:name,banked:banked,perMonth:perMo,obligations:rows,leftover:r2(pool)};
+}
+function newSinkId(prefix){return (prefix||"ob")+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);} // stable id for a link/obligation — the relationship survives a rename/amount/date edit
+function captureOpeningFunded(name){var c=catCfg(name),catObj=(state.cats||[]).filter(function(x){return (""+x.name).toLowerCase()===(""+name).toLowerCase();})[0];var bal=catObj?catBalance(catObj):0;return {amount:r2(Math.max(0,bal)),iso:(typeof todayISO==="function"?todayISO():"")};} // the banked balance AT LINK TIME — stored as an opening figure, never re-created as fake monthly history
+// The four numbers the review UI (and later the engine) expose for a linked sinking fund — a READ MODEL over existing tested pieces.
+// alreadyBanked is the LIVE envelope balance (already inside available cash); planned contributions are FUTURE assignments of cash
+// (not new outflows). This COMPUTES a description; it does NOT feed the projection or change safe-to-move (that is the next increment).
+function sinkingSummary(name){
+  var link=catSinking(name);if(!link)return null;
+  var catObj=(state.cats||[]).filter(function(x){return (""+x.name).toLowerCase()===(""+name).toLowerCase();})[0];
+  var ob=link.obligation||catObligations(name)[0]||{},amount=r2(Number(ob.amount)||0); // multi-bill links: summarize the nearest obligation
+  var banked=r2(Math.max(0,catObj?catBalance(catObj):0));
+  var dueY=Number(ob.dueYear)||bYear(),dueM=Number(ob.dueMonth)||12;if(dueM<1)dueM=1;if(dueM>12)dueM=12;
+  var cm=(bYear()===curYear())?curMonth():1;
+  // Contribution months are the months from now up to but NOT including the due month (you don't set aside in the month you pay):
+  // Sep,Oct,Nov for a December bill = 3. Same-year within the plan; a later-year due date counts this plan year's remaining months.
+  var monthsUntil=(dueY===bYear())?(dueM-cm):((dueY>bYear())?(12-cm+1):0);
+  var months=Math.max(0,monthsUntil);
+  var perMo=catContributionMonthly(name,cm-1),planned=r2(Math.max(0,perMo*months));
+  var expected=r2(Math.min(amount,banked+planned)),remaining=r2(Math.max(0,amount-expected));
+  return {name:(ob.name||name),obligationId:(ob.id||""),amount:amount,alreadyBanked:banked,perMonth:perMo,monthsToDue:months,
+    dueYear:dueY,dueMonth:dueM,plannedContributionsBeforeDueDate:planned,expectedFundedAtDueDate:expected,
+    remainingUnfundedAtDueDate:remaining,openingFunded:r2(Number(link.openingFunded)||0),openingISO:(link.openingISO||"")};
+}
+// ===== FORECAST CHECKUP (v0.68.45) — the review-and-confirm migration surface. Every function here is either READ-ONLY (scan /
+// detect / dry-run diff) or a metadata classification that MOVES NO CASH — it sets purpose/contribution/link and captures the
+// opening-funded balance, but never touches a balance, the ledger, net worth, or history. The forecast MAY change (that is the
+// point, and the before/after diff shows it); household cash never does. Matches are SUGGESTED, never auto-applied (explicit confirm).
+function checkupBillCandidates(catName){ // future logged EXPENSE rows in this category — candidate obligations to LINK (never auto-linked)
+  var k=(""+catName).toLowerCase(),y=bYear(),cm=(bYear()===curYear())?curMonth():1,list=[];
+  (state.rows||[]).forEach(function(r){
+    if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<cm)return;                          // future (this month forward)
+    if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;                             // ENV-FC-007: goal moves / deposits are never obligations
+    if((""+((r&&r[4])||"")).toLowerCase()!==k)return;
+    var amt=Number(r[6])||0;if(amt<=0.005)return;
+    list.push({name:(""+((r&&r[4])||catName)),amount:r2(amt),dueYear:y,dueMonth:mo,dateISO:(""+((r&&r[2])||"")),source:"row"});
+  });
+  list.sort(function(a,b){return (a.dueMonth-b.dueMonth)||(b.amount-a.amount);}); // earliest-due first (the deterministic order)
+  return list;
+}
+function lumpyCategories(){ // budgeted categories whose LOGGED history has an unusually large single month — a one-time spike that would
+  var out=[];                // distort an average-based recurring baseline (the −$36K class). ADVISORY ONLY: nothing is auto-classified.
+  (state.cats||[]).forEach(function(c){
+    var sp=(typeof spentByMonth==="function")?spentByMonth(c.name):null;if(!sp)return;
+    var vals=[];for(var m=0;m<12;m++){var v=Number(sp[m])||0;if(v>0.005)vals.push(v);}
+    if(vals.length<2)return;
+    var sorted=vals.slice().sort(function(a,b){return a-b;}),max=sorted[sorted.length-1],others=sorted.slice(0,sorted.length-1);
+    var mid=Math.floor(others.length/2),med=others.length?(others.length%2?others[mid]:r2((others[mid-1]+others[mid])/2)):0;
+    if(med>0&&max>=2*med&&(max-med)>=2000){ // unusually large single month, materially so
+      var spikeM=-1;for(var mm=0;mm<12;mm++){if(Math.abs((Number(sp[mm])||0)-max)<0.005){spikeM=mm;break;}}
+      out.push({cat:c.name,spikeMonth:spikeM+1,spikeAmount:r2(max),typicalMonth:r2(med),
+        monthlyBudget:r2((c.bud12&&c.bud12[(bYear()===curYear()?curMonth()-1:0)])||0)});
+    }
+  });
+  return out;
+}
+function forecastCheckup(){ // the scan that drives the review flow. READ-ONLY — surfaces candidates, changes nothing.
+  var envs=[],counts={sinkingCandidates:0,linked:0,ongoing:0,lumpy:0};
+  (state.cats||[]).forEach(function(c){
+    if(catRoll(c.name)!=="envelope")return;
+    var linked=!!catSinking(c.name),cand=linked?null:(checkupBillCandidates(c.name)[0]||null),banked=r2(Math.max(0,catBalance(c)));
+    envs.push({cat:c.name,banked:banked,linked:linked,purpose:catPurpose(c.name),candidate:cand});
+    if(linked)counts.linked++;else if(cand)counts.sinkingCandidates++;else counts.ongoing++;
+  });
+  var lumpy=lumpyCategories();counts.lumpy=lumpy.length;
+  return {envelopes:envs,lumpy:lumpy,counts:counts,hasWork:(counts.sinkingCandidates>0||counts.lumpy>0)};
+}
+function _checkupPatch(catName,obligation){ // the cfg patch a "link this envelope to this bill" would apply — purpose sinking, the whole
+  var of=captureOpeningFunded(catName);      // envelope budget as the contribution, and the link with opening-funded captured AT link time
+  return {purpose:"sinking",contribution:r2(_catBudMonth(catName,(bYear()===curYear()?curMonth()-1:0))),
+    sinking:{id:newSinkId("lnk"),obligation:{id:(obligation.id||newSinkId("ob")),name:(obligation.name||catName),amount:r2(Number(obligation.amount)||0),dueYear:Number(obligation.dueYear)||bYear(),dueMonth:Number(obligation.dueMonth)||12,source:(obligation.source||"row")},openingFunded:of.amount,openingISO:of.iso}};
+}
+function _checkupSafeWith(catName,patch){ // DRY RUN: safe-to-move if `patch` were applied to this category's cfg. Reverts EXACTLY; no persist.
+  var k=(""+catName).toLowerCase(),had=state.meta.cats.hasOwnProperty(k),prev=had?_clone(state.meta.cats[k]):undefined;
+  var cur=state.meta.cats[k]||{},merged={};for(var kk in cur)merged[kk]=cur[kk];if(patch)for(var pk in patch)merged[pk]=patch[pk];
+  state.meta.cats[k]=merged;
+  var safe=null;try{var gs=goalSafeToMove();safe=gs?gs.safeToGoal:null;}catch(e){}
+  if(had)state.meta.cats[k]=prev;else delete state.meta.cats[k];    // restore EXACT prior state — the dry run leaves nothing behind
+  return safe;
+}
+function checkupLinkDiff(catName,obligation){ // before/after safe-to-move for linking this envelope to this obligation (the headline number)
+  var before=null;try{var gs=goalSafeToMove();before=gs?gs.safeToGoal:null;}catch(e){}
+  var after=_checkupSafeWith(catName,_checkupPatch(catName,obligation));
+  return {before:r2(before||0),after:r2(after||0),delta:r2((after||0)-(before||0))};
+}
+function _mkOblig(ob,catName){return {id:(ob.id||newSinkId("ob")),name:(ob.name||catName||""),amount:r2(Number(ob.amount)||0),dueYear:Number(ob.dueYear)||bYear(),dueMonth:Number(ob.dueMonth)||12,source:(ob.source||"row")};}
+function checkupSetEnvelope(catName,opts){ // WRITE the classification into state (caller persists via writeMeta). MOVES NO CASH.
+  opts=opts||{};var k=(""+catName).toLowerCase(),c=state.meta.cats[k]||{};
+  if(opts.purpose&&SINK_PURPOSES[opts.purpose])c.purpose=opts.purpose;
+  if(opts.contribution!=null)c.contribution=r2(Math.max(0,Number(opts.contribution)||0));
+  var obsIn=opts.obligations||(opts.obligation?[opts.obligation]:null);
+  if(obsIn){var of=captureOpeningFunded(catName);
+    c.sinking={id:newSinkId("lnk"),obligations:obsIn.map(function(o){return _mkOblig(o,catName);}),openingFunded:of.amount,openingISO:of.iso}; // canonical multi-form; catObligations reads it either way
+    // A pure sinking link with no explicit split treats the whole envelope budget as the contribution — matching _checkupPatch, so the
+    // committed classification produces EXACTLY the safe-to-move the before/after diff promised (a "split" caller passes contribution).
+    if(opts.contribution==null&&c.purpose!=="split")c.contribution=r2(_catBudMonth(catName,(bYear()===curYear()?curMonth()-1:0)));
+  }
+  state.meta.cats[k]=c;return c;
+}
+function checkupAddObligation(catName,obligation){ // add ANOTHER bill this envelope funds — converts a single link to multi; allocation stays earliest-due-first
+  var k=(""+catName).toLowerCase(),c=state.meta.cats[k];if(!c||!c.sinking)return checkupSetEnvelope(catName,{purpose:"sinking",obligation:obligation});
+  var link=c.sinking,obs=Array.isArray(link.obligations)?link.obligations.slice():(link.obligation?[link.obligation]:[]);
+  obs.push(_mkOblig(obligation,catName));delete link.obligation;link.obligations=obs;state.meta.cats[k]=c;return c;
+}
+function checkupUnlink(catName){ // remove the obligation link; KEEP the envelope and its balance (never silently redirect money — ENV-FC-006)
+  var k=(""+catName).toLowerCase(),c=state.meta.cats[k];if(c&&c.sinking){delete c.sinking;state.meta.cats[k]=c;}return c||null;
+}
+// Interactive apply — classify then persist (write-contract via writeMeta) then re-render. The only cash-neutral write in the flow.
+async function doCheckupLink(catName,obligation){try{checkupSetEnvelope(catName,{purpose:"sinking",obligation:obligation});await writeMeta();await loadCarryIn();renderAll();}catch(e){}}
+async function doCheckupUnlink(catName){try{checkupUnlink(catName);await writeMeta();renderAll();}catch(e){}}
+function forecastCheckupHTML(){ // the review card — one clear item per thing worth a look, with an easy-to-scan hierarchy
+  var ck;try{ck=forecastCheckup();}catch(e){return "";}
+  if(!ck||(!ck.envelopes.length&&!ck.lumpy.length))return "";
+  var mn=function(m){return (typeof MONTHS!=="undefined"&&MONTHS[m-1])||("month "+m);};
+  var matches=ck.envelopes.filter(function(e){return e.candidate;});
+  if(!ck.hasWork){
+    return '<div class="card"><p class="eyebrow">Forecast Checkup</p><div class="hintline" style="text-align:left;margin-top:0">Your envelopes and budgets look consistent with your forecast — nothing to review right now.</div></div>';
+  }
+  var n=matches.length+ck.lumpy.length;
+  var h='<div class="card"><p class="eyebrow">Forecast Checkup</p>';
+  h+='<div style="font-size:16px;font-weight:700;color:var(--ink);line-height:1.25">'+n+' thing'+(n===1?'':'s')+' worth a look</div>';
+  h+='<div class="hintline" style="text-align:left;margin-top:5px;font-size:12.5px;line-height:1.5">Connect money you set aside to the bill it funds, so a sinking fund isn’t counted twice. Your balances and history don’t change — only how the forecast reads them.</div>';
+  // possible-match items
+  matches.forEach(function(e){
+    var d=null;try{d=checkupLinkDiff(e.cat,e.candidate);}catch(_){}
+    h+='<div data-ckitem="1" style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
+    h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">Possible match</div>';
+    h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(e.cat)+'</div>';
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55">'+money(e.banked)+' set aside here, and a '+money(e.candidate.amount)+' bill is due '+esc(mn(e.candidate.dueMonth))+'. Is this envelope for that bill?</div>';
+    if(d&&Math.abs(d.delta)>0.005){
+      h+='<div style="margin-top:10px;background:var(--soft);border-radius:12px;padding:11px 13px">'
+        +'<div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">If you link them</div>'
+        +'<div style="font-size:12.5px;color:var(--ink2);margin-top:5px">Safe to move</div>'
+        +'<div class="num" style="font-size:15px;color:var(--ink2);margin-top:1px">'+money(d.before)+' <span style="opacity:.55">→</span> <b style="color:var(--ink);font-size:18px">'+money(d.after)+'</b> <b style="color:var(--green);font-size:15px;margin-left:2px">'+(d.delta>0?'+':'')+money(d.delta)+'</b></div>'
+        +'<div class="hintline" style="text-align:left;margin-top:6px;font-size:11.5px;line-height:1.5">Your monthly set-aside stops being counted as spending on top of the bill.</div></div>';
+    }
+    h+='<div style="display:flex;align-items:center;gap:16px;margin-top:12px">'
+      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="doCheckupLink('+JSON.stringify(esc(e.cat))+','+JSON.stringify(e.candidate).replace(/"/g,"&quot;")+')">Link them</button>'
+      +'<button class="lnk2" onclick="var p=this.closest(&quot;[data-ckitem]&quot;);if(p)p.style.display=&quot;none&quot;">Not now</button></div>';
+    h+='</div>';
+  });
+  // lumpy-budget items
+  ck.lumpy.forEach(function(L){
+    h+='<div data-ckitem="1" style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
+    h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">Unusual budget</div>';
+    h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(L.cat)+'</div>';
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55"><b>'+esc(mn(L.spikeMonth))+'</b> was '+money(L.spikeAmount)+', but a typical month is about '+money(L.typicalMonth)+'. Is '+money(L.monthlyBudget)+'/mo really your normal — or was that a one-off skewing the forecast?</div>';
+    h+='</div>';
+  });
+  h+='</div>';return h;
+}
 async function setCatRoll(name,mode){var k=name.toLowerCase();var c=state.meta.cats[k]||{};
   if(mode==="envelope"||mode==="buffer"){c.roll=mode;if(!Number(c.rollStart))c.rollStart=ymNow();} // stamp WHEN it became a rolling category, so prior under-spending isn't retroactively banked (audit #6)
   else{delete c.roll;delete c.rollStart;}
@@ -3384,9 +3597,49 @@ function clonePlan(p){var c={};for(var k in p)c[k]=p[k];c.oneTime=p.oneTime?p.on
 function _cfArrays(plan){var inc=[0,0,0,0,0,0,0,0,0,0,0,0],exp=[0,0,0,0,0,0,0,0,0,0,0,0];(plan.cons||[]).forEach(function(c){(c.bud12||[]).forEach(function(v,m){inc[m]+=Number(v)||0;});});(plan.cats||[]).forEach(function(c){(c.bud12||[]).forEach(function(v,m){exp[m]+=Number(v)||0;});});return {inc:inc,exp:exp};}
 // Month-by-month running spendable cash. Fixed goal contributions leave spendable cash each month (they stay in net worth,
 // but aren't cash you can spend), and a one-time outflow is applied in its month. Current month blends actual-to-date with plan.
+// ===== HYBRID FORECAST (v0.68.40) — future months = RECURRING baseline (budget) + INCREMENTAL known dated bills (logged
+// future-dated transactions), deduplicated PER CATEGORY so a scheduled bill is never stacked on a baseline that already covers
+// it. Rule per category/month: contribution = max(recurring bud12, sum of logged dated bills) = baseline + the part of the
+// known bill exceeding baseline. So logged==budget → once; logged>baseline → only the increment; logged<baseline → stays at
+// baseline (unlogged groceries never vanish); no baseline → the bill is added in full.
+function _cfCatExp(plan,y){
+  var map={};(plan.cats||[]).forEach(function(c){map[(""+c.name).toLowerCase()]=[0,0,0,0,0,0,0,0,0,0,0,0];});
+  (plan.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;var cn=(""+((r&&r[4])||"")).trim().toLowerCase();var mo=Number(r[1]);if(map[cn]&&mo>=1&&mo<=12)map[cn][mo-1]+=Number(r[6])||0;});
+  return map;
+}
+// SINKING-FUND FORWARD REINTERPRETATION (v0.68.44). Total monthly contribution to treat as a RESERVATION of existing cash — NOT
+// recurring spend — in month m (0-indexed). It fires ONLY for a category that is explicitly LINKED (catSinking) and classified
+// "sinking"/"split" (never inferred from names or from a plain contribution value), only within this plan year, and only in the
+// months from now up to but NOT including the obligation's due month (the due month is when the bill itself is the outflow). This
+// is exactly the money that would otherwise be double-counted (once as monthly budget, once as the bill). Legacy categories return
+// 0, so the whole forecast is byte-identical unless a real sinking link exists. Guarded typeof so extracted-in-isolation engine
+// tests (golden-suite / golden-invariants), which don't carry the sinking helpers, safely see 0 (no reinterpretation).
+function _cfSinkFree(plan,m){
+  if(typeof catSinking!=="function"||typeof catPurpose!=="function"||typeof catContributionMonthly!=="function")return 0;
+  var cm=(bYear()===curYear())?curMonth():1,free=0;
+  (plan.cats||[]).forEach(function(c){
+    var p=catPurpose(c.name);if(p!=="sinking"&&p!=="split")return;
+    if(m<cm-1)return;                                         // only from the current month forward
+    var obs=(typeof catObligations==="function")?catObligations(c.name):[];if(!obs.length)return;
+    // MULTI-BILL rule: this month's contribution is a reservation IFF (a) some linked bill is still due AFTER this month — the fund is
+    // still saving toward something — AND (b) this month is not itself a bill's due month (there the bill is the outflow, and max(bud,bill)
+    // already subsumes the contribution; freeing it too would understate the bill). Single-bill links are the special case of one obligation.
+    var hasLater=false,isDue=false;
+    for(var i=0;i<obs.length;i++){var o=obs[i];if((Number(o.dueYear)||bYear())!==bYear())continue;var di=(Number(o.dueMonth)||12)-1;if(di>m)hasLater=true;if(di===m)isDue=true;}
+    if(hasLater&&!isDue)free=r2(free+catContributionMonthly(c.name,m));
+  });
+  return r2(free);
+}
+function _cfFutureOut(plan,catExp,m,planGh){
+  var base=0,known=0;(plan.cats||[]).forEach(function(c){var budC=(c.bud12&&c.bud12[m])||0;var actC=((catExp[(""+c.name).toLowerCase()])||[])[m]||0;base+=budC;if(actC>budC)known+=(actC-budC);});
+  base=r2(base+(Number(planGh)||0));
+  var sinkFree=(typeof _cfSinkFree==="function")?r2(_cfSinkFree(plan,m)):0;if(sinkFree>0)base=r2(Math.max(0,base-sinkFree)); // linked sinking contributions are reservations, not recurring spend (no double-count with the bill)
+  known=r2(known);return {recurring:base,known:known,out:r2(base+known)};
+}
 function computeCashflow(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=opts.year||curYear(),bnd=curMonth();
   var a=_cfArrays(plan),inc=a.inc,exp=a.exp,IE=actualIE(plan.rows,y),ai=IE.ai,ae=IE.ae,ag=IE.ag;
   var planGh=Number(plan.goalMonthlyFixed)||0;
+  var catExp=_cfCatExp(plan,y); // per-category logged expense by month (hybrid future forecast)
   var start=Number(plan.startCash)||0,bal=start,low=start,lowM=-1,months=[];
   for(var m=0;m<12;m++){var im,outM;
     // Total spendable OUTFLOW = ordinary expense + goal moves, compared as ONE quantity against total planned outflow
@@ -3395,11 +3648,220 @@ function computeCashflow(plan,opts){opts=opts||{};var mode=opts.mode||"plan",y=o
     var actualOut=r2(ae[m]+ag[m]),plannedOut=r2(exp[m]+planGh);
     if(mode==="actual"){
       if((m+1)<bnd){im=ai[m];outM=actualOut;}                        // completed: what actually happened
-      else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);outM=Math.max(actualOut,plannedOut);} // current: actual-to-date, at least plan
-      else{im=inc[m];outM=plannedOut;}                                // future: planned
+      else if((m+1)===bnd){im=Math.max(ai[m],inc[m]);var sfC=(typeof _cfSinkFree==="function")?r2(_cfSinkFree(plan,m)):0;var pAdj=(sfC>0)?r2(Math.max(0,exp[m]-sfC)+planGh):plannedOut;outM=Math.max(actualOut,pAdj);} // current: a linked sinking contribution is a reservation, not spend (max() still lets real actual spending win)
+      else{im=inc[m];outM=_cfFutureOut(plan,catExp,m,planGh).out;}      // future: recurring baseline + incremental known dated bills (deduped per category)
     }else{im=inc[m];outM=plannedOut;}
     var one=(plan.oneTime&&plan.oneTime[m])||0,net=r2(im-outM-one);bal=r2(bal+net);if(bal<low){low=bal;lowM=m;}months.push({m:m+1,net:net,bal:bal});}
   return {months:months,end:bal,low:low,lowM:lowM,lowMonth:(lowM>=0?MONTHS[lowM]:"")};}
+// ===== SAFE-TO-MOVE-TO-GOAL — the "join" the app was missing. It answers ONE question: how much can I move to my goal account
+// TODAY without any future month's projected household cash falling below my Nest Egg Floor? It reads the EXISTING forward
+// cash-flow projection (computeCashflow — the single source of truth), so future bills, envelope set-asides, already-banked
+// balances, contingency effects, protected/linked/residual goals, and future income on their real timing are ALL already in the
+// path — nothing is subtracted a second time (no double-count). The whole derivation is one line of intuition: moving $X out
+// TODAY shifts the entire forward curve DOWN by $X, so the most you can move while keeping the lowest FORWARD point at/above the
+// floor is (forwardLow − floor). Operational guarantee (proven by simulation in verify-goal-safe.js): move exactly `safeToGoal`
+// as a one-time outflow this month, re-run the full projection, and the forward low lands EXACTLY on the floor; one dollar more
+// breaches it. floor = your configured Nest Egg Floor (not $0 unless it's actually $0).
+function goalSafeToMove(){
+  var cf;try{cf=computeCashflow(currentPlan(),{mode:(bYear()!==curYear()?"plan":"actual"),year:bYear()});}catch(e){return null;}
+  if(!cf||!cf.months)return null;
+  var floor=r2((typeof nestFloor==="function")?nestFloor():0);
+  var cm=(bYear()===curYear())?curMonth():1;                 // look forward from the CURRENT month (past dips are history, already spent)
+  var fLow=Infinity,fLowM=cm;
+  for(var m=cm-1;m<12;m++){var bal=(cf.months[m]&&cf.months[m].bal);if(bal==null)continue;if(bal<fLow){fLow=bal;fLowM=m+1;}}
+  if(!isFinite(fLow))fLow=0;
+  var safe=r2(Math.max(0,r2(fLow-floor)));
+  var cur=r2((cf.months[cm-1]&&cf.months[cm-1].bal!=null)?cf.months[cm-1].bal:fLow);
+  return {safeToGoal:safe,forwardLow:r2(fLow),forwardLowMonth:fLowM,floor:floor,
+    currentProjected:cur,billsCovered:(fLow>=floor-0.005),          // the forward path stays at/above the floor on the current plan
+    breach:(fLow<floor-0.005),breachBy:r2(Math.max(0,floor-fLow)),  // it already dips below the floor BEFORE moving anything
+    mustStay:r2(cur-safe),                                          // what has to remain in household cash to protect the future
+    startCashSet:!!(state.meta&&Number(state.meta.startCash)),startCash:r2((state.meta&&Number(state.meta.startCash))||0)};
+}
+function reserveBreakdown(){
+  // WHAT is ahead, reconciled EXACTLY to the reserve. The reserve = currentProjected − forwardLow. For each future month up to
+  // the tightest month we take computeCashflow's own net (income − planned expenses & commitments − one-time) and attribute to
+  // that month only the amount by which it drives projected cash to a NEW LOW below today. Those "cash needed from today"
+  // amounts are non-negative and sum EXACTLY to the reserve (the deepest dip below today's balance). Income per month is the
+  // planned income; expenses shown = income − net, so expenses/income/net are internally consistent and total to the reserve.
+  var opts={mode:(bYear()!==curYear()?"plan":"actual"),year:bYear()};
+  var cf;try{cf=computeCashflow(currentPlan(),opts);}catch(e){return null;}
+  if(!cf||!cf.months)return null;
+  var gs;try{gs=goalSafeToMove();}catch(e){return null;} if(!gs)return null;
+  var cm=(bYear()===curYear())?curMonth():1, fLowM=gs.forwardLowMonth;
+  var reserve=r2(Math.max(0,r2(gs.currentProjected-gs.forwardLow)));
+  var plan=currentPlan(), a=_cfArrays(plan), planGh=Number(plan.goalMonthlyFixed)||0, catExp=_cfCatExp(plan,bYear());
+  var rows=[],running=0,runMin=0;
+  for(var m=cm;m<=fLowM-1;m++){ // 0-indexed months cm..fLowM-1 = the future months up to & incl. the tightest
+    if(m<0||m>11||!cf.months[m])continue;
+    var net=cf.months[m].net, income=r2(a.inc[m]||0);
+    var fo=_cfFutureOut(plan,catExp,m,planGh);            // recurring baseline + incremental known bills (= income − net)
+    running=r2(running+net);
+    var needed=0; if(running<runMin-0.005){ needed=r2(runMin-running); runMin=running; }
+    var detail=[];(plan.rows||[]).forEach(function(r){if(Number(r[0])!==bYear()||Number(r[1])!==(m+1))return;if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;var amt=Number(r[6])||0;if(amt>0.005)detail.push({cat:(""+((r&&r[4])||"")),who:(""+((r&&r[5])||(r&&r[7])||"")),amt:r2(amt)});});
+    detail.sort(function(x,y){return y.amt-x.amt;});
+    rows.push({m:m+1,name:((typeof MONTHS!=="undefined"&&MONTHS[m])||""),recurring:fo.recurring,known:fo.known,income:income,needed:needed,net:net,knownDetail:detail});
+  }
+  // Transparency (display-only, v0.68.42): attribute each envelope's ALREADY-banked balance to that category's upcoming known bills,
+  // earliest month first, so a future bill can SHOW how much is already set aside in cash. This changes the EXPLANATION only — it never
+  // touches computeCashflow, the reserve, or safe-to-move. The banked dollars are already inside "available cash now" and the bill draws
+  // them through the projection; subtracting them from the bill AGAIN would double-count (proven — see verify-sinking-transparency.js).
+  // Each banked dollar is allocated to exactly one bill (earliest-due first), so it can never be displayed as funding two obligations.
+  if(bYear()===curYear()){
+    var envBanked={};
+    (plan.cats||[]).forEach(function(c){ if(typeof catRoll==="function"&&catRoll(c.name)==="envelope"){ var b=catBalance(c); if(b>0.005) envBanked[(""+c.name).toLowerCase()]=b; } });
+    rows.forEach(function(rr){ (rr.knownDetail||[]).forEach(function(d){ var k=(""+d.cat).toLowerCase(); if(envBanked[k]>0.005&&d.amt>0.005){ var use=Math.min(envBanked[k],d.amt); d.banked=r2(use); d.unbanked=r2(d.amt-use); d.envelope=true; envBanked[k]=r2(envBanked[k]-use); } }); });
+  }
+  var total=r2(rows.reduce(function(sum,r){return sum+r.needed;},0));
+  return {months:rows,total:total,reserve:reserve,tightMonth:((typeof MONTHS!=="undefined"&&MONTHS[fLowM-1])||""),reconciles:(Math.abs(total-reserve)<0.02),floor:gs.floor};
+}
+// The ANSWER panel — the app finally saying "here's what you can safely do," from the single helper above. Renders the auditor's
+// fields: bills covered, lowest projected cash after today, the floor, and the one number that matters — safe to move to the goal.
+function goalMoveName(){
+  // The safe-to-move figure is goal-AGNOSTIC — it's the total household cash you can move to any savings/goal today. So we
+  // name the goal only when there's exactly one; with several, "your goals"; with none, "savings". (Not tied to one goal.)
+  var g=(state.goals||[]).filter(function(x){return x&&!x.archived;});
+  if(g.length===1)return g[0].name||"your goal";
+  if(g.length===0)return "savings";
+  return "your goals";
+}
+function goalSafeHTML(){
+  var s;try{s=goalSafeToMove();}catch(e){return "";}
+  if(!s)return "";
+  var gname=goalMoveName();
+  var mn=function(m){return (typeof MONTHS!=="undefined"&&MONTHS[m-1])||"";};
+  var rows='<div class="totrow"><span>Bills covered</span><b class="'+(s.billsCovered?"bpos":"bneg")+'">'+(s.billsCovered?"✓ yes":"⚠ not on this plan")+'</b></div>';
+  rows+='<div class="totrow" style="margin-top:4px"><span style="color:var(--ink2)">Lowest projected cash after today</span><span class="'+(s.forwardLow<-0.005?"bneg":"")+'"><span class="num">'+money(s.forwardLow)+'</span><span style="color:var(--ink2);font-weight:400"> · '+esc(mn(s.forwardLowMonth))+'</span></span></div>';
+  rows+='<div class="totrow" style="margin-top:2px"><span style="color:var(--ink2)">Your Nest Egg Floor</span><span class="num">'+money(s.floor)+'</span></div>';
+  rows+='<div class="totrow" style="margin-top:8px;padding-top:10px;border-top:1px solid var(--line)"><span style="font-weight:600">Safe to move to '+esc(gname)+' now</span><b class="num" style="font-size:20px;color:var(--green)">'+money(s.safeToGoal)+'</b></div>';
+  var msg;
+  if(s.breach)msg='Your projected cash already dips to '+money(s.forwardLow)+' in '+esc(mn(s.forwardLowMonth))+' — below your '+money(s.floor)+' floor — so <b>$0</b> is safe to move. Moving anything to '+esc(gname)+' would take you further under.';
+  else if(s.safeToGoal<0.005)msg='<b>$0</b> is safe to move right now — your plan sits right at your '+money(s.floor)+' floor at its tightest point ('+esc(mn(s.forwardLowMonth))+'), so there’s no room above it yet.';
+  else msg='You can move up to <b>'+money(s.safeToGoal)+'</b> to '+esc(gname)+' today and still stay above your '+money(s.floor)+' floor every month through the rest of your plan — the tightest point is '+money(s.forwardLow)+' in '+esc(mn(s.forwardLowMonth))+'.';
+  var cav=(!s.startCashSet)?'<div class="hintline neg" style="text-align:left;margin:6px 0 0">This starts from a $0 starting-savings baseline, so it only counts money banked since January. Set Starting savings above to your real balance for the true figure — it rises dollar-for-dollar with it.</div>':'';
+  return '<div style="margin:10px 0 12px;padding:14px 15px;border:1px solid var(--line);border-radius:14px">'
+    +'<div class="hintline" style="text-align:left;margin:0 0 6px;font-weight:600;color:var(--ink)">Can I fund '+esc(gname)+'?</div>'
+    +rows+'<div class="hintline" style="text-align:left;margin:8px 0 0">'+msg+'</div>'+cav+'</div>';
+}
+function moneyRightNow(){
+  // ONE money story for the Month tab. The PRIMARY reconciliation is a provable, floor-INDEPENDENT 3-way from the forward
+  // projection (goalSafeToMove): available === reserve + floor + safe, where reserve = currentProjected − forwardLow (proven
+  // independent of the floor — vary the floor and reserve/forwardLow are unchanged, only `safe` moves). Everything else is
+  // organized by user meaning (This month / Your protection) from the canonical helpers — never reverse-engineered to balance.
+  var gs;try{gs=goalSafeToMove();}catch(e){return null;}
+  if(!gs)return null;
+  var rc=null;try{rc=monthlyCashReconciliation();}catch(e){}
+  var roll=null;try{roll=(typeof computeRollover==="function")?computeRollover():null;}catch(e){}
+  var gfs=null;try{gfs=(typeof goalFundingStatus==="function")?goalFundingStatus():null;}catch(e){}
+  var recvd=0,plan=0;(state.cons||[]).forEach(function(c){recvd+=Number(c.mdep)||0;plan+=Number(c.mtarget)||0;});
+  recvd=r2(recvd);plan=r2(plan);
+  var gname=goalMoveName(),goalCount=(state.goals||[]).filter(function(g){return g&&!g.archived;}).length;
+  var contAvail=r2(Math.max(0, rc?((rc.contingencyEffective!=null)?rc.contingencyEffective:0):(roll?roll.rawBuffer:0)));
+  var envBanked=r2(roll?roll.envTotal:0);
+  var hasBuf=!!(roll&&(roll.envelopes.length||contAvail>0.005||Math.abs(roll.rawBuffer||0)>0.005));
+  return {available:gs.currentProjected,forwardLow:gs.forwardLow,forwardLowMonth:gs.forwardLowMonth,
+    reserve:r2(Math.max(0,r2(gs.currentProjected-gs.forwardLow))),floor:gs.floor,safe:gs.safeToGoal,
+    billsCovered:gs.billsCovered,breach:gs.breach,breachBy:gs.breachBy,startCashSet:gs.startCashSet,
+    goalName:gname,goalCount:goalCount,received:recvd,planned:plan,abovePlan:r2(recvd-plan),recon:rc,
+    deposits:r2(rc?rc.income:0),spending:r2(rc?rc.consumption:0),notYetSpent:r2(rc?(rc.income-rc.consumption):0),
+    contingencyAvailable:contAvail,envelopesBanked:envBanked,envelopes:(roll?roll.envelopes:[]),hasBuffer:hasBuf,
+    residualSupportable:r2(gfs?gfs.residualSupported:0),hasResidual:!!(gfs&&gfs.hasResidual)};
+}
+function moneyNowHTML(){
+  var m;try{m=moneyRightNow();}catch(e){return "";}
+  if(!m)return "";
+  var mn=function(x){return (typeof MONTHS!=="undefined"&&MONTHS[x-1])||"";};
+  var tight=esc(mn(m.forwardLowMonth));
+  var row=function(label,val,opt){opt=opt||{};return '<div class="totrow" style="'+(opt.mt||"margin-top:2px")+'"><span style="'+(opt.lstyle||"color:var(--ink2)")+'">'+label+'</span><span class="num'+(opt.cls?(' '+opt.cls):'')+'">'+val+'</span></div>';};
+  var section=function(title,body){return '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><div class="hintline" style="text-align:left;margin:0 0 4px;font-weight:600;color:var(--ink)">'+title+'</div>'+body+'</div>';};
+  var drow=function(label,val,inner,neg){return '<details class="mn-det"><summary class="mn-drow"><span><span class="ck">▸</span> '+label+'</span><span class="num">'+(neg?'−':'')+val+'</span></summary><div class="hintline" style="text-align:left;margin:6px 0 2px;border-top:0;padding-top:2px">'+inner+'</div></details>';};
+  var today=(function(){try{var d=new Date();return (mn(d.getMonth()+1))+' '+d.getDate();}catch(e){return 'today';}})();
+  // context
+  var ctx="";
+  if(m.abovePlan>0.005)ctx="You brought in <b>"+money(m.abovePlan)+" more than planned</b> this month.";
+  else if(m.abovePlan<-0.005)ctx="You’ve received <b>"+money(-m.abovePlan)+" less than planned</b> so far this month.";
+  else if(m.received>0.005)ctx="Your deposits are right on plan this month.";
+  // hero (single safe number)
+  // BREACH shows a plain statement; otherwise the ANSWER is the conclusion of the waterfall below (no floating hero on top).
+  var hero=m.breach?('<div class="s2s-big neg" style="font-size:20px;margin-top:4px">$0 safe to move to '+esc(m.goalName)+'</div><div class="hintline" style="text-align:left;margin:4px 0 0">Your plan already dips '+money(m.breachBy)+' below your '+money(m.floor)+' floor in '+tight+'. Close that gap before moving anything to '+esc(m.goalName)+'.</div>'):"";
+  var recon="";
+  if(!m.breach){
+    // the "Reserved for what’s ahead" row is itself the disclosure — tapping it shows WHAT is ahead, reconciled to the reserve
+    var rb=null;try{rb=reserveBreakdown();}catch(e){}
+    var method='NestWorth projects your cash forward month by month from your plan — the planned expenses and commitments due each month, minus the income arriving that month. Each future month uses your recurring baseline plus any specific bills you’ve logged for it (a logged bill isn’t double-counted — it only adds what exceeds the baseline). The reserve is how far your projected cash would dip below today’s balance by your tightest month'+((rb&&rb.tightMonth)?(' ('+esc(rb.tightMonth)+')'):'')+', so no month falls below your '+money(m.floor)+' Nest Egg Floor. It comes straight from that projection, so envelopes, goal set-asides and future income are all already counted.';
+    var resInner;
+    if(rb&&rb.months.length){
+      var mrows=rb.months.map(function(rr){
+        var covered=(rr.needed<0.005);
+        var parts=money(rr.recurring)+' recurring'+((rr.known>0.005)?(' · '+money(rr.known)+' known bills'):'')+' · '+money(rr.income)+' income';
+        var det='';
+        if(rr.known>0.005&&rr.knownDetail&&rr.knownDetail.length){
+          var items=rr.knownDetail.map(function(d){var line='<div class="totrow" style="margin-top:2px;font-size:12.5px"><span style="color:var(--ink2)">'+esc(d.cat)+(d.who?(' · '+esc(d.who)):'')+'</span><span class="num" style="color:var(--ink2)">'+money(d.amt)+'</span></div>';if(d.banked>0.005){line+='<div class="hintline" style="text-align:left;margin:2px 0 0;padding-left:2px;font-size:11px">'+money(d.banked)+' already banked in your '+esc(d.cat)+' envelope — already part of your available cash above'+((d.unbanked>0.005)?('; '+money(d.unbanked)+' of this bill isn’t set aside yet'):'; this bill is fully set aside')+'.</div>';}return line;}).join('');
+          var schedTot=r2(rr.knownDetail.reduce(function(su,d){return su+d.amt;},0));
+          var dnote=(schedTot>rr.known+0.5)?('<div class="hintline" style="text-align:left;margin:4px 0 0;padding-left:2px;font-size:11px">These total '+money(schedTot)+'; '+money(r2(schedTot-rr.known))+' is already within your recurring budget, so '+money(rr.known)+' is added on top.</div>'):'';
+          det='<details style="margin-top:1px 0 0 0"><summary class="mn-sum" style="font-size:11.5px;padding-left:2px">See '+esc(rr.name)+'\u2019s known bills</summary><div style="margin-top:2px;padding-left:2px">'+items+dnote+'</div></details>';
+        }
+        return '<div class="totrow" style="margin-top:7px"><span style="color:var(--ink)">'+esc(rr.name)+'<div style="font-size:11.5px;color:var(--ink2);font-weight:400;margin-top:1px">'+parts+(covered?' · income covers it':'')+'</div></span><span class="num'+(covered?'" style="color:var(--ink2)':'')+'">'+money(rr.needed)+'</span></div>'+det;
+      }).join('');
+      resInner='<div class="hintline" style="text-align:left;margin:6px 0 0;border-top:0;padding-top:2px;font-weight:600;color:var(--ink)">What’s ahead through '+esc(rb.tightMonth)+'</div>'
+        +'<div class="hintline" style="text-align:left;margin:1px 0 0">Recurring plan + any bills you’ve logged, minus income — and what today’s cash must cover.</div>'
+        +mrows
+        +'<div class="totrow" style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)"><span style="font-weight:700">Must stay from today’s cash</span><b class="num">'+money(rb.total)+'</b></div>'
+        +'<details style="margin-top:8px"><summary class="mn-sum" style="font-size:12px">How is this calculated?</summary><div class="hintline" style="text-align:left;margin:4px 0 0;border-top:0;padding-top:2px">'+method+'</div></details>';
+    } else {
+      resInner='<div class="hintline" style="text-align:left;margin:6px 0 2px;border-top:0;padding-top:2px">Your income keeps your projected cash at or above today’s level through the rest of your plan while staying above your '+money(m.floor)+' floor, so nothing needs to stay reserved.</div>';
+    }
+    var reserveRow='<details class="mn-det"><summary class="mn-drow"><span><span class="ck">▸</span> Reserved for what’s ahead</span><span class="num">−'+money(m.reserve)+'</span></summary><div style="margin:4px 0 2px">'+resInner+'</div></details>';
+    var availInner='Your modeled household cash as of '+today+' — your starting savings plus the deposits you’ve logged this year, minus what you’ve spent. A projection from your ledger, not a live bank balance.';
+    var floorInner='The minimum total cash you don’t want your projection to fall below — a line you set. It’s different from your contingency (a cushion for category overages): the floor is a total-cash minimum, and it’s held out of what’s safe to move.';
+    recon='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">'
+      +drow('Available cash now',money(m.available),availInner,false)
+      +reserveRow
+      +drow('Nest Egg Floor',money(m.floor),floorInner,true)
+      +'<div class="totrow" style="margin-top:6px;padding-top:8px;border-top:1px dashed var(--line)"><span style="font-weight:700;font-size:15px">Safe to move to '+esc(m.goalName)+'</span><b class="num" style="color:var(--green);font-size:22px">'+money(m.safe)+'</b></div>'+((m.goalCount>=2)?('<div class="hintline" style="text-align:left;margin:4px 0 0">This is the total you can move to savings — put it toward any one goal, or split it across them.</div>'):"")+'</div>';
+  }
+  // This month (income/spending flow) — "Cash not yet spent", NOT "surplus"
+  var thism="";
+  if(m.deposits>0.005||m.spending>0.005) thism=section('This month',
+      row('Deposits received',money(m.deposits),{mt:'margin-top:0'})
+      +row('Actual spending',money(m.spending))
+      +row('Cash not yet spent',money(m.notYetSpent)));
+  // Your protection (reserves/cushions only) — proven NOT double-reserved in the safe figure (safe is identical whether a
+  // category is plain, an envelope, or a buffer): these are labels on cash already in the projection, not extra deductions.
+  var subrow=function(label,desc,val){return '<div class="totrow" style="margin-top:6px"><span style="color:var(--ink2)">'+label+'<div style="font-size:11.5px;color:var(--ink2);font-weight:400;margin-top:1px">'+desc+'</div></span><span class="num">'+val+'</span></div>';};
+  var protRows="";
+  if(m.hasBuffer){protRows+=subrow('Contingency available','Flexible cushion for category overages.',money(m.contingencyAvailable))+subrow('Banked in envelopes','Set aside toward specific upcoming bills.',money(m.envelopesBanked));}
+  var prot=protRows?section('Your protection',protRows):"";
+  // Your goals (savings, not protection)
+  var goalRows="";
+  if(m.hasResidual)goalRows+=subrow('Goal funding supportable','What your plan can put toward %-of-leftover goals each month.',money(m.residualSupportable)+'/mo');
+  var goals=goalRows?section('Your goals',goalRows):"";
+  // progressive detail
+  var det="";
+  var trend="";try{trend=(typeof contingencyTrendHTML==="function")?contingencyTrendHTML():"";}catch(e){}
+  if(m.hasBuffer)det+='<details style="margin-top:6px"><summary class="mn-sum">View contingency history</summary><div class="hintline" style="text-align:left;margin:6px 0 0;border-top:0;padding-top:2px">'+money(m.contingencyAvailable)+' available — a shared cushion that covers a category when it outspends its own envelope.</div>'+(trend||"")+'</details>';
+  if(m.envelopes&&m.envelopes.length){
+    var el=m.envelopes.map(function(e){var neg=e.balance<-0.005;return '<div class="totrow" style="margin-top:2px"><span'+(neg?' style="color:var(--bad)"':'')+'>'+esc(e.name)+'</span><span class="num'+(neg?' neg':'')+'">'+money(e.balance)+(e.coveredByContingency>0.005?(' <span style="color:var(--ink2);font-weight:400">('+money(e.coveredByContingency)+' covered)</span>'):'')+'</span></div>';}).join("");
+    det+='<details style="margin-top:6px"><summary class="mn-sum">View envelopes</summary><div style="margin-top:6px">'+el+'</div><div class="hintline" style="text-align:left;margin:6px 0 0;border-top:0;padding-top:2px">Each envelope banks its own unspent budget. A negative balance is real history kept for accountability; contingency can cover it for spending without erasing it.</div></details>';
+  }
+  if(m.abovePlan>0.005||(m.recon&&m.recon.income>0.005)){
+    var lbl,body;
+    if(m.abovePlan>0.005){
+      lbl="Where is my extra "+money(m.abovePlan)+" going?";
+      body="You brought in "+money(m.abovePlan)+" more than planned. That improved your cash position, but not all of it is free money — some is helping cover months where your planned expenses run ahead of income, and some protects your "+money(m.floor)+" floor. Across your whole plan, "+money(m.safe)+" is currently safe to move to "+esc(m.goalName)+".";
+    } else {
+      lbl="Where is this month’s income going?";
+      body="Your income this month is part of your whole cash position. Some covers months where planned expenses run ahead of income, and "+money(m.floor)+" stays as your floor — leaving "+money(m.safe)+" currently safe to move to "+esc(m.goalName)+".";
+    }
+    det+='<details style="margin-top:6px"><summary class="mn-sum">'+lbl+'</summary><div class="hintline" style="text-align:left;margin:6px 0 0;border-top:0;padding-top:2px">'+body+'</div></details>';
+  }
+  var cav=(!m.startCashSet)?'<div class="hintline neg" style="text-align:left;margin:8px 0 0">These figures start from a $0 starting-savings baseline (only money banked since January). Set Starting savings on the Worth tab for your true position.</div>':"";
+  return '<div style="margin:10px 0 12px;padding:14px 15px;border:1px solid var(--line);border-radius:14px">'
+    +'<div class="hintline" style="text-align:left;margin:0 0 4px;font-weight:700;color:var(--ink);font-size:14px">Your money right now</div>'
+    +(ctx?('<div class="hintline" style="text-align:left;margin:0 0 6px">'+ctx+'</div>'):"")
+    +hero+recon+thism+prot+goals+det+cav+'</div>';
+}
+
 // Annual feasibility. In "actual" mode it uses the same Plan+Actual blend (§4) as the Budget screen (renderFeas) and the
 // cash-flow model: past months actual, current month max(actual, plan), future months planned — so the Decision Engine's
 // surplus baseline and the Budget screen can't disagree (audit #2).
@@ -6010,6 +6472,8 @@ function renderStress(){
     }
   }catch(e){}
   $("stVerdict").innerHTML=v;
+  // the "safe to move to your goal" answer lives on the MONTH tab; refresh it here too so it tracks live floor/startCash edits
+  var gsEl=$("mGoalSafe");if(gsEl){var _gsh=moneyNowHTML();gsEl.innerHTML=_gsh;var _gsc=$("mGoalSafeCard");if(_gsc)_gsc.style.display=_gsh?"block":"none";}
 }
 function openMonthDetail(mo,yr){
   if(mo<1||mo>12)return;yr=yr||curYear();
@@ -6067,7 +6531,7 @@ function renderFeas(){
   var big=ok?('✓ Feasible — '+money(diff)+' /yr surplus'):('⚠ Short — '+money(-diff)+' /yr gap');
   var sub='Income '+money(income)+' − budget '+money(budget)+(goalSave>0?(' − goals '+money(goalSave)):'')+'  ·  '+money(Math.abs(mo2))+'/mo '+(ok?'free':'over');
   if(blended&&bnd>1)sub+=' · blended with actuals through '+MONTHS[bnd-2];
-  el.innerHTML='<div class="feas-big">'+big+'</div><div class="feas-sub">'+sub+'</div><div class="feas-sub" style="margin-top:4px;opacity:.8">This is your <b>annual plan</b> — whether the whole year balances. For month-to-month timing (can a big bill land before you\'ve saved for it?), see <b>Cash flow through the year</b> below.</div>';
+  el.innerHTML='<div class="feas-big">'+big+'</div><div class="feas-sub">'+sub+'</div><div class="feas-sub" style="margin-top:4px;opacity:.8">This is your <b>annual plan</b> — whether the whole year balances. For month-to-month timing (can a big bill land before you\'ve saved for it?), see <b>Cash flow through the year</b> on the Worth tab.</div>';
 }
 var showArchivedGoals=false;
 function goalShortfall(g){var plan=g.residual?(g._resMo||0):(g.monthly||0);return r2(Math.max(0,plan-Math.max(0,g.mtd||0)));}
@@ -6469,7 +6933,7 @@ function renderS2S(){
   var unbud=0;state.rows.forEach(function(r){if(!isExpenseRow(r)||(typeof _asOfOK==="function"&&!_asOfOK(r)))return;if(Number(r[0])!==y||Number(r[1])!==m)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(!e||!names[e])unbud+=Number(r[6])||0;});
   var hold=goalHold();
   var left=r2(tb-ts-hold-unbud),pct=Math.round(ts/tb*100); // unbudgeted spending genuinely eats into what's left, not just an annotation (audit v0.56 #8)
-  var big=(left<-0.005)?(money(-left)+" over this month"):(money(left)+" left this month");
+  var big=(left<-0.005)?(money(-left)+" over this month's budget"):(money(left)+" left in this month's budget"); // spending-budget capacity, NOT cash remaining — a deliberately narrow claim
   var sub=money(tb)+" budgeted · "+money(ts)+" used"; // "used", NOT "spent": ts is budget-used (budUsed), which includes category-linked goal funding
   if(hold>0.005)sub+=" · "+money(hold)+" for goals";
   sub+=" · "+pct+"% used";
@@ -6533,11 +6997,24 @@ function renderDepTbl(){
   var dep=(co&&!offMonth)?co.mdep:rows.reduce(function(a,r){return a+(Number(r[6])||0);},0);
   var tgt=(co&&y===curYear())?(offMonth?((co.bud12&&co.bud12[m-1])||0):co.mtarget):0;
   var typed=typedAmt("dAmount");
-  var h='<div class="ch"><span>'+esc(src)+' · '+when+'</span><b>'+money(dep)+(tgt>0?(" / "+money(tgt)):"")+'</b></div>';
+  var mlabel=MONTHS[m-1]+((offMonth&&y!==curYear())?(" "+y):"");
+  var h='<div class="ch"><span><b>'+esc(src)+'</b> · '+mlabel+'</span></div>'+
+        '<div class="deprog"><span>'+money(dep)+' received</span>'+(tgt>0.005?('<span>'+money(tgt)+' planned</span>'):'')+'</div>';
   if(tgt>0.005){
-    var proj=dep+typed,more=tgt-proj;
-    if(typed>0)h+='<div class="fbline">After this: <b>'+money(proj)+'</b> of '+money(tgt)+(more>0.005?(' · <span class="neg">'+money(more)+' to go</span>'):' · <span class="pos">target met ✓</span>')+'</div>';
-    else h+='<div class="fbline">'+(more>0.005?('<b>'+esc(src)+'</b> needs <span class="neg">'+money(more)+' more</span> '+when+' (of '+money(tgt)+')'):('<span class="pos">✓ '+esc(src)+' met the '+money(tgt)+' target '+when+'</span>'))+'</div>';
+    // Above/below the PLANNED deposit (what the plan expected to come in) — this is NOT a savings target or a minimum.
+    // The above-plan amount is deliberately NOT called surplus / free / available / left over: it only means more income
+    // arrived than the plan expected. Whether any of it is actually safe to move to a goal is decided by the forward
+    // projection on the Month tab (budget-remaining ≠ income-above-plan ≠ safe-to-move), never inferred here.
+    var delta=r2(dep-tgt);
+    var vl=(delta>0.005)?('<span class="pos">+'+money(delta)+' above plan ✓</span>')
+          :(delta<-0.005)?(money(-delta)+' still expected')
+          :('<span class="pos">right on plan ✓</span>');
+    h+='<div class="fbline">'+vl+'</div>';
+    if(typed>0.005){
+      var pd=r2((dep+typed)-tgt);
+      var pv=(pd>0.005)?('+'+money(pd)+' above plan'):(pd<-0.005)?(money(-pd)+' still expected'):('right on plan');
+      h+='<div class="fbline" style="border-top:0;padding-top:2px;margin-top:3px;color:var(--ink2)">After this deposit: '+money(dep+typed)+' received · '+pv+'</div>';
+    }
   }
   // (per-source deposits are listed in the filtered "Recent" card below — not duplicated here)
   el.innerHTML=h;
@@ -6605,7 +7082,8 @@ function fillPayeeSource(){
     var lpS=lastPick("source");var pick=(cur2&&cur2!=="__new__")?cur2:((lpS&&sseen[lpS.toLowerCase()])?lpS:"");if(pick)src.value=pick;}
   var esrc=$("edSource");if(esrc){var cur3=esrc.value;var h=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur3&&cons.indexOf(cur3)<0)h='<option>'+esc(cur3)+'</option>'+h;esrc.innerHTML=h;if(cur3)esrc.value=cur3;}
 }
-function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();maybeOfferPullIn();maybeOfferReview();}
+function renderCheckup(){var el=$("checkupSlot");if(!el)return;var h="";try{h=forecastCheckupHTML();}catch(e){h="";}el.innerHTML=h||"";}
+function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();renderCheckup();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();maybeOfferPullIn();maybeOfferReview();}
 // One-time-per-load offer to fix a ledger whose rows were stranded near the bottom of the sheet (by Google's append on a Table).
 var _tidyOffered=false;
 /* ===== Monthly Nest Review — a deterministic recap of the last completed month, with a "Why?" chain that reveals the
@@ -7083,7 +7561,8 @@ async function removeCat(name){
 
 function switchView(v){
   // leaving the Budget tab while viewing another year → snap back to the current year so logging is correct
-  if(v!=="budget"&&budYear!==null){budYear=null;loadAll().then(function(){renderAll();});}
+  if(v==="plan")v="budget"; if(v==="outlook")v="month"; // back-compat aliases for the retired Plan/Outlook split (Budget=setup, Month=answers)
+  if(v!=="budget"&&v!=="worth"&&budYear!==null){budYear=null;loadAll().then(function(){renderAll();});}
   Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});["month","add","budget","goals","worth","settings"].forEach(function(x){$("view-"+x).classList.toggle("on",x===v);});try{document.body.setAttribute("data-view",v);}catch(e){}if(v==="settings")renderSettings();if(v==="month"){try{requestAnimationFrame(fitStileNums);}catch(e){try{fitStileNums();}catch(_){}}}try{if(!window.__tour)maybeOfferPullIn();}catch(e){}try{var _w=document.querySelector(".wrap");if(_w)_w.scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function applyCreditUI(){var on=$("fCredit")&&$("fCredit").checked;if($("fCreditHint"))$("fCreditHint").style.display=on?"block":"none";if($("addBtn"))$("addBtn").textContent=on?"Add credit":"Add expense";}
 function setMode(m){Array.prototype.forEach.call($("addMode").querySelectorAll("button"),function(b){b.classList.toggle("on",b.getAttribute("data-m")===m);});$("expFields").style.display=(m==="deposit")?"none":"block";$("depFields").style.display=(m==="deposit")?"block":"none";$("addMsg").textContent="";$("addMsg").className="msg";try{renderRecent();}catch(e){}}
@@ -7093,9 +7572,9 @@ var TOUR=[
  {eye:"Welcome",v:"add",sel:null,pose:"wren-happy",title:"Welcome to NestWorth",body:"A private budget that lives in your own Google Drive, not on any server of ours. Here's a 60-second tour of the essentials."},
  {eye:"Add",v:"add",sel:'.tabbar button[data-v="add"]',pose:"wren-full",title:"Log money in seconds",body:"The Add tab is home base. Log an expense or a deposit: pick a category, type the amount, tap Add. Your recent entries show right below so a slip is easy to fix."},
  {eye:"Categories",v:"add",sel:"#fCatBtn",scroll:true,pose:"wren-study",title:"Categories & itemized bills",body:"Tap here to choose a category. Big ones like Utilities can hold itemized bills (Phone, Water…) tucked underneath — pick the bill and it's tracked on its own while still rolling up to the parent."},
- {eye:"Month",v:"month",sel:'.tabbar button[data-v="month"]',pose:"wren-search",title:"See where the money went",body:"The Month tab shows every category's spending against its budget — itemized bills folded neatly into their parent — so what's over the line is obvious at a glance."},
- {eye:"Budget",v:"budget",sel:'.tabbar button[data-v="budget"]',pose:"wren-glasses",title:"Plan what you'll spend & earn",body:"Set a monthly amount per category, and add income — including weekly or every-2-weeks paychecks. Save-up goals and envelope carryover live here too."},
- {eye:"Net worth",v:"worth",sel:'.tabbar button[data-v="worth"]',pose:"wren-cheer",title:"Watch your net worth grow",body:"Track balances across your accounts over time, so the big picture — not just this month — stays in view."},
+ {eye:"Month",v:"month",sel:'.tabbar button[data-v="month"]',pose:"wren-search",title:"This month — and what's safe to move",body:"Every category's spending against its budget, your contingency buffer, and the answer that matters most: how much you can safely move to a goal today without dipping below your Nest Egg Floor."},
+  {eye:"Budget",v:"budget",sel:'.tabbar button[data-v="budget"]',pose:"wren-glasses",title:"Plan what you'll spend & earn",body:"Set a monthly amount per category and add income — weekly or every-2-weeks paychecks included. Save-up goals and envelope carryover live here too."},
+ {eye:"Worth",v:"worth",sel:'.tabbar button[data-v="worth"]',pose:"wren-cheer",title:"The forecast & big picture",body:"Your net worth over time, plus the year ahead: cash flow month by month, whether the budget works, and a what-if for any big decision."},
  {eye:"Profiles",v:"settings",sel:null,pose:"wren-privacy",title:"Profiles: share & switch",body:"Each budget is its own profile — a separate Google Sheet in your Drive. Share one with family so you all track together, and if you keep more than one (say personal and household), switch between them from the pill at the top or here in Settings."},
  {eye:"Settings",v:"settings",sel:'.tabbar button[data-v="settings"]',pose:"wren-guiding",title:"Everything else lives here",body:"Import past expenses, scan receipts, optimize the sheet — and reopen this tour or the full Feature guide anytime from the top of Settings. That's it — enjoy!"}
 ];
@@ -7317,12 +7796,12 @@ function wrenFollowup(t){
       if(w.kind==='goal'&&w.goal){var f=getGoalFacts(w.goal);if(f.found)return wrenGoalNarrate(f,'why');}
       if(w.kind==='overbudget'&&w.cat){var c=_wrenFindCat(w.cat);if(c){var u=r2(budUsed(c)),over=r2(u-(c.mbud||0));return {answer:"Because "+c.name+" is budgeted "+money(c.mbud||0)+" this month, but you've used "+money(u)+" — "+money(over)+" over.",go:{v:"budget"}};}}
       if(w.kind==='nwchange'){var H=state.nwHist||[];if(H.length>=2){var a=H[H.length-1],p0=H[H.length-2];var dA=r2((a.assets||0)-(p0.assets||0)),dD=r2((p0.debts||0)-(a.debts||0));return {answer:"Because between "+fmtYmNum(p0.ym)+" and "+fmtYmNum(a.ym)+" your assets moved "+(dA>=0?"+":"−")+money(Math.abs(dA))+" and your debt "+(dD>=0?("fell "+money(dD)):("rose "+money(-dD)))+".",go:{v:"worth"}};}}
-      if(w.kind==='lowcash'){var pm=planMetrics(currentPlan());return {answer:"Because your income and outflow don't fall evenly across the year — the tight point is "+anMoney(pm.low)+(pm.lowMonth?(" around "+pm.lowMonth):"")+", even when the year overall works out.",go:{v:"budget"}};}
+      if(w.kind==='lowcash'){var pm=planMetrics(currentPlan());return {answer:"Because your income and outflow don't fall evenly across the year — the tight point is "+anMoney(pm.low)+(pm.lowMonth?(" around "+pm.lowMonth):"")+", even when the year overall works out.",go:{v:"worth"}};}
     }catch(e){}
   }
   // 2) carried hypothetical: "would that put us below our floor?", "what about our cash?", "and the surplus?"
   if(wrenCtx.scenario&&/^(would|will|does|do|and|what about|how about|but)\b/.test(tt)&&/(floor|cash|surplus|goal|afford|worth|month|tight|below|leftover|room|lowest|run out)/.test(tt)){
-    try{return {answer:wrenScenarioSub(evaluateDecision(wrenCtx.scenario),tt),go:{v:"budget"}};}catch(e){}
+    try{return {answer:wrenScenarioSub(evaluateDecision(wrenCtx.scenario),tt),go:{v:"worth"}};}catch(e){}
   }
   // 3) category pronoun follow-up: "how much is left?" / "what have I spent there?" after a category answer — needs a genuine
   //    back-reference (left/remaining/there/it/that), and must NOT be an income/check question that merely says "budget"
@@ -7350,7 +7829,7 @@ function wrenEpistemic(t){
   if(/(will|am i going to|are we going to).{0,20}(definitely|for sure|certainly|guarantee)/.test(t)||/(definitely|for sure|guarantee(d)?|certain).{0,20}(reach|hit|make|afford|finish)/.test(t)){
     var _g=null;(state.goals||[]).forEach(function(g){if(g&&g.name&&t.indexOf(g.name.toLowerCase())>=0)_g=g;});
     if(_g&&_g.residual)return {answer:"I can't promise a date — “"+_g.name+"” is funded from your leftover, which changes month to month, so its finish is an estimate, not a certainty.",go:{v:"goals"}};
-    return {answer:"I can give you the projection from your current plan, but not a guarantee — real life shifts month to month. Treat any date I give as an estimate, not a certainty.",go:{v:"budget"}};
+    return {answer:"I can give you the projection from your current plan, but not a guarantee — real life shifts month to month. Treat any date I give as an estimate, not a certainty.",go:{v:"worth"}};
   }
   return null;
 }
@@ -7368,7 +7847,7 @@ function wrenFalsePremise(t,rows,when,expF,sumF){
   // "contingency erased/wiped my <envelope> overspending" — it didn't; raw balance is preserved
   if(/contingency.{0,20}(eras|wip|clear|zero|cancel|remov|undo|fix)/.test(t)||/(eras|wip|clear|zero).{0,20}(overspend|deficit|red|negative).{0,20}contingency/.test(t)){
     var roll=computeRollover();var red=roll.envelopes.filter(function(e){return e.rawBalance<-0.005;});
-    return {answer:"Contingency doesn't erase overspending — it covers it for spending purposes while the raw balance stays visible. "+(red.length?(red[0].name+" still shows "+money(red[0].rawBalance)+"; contingency covers "+money(red[0].coveredByContingency)+" of it, leaving "+money(red[0].uncovered)+" uncovered."):"Right now none of your envelopes are in the red anyway."),go:{v:"budget"}};
+    return {answer:"Contingency doesn't erase overspending — it covers it for spending purposes while the raw balance stays visible. "+(red.length?(red[0].name+" still shows "+money(red[0].rawBalance)+"; contingency covers "+money(red[0].coveredByContingency)+" of it, leaving "+money(red[0].uncovered)+" uncovered."):"Right now none of your envelopes are in the red anyway."),go:{v:"month"}};
   }
   // "why did I spend $X on <category>?" when consumption differs materially (often because a goal transfer is being counted as spend)
   if(/spen[dt]/.test(t)){
@@ -7440,7 +7919,7 @@ function wrenAnalyze(text){
       var _ans="This month you're on track for "+(_net>=0?("a projected gain of "+anMoney(_net)):("a projected draw of "+anMoney(-_net)))+" in cash — income minus spending, blending what you've logged so far with your plan for the rest of the month. It lands your running cash at about "+anMoney(_bal)+" by month-end.";
       if(Math.abs(_start)<0.005)_ans+=" (Starting savings is $0, so that's a cash-flow trend from a $0 baseline, not money in the bank.)";
       var _fl=(typeof nestFloor==="function")?nestFloor():0;if(_fl>0&&_bal<_fl-0.005)_ans+=" ⚠️ That's below your "+anMoney(_fl)+" Nest Egg Floor.";
-      return {answer:_ans,go:{v:"budget"}};
+      return {answer:_ans,go:{v:"month"}};
     }catch(e){}
   }
   // ===== ALLOCATION follow-up — "will IT go into my contingency or fund my goals?" resolves "it/that/the surplus" against the
@@ -7457,7 +7936,7 @@ function wrenAnalyze(text){
         P.push("There isn't a surplus this month to send anywhere"+(rc.drawsReserves?(" — after actual spending and your protected commitments, the month is drawing about "+anMoney(rc.reserveDraw)+" from reserves"):"")+".");
         if(askCont||!askGoal)P.push("So nothing refills your contingency"+(rc.contingencyEnteringDeficit>0.005?(", which is still overspent by "+anMoney(rc.contingencyEnteringDeficit)+" ($0 available)"):"")+" — and a positive projected-cash trend doesn't automatically refill it either.");
         if(askGoal){var gb=[];if(ga.hasFixed)gb.push("your fixed goal contributions ("+anMoney(ga.fixedSupported)+") stay protected first");if(ga.hasResidual&&rc.residualPlanned>0.005)gb.push("about "+anMoney(rc.residualFunding)+" of your planned "+anMoney(rc.residualPlanned)+" residual goal funding is supported");P.push(gb.length?("For goals, "+gb.join(", and ")+"."):"You don't have goals set up for this to fund.");}
-        return {answer:P.join(" "),go:{v:"budget"}};
+        return {answer:P.join(" "),go:{v:"month"}};
       }
       P.push("Here's where this month's surplus of "+anMoney(rc.surplus)+" (actual income after actual spending and protected commitments) goes — not swept anywhere automatically, but in order:");
       if(rc.contingencyRepair>0.005)P.push("first "+anMoney(rc.contingencyRepair)+" repairs your contingency"+(rc.contingencyAfterRepair>=-0.005?" (back to $0)":(" (from "+anMoney(rc.contingencyEntering)+" to "+anMoney(rc.contingencyAfterRepair)+", still short)"))+";");
@@ -7466,7 +7945,22 @@ function wrenAnalyze(text){
       var gb2=[];if(ga.hasFixed)gb2.push("fixed goal contributions ("+anMoney(ga.fixedSupported)+") are protected first");if(ga.hasResidual&&rc.residualPlanned>0.005)gb2.push(anMoney(rc.residualFunding)+" of your planned "+anMoney(rc.residualPlanned)+" residual goals is supported");
       P.push(gb2.length?("then "+gb2.join(", and ")+";"):"you don't have goals set up, so none funds goals;");
       P.push(rc.unallocated>0.005?("the remaining "+anMoney(rc.unallocated)+" stays as cash unless you move it."):"nothing is left after that.");
-      return {answer:P.join(" "),go:{v:"budget"}};
+      return {answer:P.join(" "),go:{v:"month"}};
+    }catch(e){}
+  }
+  // ===== SAFE-TO-MOVE-TO-GOAL — "how much can I safely move to my goal / can I fund the car today?" Narrated from the SAME
+  // goalSafeToMove() the panel uses (one source, floor-aware, no separate math). Guarded off goal-setup and pure purchase what-ifs.
+  if((/(safe to move|how much.{0,30}(move|put|send|spare|afford).{0,20}(goal|car|fund|savings)|can i (fund|afford|start)\b|fund (the|my|our) [a-z]|free (for|to) (my|the|our|put toward) .{0,12}goal|toward (my|the|our) (goal|car|fund))/.test(t))&&!/what if|what happens if|\bif i (cut|reduc|drop|add|rais|bump|move|put|spend)|reach.{0,16}(sooner|faster|by)|how (do|to) i (add|create|make|set up|start) a (new )?goal|what is a goal|residual|% of leftover/.test(t)){
+    try{var gs=goalSafeToMove();
+      if(gs){
+        var gn=goalMoveName();
+        var MN=function(m){return (typeof MONTHS!=="undefined"&&MONTHS[m-1])||"";},ans;
+        if(gs.breach)ans="Right now $0 is safe to move — your projected cash already dips to "+anMoney(gs.forwardLow)+" in "+MN(gs.forwardLowMonth)+", below your "+anMoney(gs.floor)+" Nest Egg Floor. The plan has to clear that dip before anything is free for "+gn+".";
+        else if(gs.safeToGoal<0.005)ans="Right now $0 is safe to move to "+gn+" — your plan sits right at your "+anMoney(gs.floor)+" floor at its tightest point ("+MN(gs.forwardLowMonth)+"), so there's no room above it yet.";
+        else ans="You can safely move up to "+anMoney(gs.safeToGoal)+" to "+gn+" today and still stay above your "+anMoney(gs.floor)+" Nest Egg Floor every month through the rest of your plan — the tightest point is "+anMoney(gs.forwardLow)+" in "+MN(gs.forwardLowMonth)+".";
+        if(!gs.startCashSet)ans+=" (Heads up: this is measured from a $0 starting-savings baseline — set your real Starting savings for the true figure.)";
+        return {answer:ans,go:{v:"month"}};
+      }
     }catch(e){}
   }
   var _inc=wrenIncome(t);if(_inc)return _inc;
@@ -7492,10 +7986,10 @@ function wrenAnalyze(text){
     if(/(afford|can (we|i)|could (we|i)|handle|swing|take a|buy|go on a|put (down|toward))/.test(t)){
       var recurring=/(payment|monthly|\/mo|a month|per month|each month|every month)/.test(t);
       try{
-        if(recurring){wrenCtx.scenario={type:"expenseMonthly",amount:_amt};return {answer:"Adding a "+anMoney(_amt)+"/month payment: "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"budget"}};}
+        if(recurring){wrenCtx.scenario={type:"expenseMonthly",amount:_amt};return {answer:"Adding a "+anMoney(_amt)+"/month payment: "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"worth"}};}
         var whenTxt=_mon?(" in "+MONTHS[_mon-1]):(" this month");
         wrenCtx.scenario={type:"purchase",amount:_amt,month:_mon};
-        return {answer:"A one-time "+anMoney(_amt)+whenTxt+": "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"budget"}};
+        return {answer:"A one-time "+anMoney(_amt)+whenTxt+": "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"worth"}};
       }catch(e){}
     }
   }
@@ -7528,15 +8022,15 @@ function wrenAnalyze(text){
     // false premise: "contingency erased my overspending"
     if(/(contingency|buffer).{0,20}(eras|wip|clear|zero|cancel|remov|undo|got rid|fix)/.test(t)){
       var _red0=roll.envelopes.filter(function(e){return e.rawBalance<-0.005;});
-      return {answer:"Contingency doesn't erase overspending — it covers it for spending purposes while the raw balance stays visible for accountability. "+(_red0.length?(_red0[0].name+" still shows "+anMoney(_red0[0].rawBalance)+"; contingency covers "+anMoney(_red0[0].coveredByContingency)+", leaving "+anMoney(_red0[0].uncovered)+" uncovered."):"Right now none of your envelopes are in the red anyway."),go:{v:"budget"}};
+      return {answer:"Contingency doesn't erase overspending — it covers it for spending purposes while the raw balance stays visible for accountability. "+(_red0.length?(_red0[0].name+" still shows "+anMoney(_red0[0].rawBalance)+"; contingency covers "+anMoney(_red0[0].coveredByContingency)+", leaving "+anMoney(_red0[0].uncovered)+" uncovered."):"Right now none of your envelopes are in the red anyway."),go:{v:"month"}};
     }
     // "does using contingency lower my net worth / change my spending?"
     if(/net[- ]?worth|lower.*worth|change.*(spend|spent)|affect.*(spend|net)/.test(t)){
-      return {answer:"No — contingency coverage is a computed reallocation of money you already have, not a transaction. It doesn't move cash, change what you spent, or touch your net worth; it only shows how much of an overspend your shared cushion can absorb.",go:{v:"budget"}};
+      return {answer:"No — contingency coverage is a computed reallocation of money you already have, not a transaction. It doesn't move cash, change what you spent, or touch your net worth; it only shows how much of an overspend your shared cushion can absorb.",go:{v:"month"}};
     }
     // "why is <envelope> negative?" (raw, no coverage angle)
     if(_envNeg&&/(why).{0,20}(negative|red|minus|below)/.test(t)&&!/still|cover|contingency/.test(t)){
-      return {answer:_envNeg.name+" is "+anMoney(_envNeg.rawBalance)+" because it has outspent everything it banked so far this year — spending in it has run "+anMoney(-_envNeg.rawBalance)+" past its accumulated budget. "+((_envNeg.coveredByContingency||0)>0.005?("Contingency covers "+anMoney(_envNeg.coveredByContingency)+" of that for spending purposes."):"There's no contingency available to cover it right now."),go:{v:"budget"}};
+      return {answer:_envNeg.name+" is "+anMoney(_envNeg.rawBalance)+" because it has outspent everything it banked so far this year — spending in it has run "+anMoney(-_envNeg.rawBalance)+" past its accumulated budget. "+((_envNeg.coveredByContingency||0)>0.005?("Contingency covers "+anMoney(_envNeg.coveredByContingency)+" of that for spending purposes."):"There's no contingency available to cover it right now."),go:{v:"month"}};
     }
     // ===== TEMPORAL / HISTORY questions (checked BEFORE current-state so "WHEN did it become overspent" isn't answered as "IS it
     // overspent"). Narrated from getContingencyFacts()'s month-by-month history — a time question is a DIFFERENT question.
@@ -7544,19 +8038,19 @@ function wrenAnalyze(text){
     if(_temporal){
       var cf=getContingencyFacts();
       var MN=function(m){return (m>=1&&m<=12)?MONF[m-1]:"";},MNY=function(m){return MN(m)+" "+bYear();};
-      if(!cf.hasBuffer)return {answer:"You don't have a contingency buffer set up, so there's no balance history to trace. Mark a category as a buffer on the Budget tab to pool a shared cushion.",go:{v:"budget"}};
+      if(!cf.hasBuffer)return {answer:"You don't have a contingency buffer set up, so there's no balance history to trace. Mark a category as a buffer on the Budget tab to pool a shared cushion.",go:{v:"month"}};
       // "when was it last positive / how much did I have before it went negative?"
       if(/(last (positive|in the black|ok|okay|fine|healthy)|before .{0,12}(negative|went|overspent|red|cross)|how much.{0,20}(before|had before|used to))/.test(t)){
-        if(cf.firstNegativeMonth&&cf.lastPositiveMonth)return {answer:"Your contingency was last positive in "+MN(cf.lastPositiveMonth)+", at about "+anMoney(cf.lastPositiveBal)+" — then it went negative the following month ("+MN(cf.firstNegativeMonth)+"). It's now at "+anMoney(cf.rawBuffer)+".",go:{v:"budget"}};
-        if(cf.firstNegativeMonth)return {answer:"Your contingency was already in the red from "+MN(cf.firstNegativeMonth)+" onward; before that it sat at its carry-in of "+anMoney(cf.carryIn)+". It's now at "+anMoney(cf.rawBuffer)+".",go:{v:"budget"}};
-        return {answer:"Your contingency hasn't gone negative this year — it's currently at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"budget"}};
+        if(cf.firstNegativeMonth&&cf.lastPositiveMonth)return {answer:"Your contingency was last positive in "+MN(cf.lastPositiveMonth)+", at about "+anMoney(cf.lastPositiveBal)+" — then it went negative the following month ("+MN(cf.firstNegativeMonth)+"). It's now at "+anMoney(cf.rawBuffer)+".",go:{v:"month"}};
+        if(cf.firstNegativeMonth)return {answer:"Your contingency was already in the red from "+MN(cf.firstNegativeMonth)+" onward; before that it sat at its carry-in of "+anMoney(cf.carryIn)+". It's now at "+anMoney(cf.rawBuffer)+".",go:{v:"month"}};
+        return {answer:"Your contingency hasn't gone negative this year — it's currently at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"month"}};
       }
       // "when did it become overspent / go negative / run out?" (also the plain "how has it changed / over time" trend)
       if(cf.firstNegativeMonth){
         var beforeTxt=cf.lastPositiveMonth?("the month before ("+MN(cf.lastPositiveMonth)+") it was still positive at about "+anMoney(cf.lastPositiveBal)):("it started the year at its carry-in of "+anMoney(cf.carryIn));
-        return {answer:"Your contingency first went negative in "+MNY(cf.firstNegativeMonth)+", ending that month at about "+anMoney(cf.firstNegativeBal)+"; "+beforeTxt+". It's now at "+anMoney(cf.rawBuffer)+"."+(cf.dropMonth&&cf.dropAmt<-0.005?(" The biggest single-month drop was in "+MN(cf.dropMonth)+" ("+anMoney(cf.dropAmt)+")."):""),go:{v:"budget"}};
+        return {answer:"Your contingency first went negative in "+MNY(cf.firstNegativeMonth)+", ending that month at about "+anMoney(cf.firstNegativeBal)+"; "+beforeTxt+". It's now at "+anMoney(cf.rawBuffer)+"."+(cf.dropMonth&&cf.dropAmt<-0.005?(" The biggest single-month drop was in "+MN(cf.dropMonth)+" ("+anMoney(cf.dropAmt)+")."):""),go:{v:"month"}};
       }
-      return {answer:"Your contingency has never gone negative this year — it started at "+anMoney(cf.carryIn)+" and is now at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"budget"}};
+      return {answer:"Your contingency has never gone negative this year — it started at "+anMoney(cf.carryIn)+" and is now at "+anMoney(cf.rawBuffer)+", still in the black.",go:{v:"month"}};
     }
     // "despite my big deposit, why is there no contingency?" — a CAUSAL premise to correct. A deposit does NOT build the
     // contingency pool: only UNSPENT budget in buffer categories banks here. Income/deposits add to cash & net worth (a separate
@@ -7565,58 +8059,58 @@ function wrenAnalyze(text){
     if(/(deposit|paycheck|pay ?check|income|raise|got paid|direct deposit|money (came|coming) in)/.test(t)&&/(contingency|buffer|cushion)/.test(t)&&/(despite|still|why|does ?n.?t|did ?n.?t|is ?n.?t|no |not |refill|rebuild|\bbuild\b|go(es)? in|into|feed|replenish|help|create|empty|nothing|missing|gone)/.test(t)){
       var cf3=getContingencyFacts();
       var lead="A deposit doesn’t build your contingency — only the money your <b>buffer categories don’t spend</b> pools into it. Your deposit added to your income and cash (they show up in projected cash and net worth), which is a separate place from this pool.";
-      if(!cf3.hasBuffer)return {answer:lead+" You don’t have a contingency buffer set up yet — set a category’s leftover to “Contingency buffer” and its unspent budget will start banking here.",go:{v:"budget"}};
+      if(!cf3.hasBuffer)return {answer:lead+" You don’t have a contingency buffer set up yet — set a category’s leftover to “Contingency buffer” and its unspent budget will start banking here.",go:{v:"month"}};
       if(cf3.isOverspent){var _dn=contingencyReconNote();
         if(_dn&&_dn.repair>0.005){
           var _tt=(_dn.fullyRepairs&&_dn.availableNow<=0.005&&_dn.target<=0.005)?" You don't have a POSITIVE contingency yet because NestWorth covers a shortfall only up to $0 — it doesn't automatically set aside more surplus as new cushion. If you want to keep a reserve above $0, set a contingency target on the Contingency card and I'll show how much of your surplus reaches it."
             :(_dn.build>0.005?(" It also builds "+anMoney(_dn.build)+" toward your "+anMoney(_dn.target)+" target, leaving your effective contingency at "+anMoney(_dn.effective)+"."):"");
-          return {answer:lead+" Right now your raw contingency is overspent by "+anMoney(cf3.bufferDeficit)+" — but this month you DO have a surplus, and "+anMoney(_dn.repair)+" of it covers "+(_dn.fullyRepairs?"the shortfall, bringing your effective contingency to $0":"part of it (effective "+anMoney(_dn.effective)+")")+" for planning (NestWorth doesn't move or rewrite your history)."+_tt,go:{v:"budget"}};}
-        return {answer:lead+" Right now your contingency is overspent by "+anMoney(cf3.bufferDeficit)+" (raw balance "+anMoney(cf3.rawBuffer)+"), so it still shows $0 available, and there's no surplus this month to repair it — rebuilding it needs your buffer categories to come in under budget.",go:{v:"budget"}};}
-      return {answer:lead+" Your contingency is "+anMoney(cf3.rawBuffer)+" right now — that came from what your buffer categories haven’t spent, not from the deposit.",go:{v:"budget"}};
+          return {answer:lead+" Right now your raw contingency is overspent by "+anMoney(cf3.bufferDeficit)+" — but this month you DO have a surplus, and "+anMoney(_dn.repair)+" of it covers "+(_dn.fullyRepairs?"the shortfall, bringing your effective contingency to $0":"part of it (effective "+anMoney(_dn.effective)+")")+" for planning (NestWorth doesn't move or rewrite your history)."+_tt,go:{v:"month"}};}
+        return {answer:lead+" Right now your contingency is overspent by "+anMoney(cf3.bufferDeficit)+" (raw balance "+anMoney(cf3.rawBuffer)+"), so it still shows $0 available, and there's no surplus this month to repair it — rebuilding it needs your buffer categories to come in under budget.",go:{v:"month"}};}
+      return {answer:lead+" Your contingency is "+anMoney(cf3.rawBuffer)+" right now — that came from what your buffer categories haven’t spent, not from the deposit.",go:{v:"month"}};
     }
     // "is my contingency overspent?" → the raw buffer / buffer deficit (capacity is a separate question). Guarded against temporal
     // phrasings above so "WHEN did it become overspent" doesn't fall in here.
     if(/(contingency|buffer|cushion).{0,20}(overspent|over ?spent|negative|in the red|underwater|below zero|deficit|gone|empty|ok|okay|fine|healthy|left)/.test(t)||/is (my|the|our) (contingency|buffer|cushion)/.test(t)){
-      if(roll.rawBuffer<-0.005)return {answer:"Yes — your contingency pool is overspent by "+anMoney(roll.bufferDeficit)+" (raw balance "+anMoney(roll.rawBuffer)+"), so it has $0 available to cover other envelopes and counts as a shortfall of its own.",go:{v:"budget"}};
-      return {answer:"No — your contingency pool is in the black at "+anMoney(roll.rawBuffer)+", with "+anMoney(roll.remainingContingency)+" available to cover envelope deficits.",go:{v:"budget"}};
+      if(roll.rawBuffer<-0.005)return {answer:"Yes — your contingency pool is overspent by "+anMoney(roll.bufferDeficit)+" (raw balance "+anMoney(roll.rawBuffer)+"), so it has $0 available to cover other envelopes and counts as a shortfall of its own.",go:{v:"month"}};
+      return {answer:"No — your contingency pool is in the black at "+anMoney(roll.rawBuffer)+", with "+anMoney(roll.remainingContingency)+" available to cover envelope deficits.",go:{v:"month"}};
     }
     // "how much is IN my contingency / how much do I have / available / after my bills?" → the clean current STATE only: balance,
     // available, and why. It does NOT dump uncovered-envelope or year-end lines — those are separate questions (that over-answering
     // was the bug this screenshot exposed). Temporal phrasings are handled above.
     if((/(how much|what).{0,24}(is |do i |i |we )?(in |left in |left |available in |available )?(my |the |our )?(contingency|buffer|cushion)|(contingency|buffer|cushion).{0,12}(balance|available|left)|available (contingency|buffer|cushion)|contingency available/.test(t))&&!/overspent|uncover|total|altogether|rollover|shortfall|which|cover|overage|over ?budget|enough|afford|handle|envelope|survive|make it|year/.test(t)){
       var cf2=getContingencyFacts();
-      if(!cf2.hasBuffer)return {answer:"You don't have a contingency buffer set up. Mark a category as a buffer on the Budget tab to pool a shared cushion.",go:{v:"budget"}};
-      if(cf2.isOverspent)return {answer:"Your contingency balance is "+anMoney(cf2.rawBuffer)+", so you have $0 available in contingency after this month's bills — the pool is overspent by "+anMoney(cf2.bufferDeficit)+". Want to see when it went negative or what's driving the shortfall?",go:{v:"budget"}};
-      return {answer:"Your contingency balance is "+anMoney(cf2.rawBuffer)+", with "+anMoney(cf2.remainingContingency)+" available"+(cf2.contingencyUsed>0.005?(" — that's after "+anMoney(cf2.contingencyUsed)+" is covering envelope deficits"):"")+".",go:{v:"budget"}};
+      if(!cf2.hasBuffer)return {answer:"You don't have a contingency buffer set up. Mark a category as a buffer on the Budget tab to pool a shared cushion.",go:{v:"month"}};
+      if(cf2.isOverspent)return {answer:"Your contingency balance is "+anMoney(cf2.rawBuffer)+", so you have $0 available in contingency after this month's bills — the pool is overspent by "+anMoney(cf2.bufferDeficit)+". Want to see when it went negative or what's driving the shortfall?",go:{v:"month"}};
+      return {answer:"Your contingency balance is "+anMoney(cf2.rawBuffer)+", with "+anMoney(cf2.remainingContingency)+" available"+(cf2.contingencyUsed>0.005?(" — that's after "+anMoney(cf2.contingencyUsed)+" is covering envelope deficits"):"")+".",go:{v:"month"}};
     }
     // "how much rollover shortfall do I have ALTOGETHER?" → total uncovered deficit (uncovered envelopes + overspent buffer)
     if(/(total|altogether|overall|combined|all together|in total|everything).{0,28}(shortfall|deficit|uncover|rollover|red|overspend|behind)|(shortfall|deficit|uncover|overspend).{0,20}(total|altogether|overall|combined|all told)|how much.*(rollover|overspend).*(total|altogether|all|overall)/.test(t)){
-      if(roll.totalUncoveredDeficit<=0.005)return {answer:"Nothing — every rolling category is either positive or fully covered by contingency.",go:{v:"budget"}};
+      if(roll.totalUncoveredDeficit<=0.005)return {answer:"Nothing — every rolling category is either positive or fully covered by contingency.",go:{v:"month"}};
       var bits=[];if(roll.uncoveredDeficit>0.005)bits.push(anMoney(roll.uncoveredDeficit)+" in uncovered envelopes");if(roll.bufferDeficit>0.005)bits.push(anMoney(roll.bufferDeficit)+" in the overspent buffer pool");
-      return {answer:"Altogether "+anMoney(roll.totalUncoveredDeficit)+" of rollover overspending is uncovered"+(bits.length>1?(" — "+bits.join(" plus ")):"")+".",go:{v:"budget"}};
+      return {answer:"Altogether "+anMoney(roll.totalUncoveredDeficit)+" of rollover overspending is uncovered"+(bits.length>1?(" — "+bits.join(" plus ")):"")+".",go:{v:"month"}};
     }
     // "which envelopes are using / drawing on contingency?"
     if(/which .*(envelope|categ|one).*(cover|contingency|using|draw)|what.*(using|drawing|on).*(contingency|buffer)/.test(t)){
       var using=roll.envelopes.filter(function(e){return (e.coveredByContingency||0)>0.005;});
-      if(!using.length)return {answer:"No envelopes are drawing on contingency right now — none are in the red (or there's nothing available to draw).",go:{v:"budget"}};
-      return {answer:"Contingency is covering "+using.map(function(e){return e.name+" ("+anMoney(e.coveredByContingency)+")";}).join(", ")+" — "+anMoney(roll.contingencyUsed)+" in all, with "+anMoney(roll.remainingContingency)+" still available.",go:{v:"budget"}};
+      if(!using.length)return {answer:"No envelopes are drawing on contingency right now — none are in the red (or there's nothing available to draw).",go:{v:"month"}};
+      return {answer:"Contingency is covering "+using.map(function(e){return e.name+" ("+anMoney(e.coveredByContingency)+")";}).join(", ")+" — "+anMoney(roll.contingencyUsed)+" in all, with "+anMoney(roll.remainingContingency)+" still available.",go:{v:"month"}};
     }
     // "how much of my negative envelopes is uncovered?" (envelope-only; adds the buffer-pool line if it's also overspent)
     if(/uncover|not covered|still (short|owe)|how much.*(short|red|negative)/.test(t)){
-      if(roll.totalUncoveredDeficit<=0.005)return {answer:"None of your rolling categories are uncovered right now.",go:{v:"budget"}};
+      if(roll.totalUncoveredDeficit<=0.005)return {answer:"None of your rolling categories are uncovered right now.",go:{v:"month"}};
       var ua="Your envelopes are "+anMoney(roll.totalEnvelopeDeficit)+" in the red in total; contingency covers "+anMoney(roll.contingencyUsed)+", leaving "+anMoney(roll.uncoveredDeficit)+" uncovered.";
       if(roll.bufferDeficit>0.005)ua+=" The buffer pool is also overspent by "+anMoney(roll.bufferDeficit)+", so the household's total uncovered rollover shortfall is "+anMoney(roll.totalUncoveredDeficit)+".";
-      return {answer:ua,go:{v:"budget"}};
+      return {answer:ua,go:{v:"month"}};
     }
     // "why is <envelope> still negative if contingency covers it?"
     var _rn=null;roll.envelopes.forEach(function(e){var nl=e.name.toLowerCase();if(t.indexOf(nl)>=0&&e.rawBalance<-0.005)_rn=e;});
     if(_rn&&/why|still|negative|red|minus/.test(t)){
       var covr=_rn.coveredByContingency||0,uncr=_rn.uncovered||0;
-      return {answer:_rn.name+" still shows "+anMoney(_rn.rawBalance)+" because that's its real history — it outspent what it banked by "+anMoney(-_rn.rawBalance)+", and NestWorth keeps that visible for accountability rather than erasing it. Contingency "+(covr>0.005?("covers "+anMoney(covr)+" of it for spending purposes"+(uncr>0.005?(", leaving "+anMoney(uncr)+" genuinely uncovered"):", so nothing is actually uncovered")):("has nothing available, so the full "+anMoney(-_rn.rawBalance)+" is uncovered"))+".",go:{v:"budget"}};
+      return {answer:_rn.name+" still shows "+anMoney(_rn.rawBalance)+" because that's its real history — it outspent what it banked by "+anMoney(-_rn.rawBalance)+", and NestWorth keeps that visible for accountability rather than erasing it. Contingency "+(covr>0.005?("covers "+anMoney(covr)+" of it for spending purposes"+(uncr>0.005?(", leaving "+anMoney(uncr)+" genuinely uncovered"):", so nothing is actually uncovered")):("has nothing available, so the full "+anMoney(-_rn.rawBalance)+" is uncovered"))+".",go:{v:"month"}};
     }
     var cr=coverageReport(),avail=roll.remainingContingency,parts=[];
     parts.push(roll.rawBuffer>0.005?("Your contingency holds "+anMoney(roll.rawBuffer)+(roll.contingencyUsed>0.005?(", of which "+anMoney(roll.contingencyUsed)+" is covering envelope deficits, leaving "+anMoney(avail)+" available"):" and available")+"."):(roll.rawBuffer<-0.005?"Your contingency pool is itself overspent, so it has $0 available.":"You don't have a contingency buffer set up."));
-    if(/available|how much.*(left|in contingency|contingency have)/.test(t)&&cr.fixedTot<=0.005&&roll.uncoveredDeficit<=0.005)return {answer:parts.join(" "),go:{v:"budget"}};
+    if(/available|how much.*(left|in contingency|contingency have)/.test(t)&&cr.fixedTot<=0.005&&roll.uncoveredDeficit<=0.005)return {answer:parts.join(" "),go:{v:"month"}};
     if(cr.fixedTot>0.005){
       if(avail>=cr.fixedTot-0.005)parts.push("It covers this month's "+anMoney(cr.fixedTot)+" of overspending, leaving "+anMoney(r2(avail-cr.fixedTot))+".");
       else if(r2(avail+Math.max(0,cr.monthLeft))>=cr.fixedTot-0.005)parts.push("This month's "+anMoney(cr.fixedTot)+" of overspending is covered by what's available plus being under budget elsewhere.");
@@ -7833,11 +8327,11 @@ function wrenAnalyze(text){
   // K) Affordability — "when could I afford $X?"
   if(/(afford|when can i|when could i|save up for|down ?payment)/.test(t)){
     var amtA=parseAmt(amtMatch),perMoA=0;try{perMoA=residualPool();}catch(e){}
-    if(amtA<=0)return {answer:"Tell me the amount — like “when could I afford a $12,000 car?” — and I'll estimate from your monthly leftover.",go:{v:"budget"}};
-    if(perMoA<=0.005)return {answer:"Your plan doesn't have a monthly surplus right now, so I can't project a date for "+anMoney(amtA)+". Freeing up room in a category would change that.",go:{v:"budget"}};
+    if(amtA<=0)return {answer:"Tell me the amount — like “when could I afford a $12,000 car?” — and I'll estimate from your monthly leftover.",go:{v:"worth"}};
+    if(perMoA<=0.005)return {answer:"Your plan doesn't have a monthly surplus right now, so I can't project a date for "+anMoney(amtA)+". Freeing up room in a category would change that.",go:{v:"worth"}};
     var moA=Math.ceil(amtA/perMoA),dA=new Date(now.getFullYear(),now.getMonth()+moA,1);
     var availM=0;try{availM=availableThisMonth();}catch(e){}
-    return {answer:"Your plan averages about "+anMoney(perMoA)+"/month of leftover, so "+anMoney(amtA)+" would take roughly "+moA+" month"+(moA===1?"":"s")+" — around "+dA.toLocaleString("en-US",{month:"long",year:"numeric"})+" — if that pace holds. ("+mName+" specifically has about "+anMoney(availM)+" free in your plan; the rest is an average, not a monthly guarantee.)",go:{v:"budget"}};
+    return {answer:"Your plan averages about "+anMoney(perMoA)+"/month of leftover, so "+anMoney(amtA)+" would take roughly "+moA+" month"+(moA===1?"":"s")+" — around "+dA.toLocaleString("en-US",{month:"long",year:"numeric"})+" — if that pace holds. ("+mName+" specifically has about "+anMoney(availM)+" free in your plan; the rest is an average, not a monthly guarantee.)",go:{v:"worth"}};
   }
   // L) What-if scenarios (deterministic; never changes the real budget)
   if(/(what if|what happens if|suppose i|if i (cut|save|add|move|put|increase|reduce|spend))/.test(t)){
@@ -7848,7 +8342,7 @@ function wrenAnalyze(text){
       var _cutDec=null;try{_cutDec=evaluateDecision({type:'expenseMonthly',amount:-amtL});}catch(e){}
       var yr=_cutDec?r2(_cutDec.after.surplus-_cutDec.before.surplus):r2(amtL*12),base="Trimming "+anMoney(amtL)+"/month frees up "+anMoney(yr)+"/year";
       if(wgoal&&wgoal.target>0){var newMo=(wgoal.monthly||0)+amtL,need=r2(wgoal.target-wgoal.balance);if(newMo>0){var moNow=wgoal.monthly>0?Math.ceil(need/wgoal.monthly):Infinity,moNew=Math.ceil(need/newMo),saved=isFinite(moNow)?(moNow-moNew):null;return {answer:base+". Put toward “"+wgoal.name+"”, that's "+anMoney(newMo)+"/month — reaching your "+anMoney(wgoal.target)+" target"+(saved!==null&&saved>0?(" about "+saved+" month"+(saved===1?"":"s")+" sooner."):" sooner."),go:{v:"goals"}};}}
-      return {answer:base+" — money you could redirect to a goal, debt, or savings.",go:{v:"budget"}};
+      return {answer:base+" — money you could redirect to a goal, debt, or savings.",go:{v:"worth"}};
     }
     if(wgoal&&wgoal.target>0&&amtL>0&&/(add|put|save|move|increase|contribute)/.test(t)){
       var need2=r2(wgoal.target-wgoal.balance),newMo2=(wgoal.monthly||0)+amtL,moNew2=Math.ceil(need2/newMo2),d2=new Date(now.getFullYear(),now.getMonth()+moNew2,1);
@@ -7856,12 +8350,12 @@ function wrenAnalyze(text){
     }
     // a NEW/rising recurring cost ("what if daycare goes up $300/month?") → a recurring expense, run through the Decision Engine
     if(amtL>0&&!/income|raise|paycheck|earn|salary/.test(t)&&/(go(es)? up|going up|increase|rises?|jump|higher|new|another|extra|more).{0,24}(month|\/mo|a month|per month|monthly)|(cost|expense|bill|payment|rent|daycare|childcare|mortgage|insurance).{0,24}(up|more|increase|higher|rises?)/.test(t)){
-      try{wrenCtx.scenario={type:"expenseMonthly",amount:amtL};return {answer:"A "+anMoney(amtL)+"/month "+(/(new|another)/.test(t)?"new cost":"increase")+": "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"budget"}};}catch(e){}
+      try{wrenCtx.scenario={type:"expenseMonthly",amount:amtL};return {answer:"A "+anMoney(amtL)+"/month "+(/(new|another)/.test(t)?"new cost":"increase")+": "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"worth"}};}catch(e){}
     }
     if(/income|raise|paycheck|earn|salary/.test(t)&&amtL>0){
       // an income DROP has the same effect on surplus/cash/floor as a same-size recurring expense → run it through the shared Decision Engine
-      if(/(drop|cut|fall|fell|lose|lost|less|decreas|down|reduc|lower)/.test(t)){try{wrenCtx.scenario={type:"expenseMonthly",amount:amtL};return {answer:"If income dropped "+anMoney(amtL)+"/month: "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"budget"}};}catch(e){}}
-      var base3=0;try{base3=residualPool();}catch(e){}return {answer:"An extra "+anMoney(amtL)+"/month would lift your monthly leftover to about "+anMoney(base3+amtL)+" — money for goals, debt, or savings.",go:{v:"budget"}};}
+      if(/(drop|cut|fall|fell|lose|lost|less|decreas|down|reduc|lower)/.test(t)){try{wrenCtx.scenario={type:"expenseMonthly",amount:amtL};return {answer:"If income dropped "+anMoney(amtL)+"/month: "+wrenDecisionMsg(evaluateDecision(wrenCtx.scenario)),go:{v:"worth"}};}catch(e){}}
+      var base3=0;try{base3=residualPool();}catch(e){}return {answer:"An extra "+anMoney(amtL)+"/month would lift your monthly leftover to about "+anMoney(base3+amtL)+" — money for goals, debt, or savings.",go:{v:"worth"}};}
     return {answer:"I can run what-ifs like “what if I cut Food by $200 and put it toward the Car Fund?” or “what if I add $300/month to a goal?” Tell me an amount and where it goes — I'll work it out without touching your real budget.",go:{v:"goals"}};
   }
   // I) Year-end forecast
@@ -7872,7 +8366,7 @@ function wrenAnalyze(text){
     var msg="Through "+mName+" you've spent "+anMoney(ytd)+". At this pace you're trending toward about "+anMoney(proj)+" for the year";
     if(totBud>0.005){var d4=r2(proj-totBud);msg+=(Math.abs(d4)<1?(" — right on your "+anMoney(totBud)+" plan."):(d4>0?(" — about "+anMoney(d4)+" over your "+anMoney(totBud)+" plan."):(" — about "+anMoney(-d4)+" under your "+anMoney(totBud)+" plan.")));}else msg+=".";
     if(overs.length)msg+=" Most of the overage is "+overs.slice(0,3).map(function(x){return x.n+" (+"+anMoney(x.over)+")";}).join(", ")+".";
-    return {answer:msg,go:{v:"budget"}};
+    return {answer:msg,go:{v:"worth"}};
   }
   // J) Cash-flow / will we run out
   if(/(run out|cash ?flow|within our means|living within|deplete|drain|savings last|go negative|shortfall|sustainable|lowest (cash|month|point)|tightest|tight month|when.*(tight|tightest)|cushion do we|fall below.*floor|below (our|the) (nest|floor))/.test(t)){
@@ -7887,7 +8381,7 @@ function wrenAnalyze(text){
     else parts.push("Your cash stays positive all year, ending near "+anMoney(pmJ.end)+".");
     if(perMoJ>=-0.005)parts.push("The annual plan is sustainable: income covers your budget"+(gsa>0?" and goal savings":"")+", with about "+anMoney(perMoJ)+"/month of cushion.");
     else parts.push("The annual plan runs a deficit of about "+anMoney(-perMoJ)+"/month, so savings would slowly decline. Trimming a recurring category would close the gap.");
-    return {answer:parts.join(" "),go:{v:"budget"}};
+    return {answer:parts.join(" "),go:{v:"worth"}};
   }
   // N) Recurring / subscriptions
   if(/(subscription|subscriptions|recurring|auto-?pay)/.test(t)){
@@ -7967,7 +8461,7 @@ function wrenAnalyze(text){
     var goalCommit=0;(state.goals||[]).forEach(function(g){if(!g||g.archived||g.category||g.residual)return;goalCommit+=Math.max(0,(g.monthly||0)-goalContribMonth(g.name,curYear(),curMonth()));});
     goalCommit=r2(goalCommit);committed=r2(committed+goalCommit);
     var freeNow=r2(iT-sT-committed),goalNote=goalCommit>0.5?(", including "+anMoney(goalCommit)+" still going to your goals,"):"";
-    return {answer:"So far this month you've taken in "+anMoney(iT)+" and spent "+anMoney(sT)+", leaving "+anMoney(r2(iT-sT))+". About "+anMoney(committed)+" of that"+goalNote+" is still earmarked for the rest of your plan, so roughly "+anMoney(Math.max(0,freeNow))+" isn't committed"+(freeNow<0?" (you're leaning on earlier months or savings)":"")+".",go:{v:"budget"}};
+    return {answer:"So far this month you've taken in "+anMoney(iT)+" and spent "+anMoney(sT)+", leaving "+anMoney(r2(iT-sT))+". About "+anMoney(committed)+" of that"+goalNote+" is still earmarked for the rest of your plan, so roughly "+anMoney(Math.max(0,freeNow))+" isn't committed"+(freeNow<0?" (you're leaning on earlier months or savings)":"")+".",go:{v:"month"}};
   }
 
   if(found&&(wantsSpend||/how much/.test(t))&&!wantsIncome){
