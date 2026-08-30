@@ -21,7 +21,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     state.cats=[{name:'Food',annual:6000,bud12:Array(12).fill(500),mbud:500,mspent:2000}]; // $500/mo planned
     state.rows=[[Y,M,Y+'-'+String(M).padStart(2,'0')+'-05','Me','Food','Store',2000,'','N']]; // this month ACTUAL $2,000 — way over plan
     state._stMode='actual';
-    show('appScreen');document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});$("view-budget").classList.add('on');
+    show('appScreen');document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});$("view-worth").classList.add('on');
     renderStress();
     var row=$("stGrid").querySelector('.strow[data-mo="'+M+'"]');
     var netTxt=row?row.querySelector('.stn').textContent:'',netNeg=row?row.querySelector('.stn').classList.contains('neg'):false,tag=row?row.textContent:'';
