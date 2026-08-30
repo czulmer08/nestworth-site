@@ -46,7 +46,24 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     var diffProbe=checkupLinkDiff('Tuition',cand[0]);
     Rz.readOnly=(JSON.stringify(state.meta)===metaBefore)&&(JSON.stringify(state.rows)===rowsBefore)&&near(netWorthNow(),nwBefore);
     Rz.counts=scan.counts;Rz.hasWork=scan.hasWork;
-    Rz.cand={n:cand.length,amount:cand[0]&&cand[0].amount,dueMonth:cand[0]&&cand[0].dueMonth};
+    Rz.cand={n:cand.length,amount:cand[0]&&cand[0].amount,dueMonth:cand[0]&&cand[0].dueMonth,who:cand[0]&&cand[0].who,dateISO:cand[0]&&cand[0].dateISO};
+    // ---- TIMING + BUDGET FILTER: current-month bills and future bills within budget are NOT candidates ----
+    build();
+    state.rows.push([2026,9,'2026-09-20','','Tuition','School',7000,'','']);   // a CURRENT-month (Sep) bill — covered by this month's budget
+    state.rows.push([2026,10,'2026-10-10','','Tuition','School',400,'','']);    // a future bill WITHIN the $500 budget — ordinary spend
+    if(typeof buildIndexes==='function')buildIndexes();
+    var cand2=checkupBillCandidates('Tuition');
+    Rz.filter={n:cand2.length,months:cand2.map(function(x){return x.dueMonth;}),hasCurrent:cand2.some(function(x){return x.dueMonth===9;}),hasWithinBudget:cand2.some(function(x){return x.dueMonth===10;})};
+    // ---- PERSISTENCE: answering a prompt (mark done) removes it from the scan and survives a normMeta round-trip ----
+    build();
+    var beforeDone=forecastCheckup().counts.sinkingCandidates;
+    checkupMarkDone('match','Tuition');
+    var afterDone=forecastCheckup().counts.sinkingCandidates;
+    var rt=normMeta(JSON.parse(JSON.stringify(state.meta)));
+    Rz.persist={before:beforeDone,after:afterDone,survivesRoundTrip:!!(rt.checkupDone&&rt.checkupDone['match:tuition'])};
+    // ---- HANDLERS EXIST (the buttons call real functions) ----
+    Rz.handlers=(typeof ckLink==='function'&&typeof ckDismiss==='function'&&typeof ckAdjust==='function');
+    build(); // restore the base scenario for the render checks below
     Rz.lumpy={n:lump.length,cats:lump.map(function(x){return x.cat;}),spikeMonth:lump[0]&&lump[0].spikeMonth};
     // ---- DIFF: linking raises safe-to-move by the freed contributions; dry run reverts exactly ----
     var safeBase=goalSafeToMove().safeToGoal;
@@ -72,7 +89,10 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     Rz.unlink={noLink:!(state.meta.cats.tuition&&state.meta.cats.tuition.sinking),safeReverts:near(goalSafeToMove().safeToGoal,safeBase),bankedKept:near(catBalance(state.cats[0]),bankedBefore)};
     // ---- RENDER: the card shows the counts and the possible-match + lumpy prompts ----
     build();var html=forecastCheckupHTML();
-    Rz.render={hasHeader:/Forecast Checkup/.test(html),hasMatch:/Is this envelope for that bill/.test(html)&&/Tuition/.test(html),hasDiff:/If you link them/.test(html)&&/Safe to move/.test(html),hasLumpy:/one-off skewing the forecast/.test(html)&&/Home/.test(html),hasLinkBtn:/doCheckupLink\(/.test(html)};
+    Rz.render={hasHeader:/Forecast Checkup/.test(html),hasMatch:/Is this envelope saving for the bill below/.test(html)&&/Tuition/.test(html),
+      hasTxTable:/The bill/.test(html)&&/Due/.test(html)&&/Payee/.test(html)&&/School/.test(html),
+      hasDiff:/If you link them/.test(html)&&/Safe to move/.test(html),hasLumpy:/one-off skewing the forecast/.test(html)&&/Home/.test(html),
+      hasLinkBtn:/ckLink\(/.test(html),hasNotNow:/ckDismiss\([0-9]+,'match'\)/.test(html),hasLumpyBtns:/ckAdjust\(/.test(html)&&/ckDismiss\([0-9]+,'lumpy'\)/.test(html)};
     // ---- INTEGRATION: renderCheckup mounts the card into the Budget-tab slot ----
     try{renderCheckup();}catch(e){}
     Rz.slotFilled=/Forecast Checkup/.test(((document.getElementById('checkupSlot')||{}).innerHTML)||'');
@@ -83,8 +103,14 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
      R.readOnly, 'readOnly='+R.readOnly);
   ck('scan counts: 1 sinking candidate (Tuition has a future bill), 1 lumpy budget (Home), Tuition is the only envelope',
      R.counts.sinkingCandidates===1&&R.counts.lumpy===1&&R.hasWork, JSON.stringify(R.counts));
-  ck('candidate match: the future $6,000 December Tuition bill is surfaced (earliest-due, expenses only)',
-     R.cand.n===1&&near(R.cand.amount,6000)&&R.cand.dueMonth===12, JSON.stringify(R.cand));
+  ck('candidate match: the future $6,000 December Tuition bill is surfaced with its metadata (date + payee) so it is identifiable',
+     R.cand.n===1&&near(R.cand.amount,6000)&&R.cand.dueMonth===12&&R.cand.who==='School'&&R.cand.dateISO==='2026-12-15', JSON.stringify(R.cand));
+  ck('TIMING + BUDGET FILTER: a current-month bill and a future bill within the monthly budget are NOT candidates (only future save-ahead lumps)',
+     R.filter.n===1&&!R.filter.hasCurrent&&!R.filter.hasWithinBudget&&R.filter.months[0]===12, JSON.stringify(R.filter));
+  ck('PERSISTENCE: answering a prompt (mark done) drops it from the scan and survives the meta round-trip (won’t nag again)',
+     R.persist.before===1&&R.persist.after===0&&R.persist.survivesRoundTrip, JSON.stringify(R.persist));
+  ck('the buttons call real, registered handlers (ckLink / ckDismiss / ckAdjust exist) — the previous malformed onclick is gone',
+     R.handlers, 'handlers='+R.handlers);
   ck('lumpy detection flags Home (June $12,000 spike) and NOT flat Groceries',
      R.lumpy.n===1&&R.lumpy.cats[0]==='Home'&&R.lumpy.spikeMonth===6, JSON.stringify(R.lumpy));
   ck('link diff shows a real before/after and the DRY RUN reverts exactly (safe-to-move and state unchanged afterward)',
@@ -95,8 +121,8 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
      R.forecastMoved&&R.safeMatchesDiff, JSON.stringify({base:R.safeBase,after:R.applied.safeAfter,diffAfter:R.diff.after}));
   ck('UNLINK reverts the forecast to baseline and KEEPS the banked balance (never redirects money)',
      R.unlink.noLink&&R.unlink.safeReverts&&R.unlink.bankedKept, JSON.stringify(R.unlink));
-  ck('the checkup card renders the header, the possible-match with before/after, the lumpy prompt, and a confirm button',
-     R.render.hasHeader&&R.render.hasMatch&&R.render.hasDiff&&R.render.hasLumpy&&R.render.hasLinkBtn, JSON.stringify(R.render));
+  ck('the checkup card renders: header, the match question, the "The bill" transaction table (Due/Payee/Amount), the before/after, the lumpy prompt, and working buttons on BOTH item types',
+     R.render.hasHeader&&R.render.hasMatch&&R.render.hasTxTable&&R.render.hasDiff&&R.render.hasLumpy&&R.render.hasLinkBtn&&R.render.hasNotNow&&R.render.hasLumpyBtns, JSON.stringify(R.render));
   ck('integration: renderCheckup mounts the card into the Budget-tab slot (#checkupSlot)', R.slotFilled, 'slotFilled='+R.slotFilled);
 
   let pass=0,fail=0;out.forEach(function(r){console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});

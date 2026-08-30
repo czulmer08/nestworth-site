@@ -54,6 +54,10 @@ const MUT=[
   {n:'lumpy detector flags ordinary flat budgets (threshold gutted)',find:'if(med>0&&max>=2*med&&(max-med)>=2000){',                               repl:'if(med>0&&max>=0*med&&(max-med)>=0){',                                   by:'verify-forecast-checkup.js'},
   {n:'multi-bill allocation double-funds (pool not consumed by earlier bill)',find:'pool=r2(Math.max(0,pool-funded));',                                       repl:'pool=r2(Math.max(0,pool));',                                             by:'verify-multi-obligation.js'},
   {n:'sinking frees a contribution on a bill’s own due month (understates the bill)',find:'if(hasLater&&!isDue)free=r2(free+catContributionMonthly(c.name,m));',    repl:'if(hasLater)free=r2(free+catContributionMonthly(c.name,m));',            by:'verify-multi-obligation.js'},
+  {n:'checkup suggests current-month bills (already covered by the budget)',   find:'var mo=Number(r[1]);if(mo<=cm)return;',                                   repl:'var mo=Number(r[1]);if(mo<cm)return;',                                   by:'verify-forecast-checkup.js'},
+  {n:'checkup re-nags a prompt the user already answered (ignores checkupDone)',find:'var cand=(linked||done)?null:',                                            repl:'var cand=(linked)?null:',                                               by:'verify-forecast-checkup.js'},
+  {n:'Goals page drops the "safe to move to goals" banner',       find:"head=safeBanner+'<div class=\"goalsumm\">",                              repl:"head='<div class=\"goalsumm\">",                                         by:'verify-goals-safe-banner.js'},
+  {n:'envelope-bills marks every upcoming bill covered (ignores the shortfall)',find:'covered:(short<0.005)',                                                  repl:'covered:true',                                                          by:'verify-envelope-bills.js'},
 ];
 
 // Run a suite; capture exit code + combined output so we can classify WHY it passed/failed (not just the exit code).
