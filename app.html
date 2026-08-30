@@ -1290,6 +1290,9 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.50 - Aug 30, 2026 - Build 20260830.138 - Envelope coverage: "View envelopes" now lists each envelope's UPCOMING BILLS with a covered/short indicator. New envelopeUpcoming(name) gathers the bills an envelope is covering (its linked obligations if any, else the upcoming logged expenses in that category, this month forward) and marks each COVERED (✓) or SHORT (⚠ "$X to go") against the CURRENT banked balance, allocated earliest-due-first (a banked dollar covers the nearest bill first, never double-counted). Each envelope with bills gets a one-line roll-up: "All N upcoming bills covered" or "$X still needed across N upcoming bills". A negative/overspent envelope honestly shows its bills unfunded. READ-ONLY display over tested pieces (catObligations/catBalance) - no engine change. New verify-envelope-bills.js, break-audited.
+//   v0.68.49 - Aug 30, 2026 - Build 20260830.137 - Goals page now shows what's available to appropriate. The Month tab said "$X safe to move to your goals," but the Goals page - where you actually allocate it - never showed that number. renderGoals() now LEADS with a "Safe to move to your goals now" banner carrying the exact goalSafeToMove().safeToGoal figure (the same one the Month card shows), with guidance to put it toward any goal (Add money) or split it. A breach shows $0 with the reason, never a misleading positive. Display-only - reads the existing engine, changes nothing. New verify-goals-safe-banner.js (5 cases), break-audited.
+//   v0.68.48 - Aug 30, 2026 - Build 20260830.136 - Forecast Checkup fixes from device feedback. (1) NEXT MONTH AND BEYOND: a sinking-fund candidate is now a bill due in a FUTURE month that also EXCEEDS that month's budget - the current month's bills are already covered by the current budget, and a bill within the monthly budget is ordinary spend, not a save-ahead lump. This removes the noisy false matches (an $87.75 bill against a ~$441 budget). (2) THE BUTTONS NOW WORK: the previous onclick inlined JSON with double quotes inside a double-quoted attribute (malformed HTML - "Link them" silently did nothing); every action is now stashed by integer index (ckLink/ckDismiss/ckAdjust), bulletproof against quoting. "Not now" and the new lumpy responses ("Adjust budget" opens the category; "That's normal" dismisses) now PERSIST via meta.checkupDone so an answered prompt never nags again (new top-level meta field, threaded through normMeta/_metaBase/writeMeta). (3) TRANSACTION SUMMARY: each possible match now shows a small "The bill" table - Due date, Payee, Category, Amount - so the bill is identifiable without looking it up. verify-forecast-checkup.js updated + extended for the new timing, filter, summary, working handlers, and persistence.
 //   v0.68.47 - Aug 30, 2026 - Build 20260830.135 - MULTI-OBLIGATION sinking funds (final increment). One envelope can now fund several future bills (e.g. Car Maintenance -> tires in Nov + service in Dec). The link stores obligations[] (catObligations() normalizes single or array, earliest-due-first); catSinking accepts either shape. The forecast engine (_cfSinkFree) is generalized: a month's contribution is freed as a reservation IFF some linked bill is still due later AND the month isn't itself a bill's due month (there the bill is the outflow and max(bud,bill) subsumes the contribution) - so every bill lands at full at its own due month, no contribution is double-counted, and the single-bill case is the one-obligation special case (byte-identical to v0.68.44). sinkingAllocation() shows per-bill funding earliest-due-first: banked + planned contributions flow to the nearest bill first and each dollar funds at most one bill (no double-allocation). checkupAddObligation()/checkupSetEnvelope(obligations[]) write multi-bill links (cash-neutral). New verify-multi-obligation.js (ENV-FC-004/005 + engine correctness + single-bill back-compat), break-audited. Closes the sinking-fund feature set.
 //   v0.68.46 - Aug 30, 2026 - Build 20260830.134 - Forecast Checkup FORMATTING pass (display-only). The review card was crowded and same-sized throughout; reworked for hierarchy and breathing room: an eyebrow title + a "N things worth a look" headline; each item is a distinct block with an eyebrow tag (Possible match / Unusual budget), a bold category title, and a concise question; the before/after safe-to-move now sits in a soft highlighted box on its own line (big after-figure + green delta) instead of buried in a sentence; the oversized full-width green buttons are replaced by a compact "Link them" (gbtn) + a "Not now" text link that dismisses the item. No logic changed - forecastCheckup/diff/apply and all invariants are untouched; verify-forecast-checkup.js render assertions updated to the new copy.
 //   v0.68.45 - Aug 30, 2026 - Build 20260830.133 - FORECAST CHECKUP (increment 3) - the review-and-confirm migration surface for existing users. NOTHING is auto-converted. forecastCheckup() scans envelopes and flags: ones that may be saving for a specific future bill (a matching future logged bill exists), budgets that look unusually lumpy (lumpyCategories() - a one-time historical spike that would distort an average baseline, the -$36K guard), and ongoing spending envelopes. checkupBillCandidates() suggests matches (earliest-due first) but NEVER auto-links - explicit confirm only, and goal moves/deposits are never candidates (ENV-FC-007). checkupLinkDiff() shows the before/after safe-to-move a link would produce, via a DRY RUN that reverts the cfg exactly (no persist). checkupSetEnvelope()/checkupUnlink() write the classification (purpose/contribution/link, capturing the opening-funded balance AT link time) and MOVE NO CASH - balances, ledger, net worth and history are untouched (proven). doCheckupLink/doCheckupUnlink persist via the writeMeta contract then re-render; forecastCheckupHTML() renders the review card. New verify-forecast-checkup.js, break-audited in verify-mutation.js. Remaining: surfacing the card in the tab chrome and multi-obligation (one envelope -> several bills) allocation.
@@ -1710,8 +1713,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.47"; // SemVer — what changed functionally (display only)
-var BUILD="20260830.135"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.50"; // SemVer — what changed functionally (display only)
+var BUILD="20260830.138"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -2726,7 +2729,8 @@ function normMeta(o){o=o||{};
   var prefs=isObj(o.prefs)?o.prefs:{}; // per-profile Add-form field prefs (e.g. show Payee / Reimbursed) — travels with the budget
   var hiddenCats=Array.isArray(o.hiddenCats)?o.hiddenCats.filter(function(x){return x!=null&&(""+x).trim();}):[]; // categories hidden from the picker (still in history)
   var acctAsOf=isObj(o.acctAsOf)?o.acctAsOf:{}; // per-account last-updated dates (lowercased name → YYYY-MM-DD) for freshness flags
-  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,acctAsOf:acctAsOf,floor:Number(o&&o.floor)||0,contingencyTarget:Math.max(0,Number(o&&o.contingencyTarget)||0),nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:"",schemaVersion:Number(o&&o.schemaVersion)||0};}
+  var checkupDone=isObj(o.checkupDone)?o.checkupDone:{}; // Forecast Checkup prompts the user has already answered (kind:cat → true)
+  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,acctAsOf:acctAsOf,checkupDone:checkupDone,floor:Number(o&&o.floor)||0,contingencyTarget:Math.max(0,Number(o&&o.contingencyTarget)||0),nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:"",schemaVersion:Number(o&&o.schemaVersion)||0};}
 // ===== Formal schema versioning & migration =====
 // The metadata document carries an integer schemaVersion. Historical Nests are unversioned (treated as v0). CURRENT is the
 // shape this build writes. migrateMeta() runs the registered migrations in order (v_from+1 … CURRENT), is IDEMPOTENT (running it
@@ -2758,7 +2762,7 @@ function schemaTooNew(e){
   document.body.appendChild(bar);
 }
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],acctAsOf:{},floor:0,nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],acctAsOf:{},checkupDone:{},floor:0,nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -2816,6 +2820,7 @@ async function writeMeta(){
       startCash:(state.meta.startCash!==_metaBase.startCash)?state.meta.startCash:remote.startCash,
       startYM:(state.meta.startYM!==_metaBase.startYM)?state.meta.startYM:remote.startYM,
       acctAsOf:_mergeMap(_metaBase.acctAsOf||{},state.meta.acctAsOf||{},remote.acctAsOf||{}),
+      checkupDone:_mergeMap(_metaBase.checkupDone||{},state.meta.checkupDone||{},remote.checkupDone||{}), // which Forecast Checkup prompts the user has answered (persisted so they don't nag again)
       floor:(state.meta.floor!==_metaBase.floor)?state.meta.floor:remote.floor,
       nwUpdated:(state.meta.nwUpdated!==_metaBase.nwUpdated)?state.meta.nwUpdated:remote.nwUpdated,
       schemaVersion:CURRENT_SCHEMA_VERSION // always stamp the current schema on write
@@ -2899,6 +2904,29 @@ function sinkingAllocation(name){ // per-obligation funding, earliest-due-first:
   });
   return {name:name,banked:banked,perMonth:perMo,obligations:rows,leftover:r2(pool)};
 }
+// The upcoming bills an envelope is covering, each marked COVERED or SHORT against the CURRENT banked balance (allocated earliest-due
+// -first, so a banked dollar covers the nearest bill first — never double-counted). Bills come from the envelope's linked obligations
+// if any, else the upcoming logged expenses in that category (this month forward). READ-ONLY display helper — changes nothing.
+function envelopeUpcoming(name){
+  var catObj=_catObj(name);if(!catObj||catRoll(name)!=="envelope")return null;
+  var banked=r2(catBalance(catObj)),bills=[],obs=catObligations(name);
+  if(obs.length){ obs.forEach(function(o){bills.push({name:(o.name||name),amount:r2(Number(o.amount)||0),dueYear:Number(o.dueYear)||bYear(),dueMonth:Number(o.dueMonth)||12,dateISO:"",linked:true});}); }
+  else { var k=(""+name).toLowerCase(),y=bYear(),cm=(bYear()===curYear())?curMonth():1;
+    (state.rows||[]).forEach(function(r){
+      if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<cm)return;                    // this month forward
+      if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;                       // real outflows only (no deposits / goal moves)
+      if((""+((r&&r[4])||"")).toLowerCase()!==k)return;
+      var amt=Number(r[6])||0;if(amt<=0.005)return;
+      bills.push({name:((""+((r&&r[5])||(r&&r[3])||"")).trim())||name,amount:r2(amt),dueYear:y,dueMonth:mo,dateISO:(""+((r&&r[2])||"")),linked:false});
+    });
+  }
+  bills.sort(function(a,b){return (((a.dueYear||0)*12+(a.dueMonth||0))-((b.dueYear||0)*12+(b.dueMonth||0)))||(b.amount-a.amount);}); // earliest-due first
+  var pool=Math.max(0,banked),rows=[],totalBills=0,totalShort=0;
+  bills.forEach(function(bl){var funded=r2(Math.min(pool,bl.amount)),short=r2(Math.max(0,bl.amount-funded));pool=r2(pool-funded); // funded ≤ pool by construction, so this stays ≥ 0
+    totalBills=r2(totalBills+bl.amount);totalShort=r2(totalShort+short);
+    rows.push({name:bl.name,amount:bl.amount,dueMonth:bl.dueMonth,dueYear:bl.dueYear,dateISO:bl.dateISO,funded:funded,short:short,covered:(short<0.005),linked:bl.linked});});
+  return {name:name,banked:banked,bills:rows,totalBills:totalBills,totalShort:totalShort,leftover:r2(pool),allCovered:(totalShort<0.005&&rows.length>0)};
+}
 function newSinkId(prefix){return (prefix||"ob")+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);} // stable id for a link/obligation — the relationship survives a rename/amount/date edit
 function captureOpeningFunded(name){var c=catCfg(name),catObj=(state.cats||[]).filter(function(x){return (""+x.name).toLowerCase()===(""+name).toLowerCase();})[0];var bal=catObj?catBalance(catObj):0;return {amount:r2(Math.max(0,bal)),iso:(typeof todayISO==="function"?todayISO():"")};} // the banked balance AT LINK TIME — stored as an opening figure, never re-created as fake monthly history
 // The four numbers the review UI (and later the engine) expose for a linked sinking fund — a READ MODEL over existing tested pieces.
@@ -2925,18 +2953,23 @@ function sinkingSummary(name){
 // detect / dry-run diff) or a metadata classification that MOVES NO CASH — it sets purpose/contribution/link and captures the
 // opening-funded balance, but never touches a balance, the ledger, net worth, or history. The forecast MAY change (that is the
 // point, and the before/after diff shows it); household cash never does. Matches are SUGGESTED, never auto-applied (explicit confirm).
-function checkupBillCandidates(catName){ // future logged EXPENSE rows in this category — candidate obligations to LINK (never auto-linked)
-  var k=(""+catName).toLowerCase(),y=bYear(),cm=(bYear()===curYear())?curMonth():1,list=[];
+function checkupBillCandidates(catName){ // candidate obligations to LINK (never auto-linked) — a sinking fund saves AHEAD, so a candidate is a
+  var k=(""+catName).toLowerCase(),y=bYear(),cm=(bYear()===curYear())?curMonth():1,list=[]; // bill due a FUTURE month (this month is already covered by this month's budget) that EXCEEDS that month's budget (a real lump, not routine spend).
   (state.rows||[]).forEach(function(r){
-    if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<cm)return;                          // future (this month forward)
+    if(Number(r[0])!==y)return;var mo=Number(r[1]);if(mo<=cm)return;                          // NEXT month and beyond only — the current month's bills are covered by the current budget
     if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;                             // ENV-FC-007: goal moves / deposits are never obligations
     if((""+((r&&r[4])||"")).toLowerCase()!==k)return;
     var amt=Number(r[6])||0;if(amt<=0.005)return;
-    list.push({name:(""+((r&&r[4])||catName)),amount:r2(amt),dueYear:y,dueMonth:mo,dateISO:(""+((r&&r[2])||"")),source:"row"});
+    var bud=(typeof _catBudMonth==="function")?_catBudMonth(catName,mo-1):0;if(amt<=bud+0.005)return; // a bill within the month's budget is ordinary spend, not a save-ahead lump
+    list.push({name:(""+((r&&r[4])||catName)),amount:r2(amt),dueYear:y,dueMonth:mo,dateISO:(""+((r&&r[2])||"")),
+      who:(""+((r&&r[5])||(r&&r[7])||(r&&r[3])||"")).trim(),source:"row"});
   });
   list.sort(function(a,b){return (a.dueMonth-b.dueMonth)||(b.amount-a.amount);}); // earliest-due first (the deterministic order)
   return list;
 }
+function _ckKey(kind,cat){return kind+":"+(""+cat).toLowerCase();}
+function checkupIsDone(kind,cat){return !!(state.meta&&state.meta.checkupDone&&state.meta.checkupDone[_ckKey(kind,cat)]);} // a match/lumpy the user has already answered
+function checkupMarkDone(kind,cat){if(!state.meta.checkupDone)state.meta.checkupDone={};state.meta.checkupDone[_ckKey(kind,cat)]=true;} // persisted → the prompt won't nag again
 function lumpyCategories(){ // budgeted categories whose LOGGED history has an unusually large single month — a one-time spike that would
   var out=[];                // distort an average-based recurring baseline (the −$36K class). ADVISORY ONLY: nothing is auto-classified.
   (state.cats||[]).forEach(function(c){
@@ -2957,11 +2990,13 @@ function forecastCheckup(){ // the scan that drives the review flow. READ-ONLY �
   var envs=[],counts={sinkingCandidates:0,linked:0,ongoing:0,lumpy:0};
   (state.cats||[]).forEach(function(c){
     if(catRoll(c.name)!=="envelope")return;
-    var linked=!!catSinking(c.name),cand=linked?null:(checkupBillCandidates(c.name)[0]||null),banked=r2(Math.max(0,catBalance(c)));
+    var linked=!!catSinking(c.name),done=checkupIsDone("match",c.name);
+    var cand=(linked||done)?null:(checkupBillCandidates(c.name)[0]||null),banked=r2(Math.max(0,catBalance(c)));
     envs.push({cat:c.name,banked:banked,linked:linked,purpose:catPurpose(c.name),candidate:cand});
     if(linked)counts.linked++;else if(cand)counts.sinkingCandidates++;else counts.ongoing++;
   });
-  var lumpy=lumpyCategories();counts.lumpy=lumpy.length;
+  var lumpy=lumpyCategories().filter(function(L){return !checkupIsDone("lumpy",L.cat);}); // drop prompts the user already answered
+  counts.lumpy=lumpy.length;
   return {envelopes:envs,lumpy:lumpy,counts:counts,hasWork:(counts.sinkingCandidates>0||counts.lumpy>0)};
 }
 function _checkupPatch(catName,obligation){ // the cfg patch a "link this envelope to this bill" would apply — purpose sinking, the whole
@@ -3005,27 +3040,45 @@ function checkupUnlink(catName){ // remove the obligation link; KEEP the envelop
   var k=(""+catName).toLowerCase(),c=state.meta.cats[k];if(c&&c.sinking){delete c.sinking;state.meta.cats[k]=c;}return c||null;
 }
 // Interactive apply — classify then persist (write-contract via writeMeta) then re-render. The only cash-neutral write in the flow.
-async function doCheckupLink(catName,obligation){try{checkupSetEnvelope(catName,{purpose:"sinking",obligation:obligation});await writeMeta();await loadCarryIn();renderAll();}catch(e){}}
+async function doCheckupLink(catName,obligation){try{checkupSetEnvelope(catName,{purpose:"sinking",obligation:obligation});checkupMarkDone("match",catName);await writeMeta();await loadCarryIn();renderAll();}catch(e){}}
 async function doCheckupUnlink(catName){try{checkupUnlink(catName);await writeMeta();renderAll();}catch(e){}}
+async function doCheckupDismiss(kind,catName){try{checkupMarkDone(kind,catName);await writeMeta();renderAll();}catch(e){}} // "Not now" / "That's normal" — persisted so it won't return on reload
+async function doCheckupAdjust(catName){try{checkupMarkDone("lumpy",catName);await writeMeta();}catch(e){}try{switchView("budget");openCatEdit(catName);}catch(e){}} // open the category to fix the budget, and mark the prompt answered
+// The card's buttons carry NO inline data — every action is stashed by integer index (bulletproof against quoting), so the handlers
+// fire reliably on device. _ckActions is rebuilt every render; ck* wrappers look up the stashed {cat, ob} and call the real handler.
+var _ckActions=[];
+function ckLink(i){var a=_ckActions[i];if(a)doCheckupLink(a.cat,a.ob);}
+function ckDismiss(i,kind){var a=_ckActions[i];if(a)doCheckupDismiss(kind,a.cat);}
+function ckAdjust(i){var a=_ckActions[i];if(a)doCheckupAdjust(a.cat);}
+function _ckDate(iso,mo,yr){var M=(typeof MONTHS!=="undefined")?MONTHS:[];if(iso&&/^\d{4}-\d{2}-\d{2}/.test(iso)){var p=iso.split("-");return (M[Number(p[1])-1]||"")+" "+Number(p[2])+", "+p[0];}return (M[(mo||1)-1]||"")+" "+(yr||bYear());}
 function forecastCheckupHTML(){ // the review card — one clear item per thing worth a look, with an easy-to-scan hierarchy
   var ck;try{ck=forecastCheckup();}catch(e){return "";}
   if(!ck||(!ck.envelopes.length&&!ck.lumpy.length))return "";
-  var mn=function(m){return (typeof MONTHS!=="undefined"&&MONTHS[m-1])||("month "+m);};
+  _ckActions=[];
   var matches=ck.envelopes.filter(function(e){return e.candidate;});
   if(!ck.hasWork){
     return '<div class="card"><p class="eyebrow">Forecast Checkup</p><div class="hintline" style="text-align:left;margin-top:0">Your envelopes and budgets look consistent with your forecast — nothing to review right now.</div></div>';
   }
+  var kv=function(label,val){return '<div style="display:flex;justify-content:space-between;gap:10px;margin-top:2px"><span style="font-size:12px;color:var(--ink2);flex-shrink:0">'+label+'</span><span style="font-size:12.5px;color:var(--ink);text-align:right;overflow-wrap:anywhere">'+val+'</span></div>';};
   var n=matches.length+ck.lumpy.length;
   var h='<div class="card"><p class="eyebrow">Forecast Checkup</p>';
   h+='<div style="font-size:16px;font-weight:700;color:var(--ink);line-height:1.25">'+n+' thing'+(n===1?'':'s')+' worth a look</div>';
   h+='<div class="hintline" style="text-align:left;margin-top:5px;font-size:12.5px;line-height:1.5">Connect money you set aside to the bill it funds, so a sinking fund isn’t counted twice. Your balances and history don’t change — only how the forecast reads them.</div>';
-  // possible-match items
+  // possible-match items — a specific FUTURE bill that a save-ahead envelope may be funding
   matches.forEach(function(e){
-    var d=null;try{d=checkupLinkDiff(e.cat,e.candidate);}catch(_){}
-    h+='<div data-ckitem="1" style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
+    var c=e.candidate,d=null;try{d=checkupLinkDiff(e.cat,c);}catch(_){}
+    var i=_ckActions.length;_ckActions.push({cat:e.cat,ob:c});
+    h+='<div style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
     h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">Possible match</div>';
     h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(e.cat)+'</div>';
-    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55">'+money(e.banked)+' set aside here, and a '+money(e.candidate.amount)+' bill is due '+esc(mn(e.candidate.dueMonth))+'. Is this envelope for that bill?</div>';
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55">'+money(e.banked)+' set aside here. Is this envelope saving for the bill below?</div>';
+    // the actual transaction, so the bill is identifiable at a glance
+    h+='<div style="margin-top:9px;border:1px solid var(--line);border-radius:11px;padding:10px 12px">'
+      +'<div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:4px">The bill</div>'
+      +kv('Due',esc(_ckDate(c.dateISO,c.dueMonth,c.dueYear)))
+      +(c.who?kv('Payee',esc(c.who)):'')
+      +kv('Category',esc(e.cat))
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:6px;border-top:1px solid var(--line)"><span style="font-size:12px;color:var(--ink2)">Amount</span><span class="num" style="font-size:14px;font-weight:700;color:var(--ink)">'+money(c.amount)+'</span></div></div>';
     if(d&&Math.abs(d.delta)>0.005){
       h+='<div style="margin-top:10px;background:var(--soft);border-radius:12px;padding:11px 13px">'
         +'<div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">If you link them</div>'
@@ -3034,16 +3087,20 @@ function forecastCheckupHTML(){ // the review card — one clear item per thing 
         +'<div class="hintline" style="text-align:left;margin-top:6px;font-size:11.5px;line-height:1.5">Your monthly set-aside stops being counted as spending on top of the bill.</div></div>';
     }
     h+='<div style="display:flex;align-items:center;gap:16px;margin-top:12px">'
-      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="doCheckupLink('+JSON.stringify(esc(e.cat))+','+JSON.stringify(e.candidate).replace(/"/g,"&quot;")+')">Link them</button>'
-      +'<button class="lnk2" onclick="var p=this.closest(&quot;[data-ckitem]&quot;);if(p)p.style.display=&quot;none&quot;">Not now</button></div>';
+      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="ckLink('+i+')">Link them</button>'
+      +'<button class="lnk2" onclick="ckDismiss('+i+',\'match\')">Not now</button></div>';
     h+='</div>';
   });
-  // lumpy-budget items
+  // lumpy-budget items — a one-time spike that may be skewing the recurring baseline; now with real responses
   ck.lumpy.forEach(function(L){
-    h+='<div data-ckitem="1" style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
+    var i=_ckActions.length;_ckActions.push({cat:L.cat});
+    h+='<div style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
     h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">Unusual budget</div>';
     h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(L.cat)+'</div>';
-    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55"><b>'+esc(mn(L.spikeMonth))+'</b> was '+money(L.spikeAmount)+', but a typical month is about '+money(L.typicalMonth)+'. Is '+money(L.monthlyBudget)+'/mo really your normal — or was that a one-off skewing the forecast?</div>';
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55"><b>'+esc((typeof MONTHS!=="undefined"&&MONTHS[L.spikeMonth-1])||"")+'</b> was '+money(L.spikeAmount)+', but a typical month is about '+money(L.typicalMonth)+'. Is '+money(L.monthlyBudget)+'/mo really your normal — or was that a one-off skewing the forecast?</div>';
+    h+='<div style="display:flex;align-items:center;gap:16px;margin-top:12px">'
+      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="ckAdjust('+i+')">Adjust budget</button>'
+      +'<button class="lnk2" onclick="ckDismiss('+i+',\'lumpy\')">That’s normal</button></div>';
     h+='</div>';
   });
   h+='</div>';return h;
@@ -3841,7 +3898,21 @@ function moneyNowHTML(){
   var trend="";try{trend=(typeof contingencyTrendHTML==="function")?contingencyTrendHTML():"";}catch(e){}
   if(m.hasBuffer)det+='<details style="margin-top:6px"><summary class="mn-sum">View contingency history</summary><div class="hintline" style="text-align:left;margin:6px 0 0;border-top:0;padding-top:2px">'+money(m.contingencyAvailable)+' available — a shared cushion that covers a category when it outspends its own envelope.</div>'+(trend||"")+'</details>';
   if(m.envelopes&&m.envelopes.length){
-    var el=m.envelopes.map(function(e){var neg=e.balance<-0.005;return '<div class="totrow" style="margin-top:2px"><span'+(neg?' style="color:var(--bad)"':'')+'>'+esc(e.name)+'</span><span class="num'+(neg?' neg':'')+'">'+money(e.balance)+(e.coveredByContingency>0.005?(' <span style="color:var(--ink2);font-weight:400">('+money(e.coveredByContingency)+' covered)</span>'):'')+'</span></div>';}).join("");
+    var mnE=function(mo){return (typeof MONTHS!=="undefined"&&MONTHS[mo-1])||("m"+mo);};
+    var el=m.envelopes.map(function(e){var neg=e.balance<-0.005;
+      var row='<div class="totrow" style="margin-top:9px"><span'+(neg?' style="color:var(--bad)"':'')+'>'+esc(e.name)+'</span><span class="num'+(neg?' neg':'')+'">'+money(e.balance)+(e.coveredByContingency>0.005?(' <span style="color:var(--ink2);font-weight:400">('+money(e.coveredByContingency)+' covered)</span>'):'')+'</span></div>';
+      var up=null;try{up=envelopeUpcoming(e.name);}catch(_){}
+      if(up&&up.bills.length){
+        row+=up.bills.slice(0,5).map(function(bl){
+          var mark=bl.covered?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--gold)">⚠</span>';
+          var tail=bl.covered?'':(' <span style="color:var(--gold);font-weight:600">· '+money(bl.short)+' to go</span>');
+          return '<div class="totrow" style="margin-top:2px;padding-left:14px;font-size:12px"><span style="color:var(--ink2)">'+mark+'&nbsp; '+esc(mnE(bl.dueMonth))+' · '+esc(bl.name)+tail+'</span><span class="num" style="color:var(--ink2)">'+money(bl.amount)+'</span></div>';
+        }).join("");
+        if(up.bills.length>5)row+='<div class="hintline" style="text-align:left;padding-left:14px;margin:2px 0 0;font-size:11px">+'+(up.bills.length-5)+' more upcoming</div>';
+        row+='<div class="hintline" style="text-align:left;padding-left:14px;margin:3px 0 0;font-size:11px;color:'+(up.totalShort>0.005?'var(--gold)':'var(--green)')+'">'+(up.totalShort>0.005?(money(up.totalShort)+' still needed across '+up.bills.length+' upcoming bill'+(up.bills.length===1?'':'s')):('All '+up.bills.length+' upcoming bill'+(up.bills.length===1?'':'s')+' covered'))+'</div>';
+      }
+      return row;
+    }).join("");
     det+='<details style="margin-top:6px"><summary class="mn-sum">View envelopes</summary><div style="margin-top:6px">'+el+'</div><div class="hintline" style="text-align:left;margin:6px 0 0;border-top:0;padding-top:2px">Each envelope banks its own unspent budget. A negative balance is real history kept for accountability; contingency can cover it for spending without erasing it.</div></details>';
   }
   if(m.abovePlan>0.005||(m.recon&&m.recon.income>0.005)){
@@ -6558,9 +6629,26 @@ function renderGoals(){
   var planTot=r2(active.reduce(function(s,g){return s+(g.residual?(g._resMo||0):(g.monthly||0));},0));
   var fundedTot=r2(active.reduce(function(s,g){var plan=g.residual?(g._resMo||0):(g.monthly||0);if(plan<=0.005)return s;return s+Math.min(Math.max(0,g.mtd||0),plan);},0));
   var mpct=planTot>0.005?Math.min(100,Math.round(fundedTot/planTot*100)):0;
+  // What's available to appropriate to goals RIGHT NOW — the same figure the Month tab shows, surfaced HERE where you actually allocate it.
+  var safeBanner="";
+  try{var gsm=goalSafeToMove();if(gsm){var gname=(typeof goalMoveName==="function")?goalMoveName():"your goals";
+    var lbl='<div style="font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)">Safe to move to '+esc(gname)+' now</div>';
+    if(gsm.breach){
+      safeBanner='<div style="background:var(--soft);border-radius:14px;padding:14px 16px;margin-bottom:14px">'+lbl
+        +'<div style="font-size:24px;font-weight:800;color:var(--ink);margin-top:3px">'+money(0)+'</div>'
+        +'<div class="hintline" style="text-align:left;margin-top:5px;font-size:12px;line-height:1.5">Your projected cash dips '+money(gsm.breachBy)+' below your Nest Egg Floor before your plan ends, so there’s nothing extra to move yet. The Month tab shows where to close that gap.</div></div>';
+    }else if(gsm.safeToGoal>0.005){
+      safeBanner='<div style="background:var(--soft);border-radius:14px;padding:14px 16px;margin-bottom:14px">'+lbl
+        +'<div style="font-size:27px;font-weight:800;color:var(--green);margin-top:3px">'+money(gsm.safeToGoal)+'</div>'
+        +'<div class="hintline" style="text-align:left;margin-top:5px;font-size:12px;line-height:1.5">The most you can move from cash into savings today and still stay above your Nest Egg Floor every month. Put it toward any goal below with <b>Add money</b>, or split it across them.</div></div>';
+    }else{
+      safeBanner='<div style="background:var(--soft);border-radius:14px;padding:14px 16px;margin-bottom:14px">'+lbl
+        +'<div style="font-size:24px;font-weight:800;color:var(--ink);margin-top:3px">'+money(0)+'</div>'
+        +'<div class="hintline" style="text-align:left;margin-top:5px;font-size:12px;line-height:1.5">You’re right at your Nest Egg Floor at the tightest point in your plan, so there’s no extra cash to move into goals yet.</div></div>';
+    }}}catch(e){}
   var head="";
   if(active.length){
-    head='<div class="goalsumm"><div><div class="cn">'+money(savedTot)+' saved</div><div class="cb">'+(committedTot>0?(money(committedTot)+'/mo committed'):('across '+active.length+' goal'+(active.length===1?'':'s')))+'</div></div>'+(fundTotal>0.5?'<button class="gbtn gprimary" id="fundAllBtn">Fund '+money(fundTotal)+'</button>':'')+'</div>';
+    head=safeBanner+'<div class="goalsumm"><div><div class="cn">'+money(savedTot)+' saved</div><div class="cb">'+(committedTot>0?(money(committedTot)+'/mo committed'):('across '+active.length+' goal'+(active.length===1?'':'s')))+'</div></div>'+(fundTotal>0.5?'<button class="gbtn gprimary" id="fundAllBtn">Fund '+money(fundTotal)+'</button>':'')+'</div>';
     if(planTot>0.005)head+='<div style="margin:0 2px 10px"><div style="font-size:12px;color:var(--ink2);display:flex;justify-content:space-between"><span>This month</span><span>'+money(fundedTot)+' of '+money(planTot)+' funded</span></div><div class="bar" style="margin-top:5px"><span style="width:'+mpct+'%;background:var(--green)"></span></div></div>';
     head+=residualPanel();
   }

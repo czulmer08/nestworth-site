@@ -1,9 +1,38 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.47 · Build 20260830.135
-**app.html SHA-256:** `4e5d9dea51f2916799cb5129f205ad103580949759c484bfc7afa57fa789113b`
+**Build under test:** v0.68.50 · Build 20260830.138
+**app.html SHA-256:** `6bf8139e38389fa9099e037285213db39f2faea8e6c5e12fd1400dff52d9d58f`
 **Executed:** 2026-08-30 UTC
 **Environment:** headless Chromium (Playwright) on Node v22.22.2, Linux cloud container.
+
+## v0.68.50 — envelope coverage: upcoming bills with a covered/short indicator
+
+Requested from the device: "View envelopes" now lists each envelope's **upcoming bills** with a covered (✓) / short (⚠ "$X to go") indicator. `envelopeUpcoming(name)` gathers the bills an envelope is covering — its linked obligations if any, else the upcoming logged expenses in that category (this month forward) — and allocates the **current banked balance earliest-due-first** (a banked dollar covers the nearest bill first, never double-counted), marking each covered or short and rolling up "$X still needed across N upcoming bills" / "all N covered". A negative/overspent envelope honestly shows its bills unfunded. Read-only over tested pieces (`catObligations`/`catBalance`) — no engine change.
+
+- **New suite `verify-envelope-bills.js` — 6/6 PASS.** Bills listed earliest-due-first; earliest-due-first coverage (first bills covered, last short); the shortfall equals total upcoming − banked (no dollar funds two bills); an overspent envelope's bills are unfunded; a linked envelope uses its curated obligations rather than raw rows; and the money card's "View envelopes" renders the ✓/short marks and the roll-up.
+- **1 new mutation (43→44), CAUGHT:** marking every bill covered (ignoring the shortfall). *(While adding it, the harness caught that my new pool line collided with the multi-obligation mutation's find string — fixed by making `envelopeUpcoming`'s line textually distinct, restoring per-mutation uniqueness.)*
+- **Results this build:** full functional sweep **112/112 suites pass**; `verify-mutation.js` **44/44 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.49 — Goals page shows what's available to appropriate
+
+Device feedback: the Month tab says "$X safe to move to your goals," but the Goals page — where you actually allocate it — never showed that number. `renderGoals()` now **leads with a "Safe to move to your goals now" banner** carrying the exact `goalSafeToMove().safeToGoal` figure (the same one the Month card shows), with guidance to put it toward any goal via **Add money** or split it. A breach shows **$0 with the reason**, never a misleading positive. Display-only — it reads the existing engine and changes nothing.
+
+- **New suite `verify-goals-safe-banner.js` — 5/5 PASS.** The Goals list leads with the banner; it shows the exact `goalSafeToMove` figure and it appears above the saved/committed summary; the guidance text is present; and a breach renders $0 with the floor reason (no positive number).
+- **1 new mutation (42→43), CAUGHT:** dropping the banner from `renderGoals`.
+- The audit suite caught a real omission during this build — VERSION bumped without a matching CHANGELOG line — which was then added (that's `verify-audit-v56.js`'s "inline changelog includes the current VERSION" check doing its job).
+- **Results this build:** full functional sweep **111/111 suites pass**; `verify-mutation.js` **43/43 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.48 — Forecast Checkup fixes from real-device feedback
+
+Three concrete issues from a phone screenshot, all fixed:
+
+1. **Next month and beyond, and only real lumps.** A candidate is now a bill due in a *future* month (`mo > cm`) that also *exceeds that month's budget* — the current month's bills are covered by the current budget, and a bill within the monthly budget is ordinary spend, not a save-ahead lump. This kills the noisy false matches (an $87.75 bill against a ~$441 Travel budget).
+2. **The buttons now work, and answers persist.** The old `onclick` inlined `JSON.stringify(...)` with double quotes inside a double-quoted attribute — malformed HTML, so "Link them" silently did nothing. Every action is now stashed by integer index (`ckLink`/`ckDismiss`/`ckAdjust`). "Not now", plus the new lumpy responses ("Adjust budget" opens the category; "That's normal" dismisses), persist via a new top-level `meta.checkupDone` (threaded through `normMeta`/`_metaBase`/`writeMeta`) so an answered prompt never returns.
+3. **Transaction summary.** Each match now shows a "The bill" table — Due date, Payee, Category, Amount — so the bill is identifiable without a look-up.
+
+- **`verify-forecast-checkup.js` — 13/13 PASS** (was 10): added the timing+budget filter (current-month and within-budget bills excluded), candidate metadata (date + payee captured), persistence (answering drops it from the scan and survives a `normMeta` round-trip), the registered handlers exist, and the render now includes the transaction table and buttons on both item types.
+- **2 new mutations (40→42), both CAUGHT:** suggesting current-month bills (`mo<=cm` → `mo<cm`); re-nagging an answered prompt (ignoring `checkupDone`).
+- **Results this build:** full functional sweep **110/110 suites pass**; `verify-mutation.js` **42/42 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
 
 ## v0.68.47 — multi-obligation sinking funds (final increment) + pop-up formatting audit
 
