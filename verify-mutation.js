@@ -74,6 +74,14 @@ const MUT=[
   {n:'#6 multi-month reconciliation drops BUILD from the pool carry (contingency never reaches target)',find:'pool=r2(pool+repair+build);',                        repl:'pool=r2(pool+repair);',                                                 by:'verify-multimonth-recon.js'},
   {n:'#6 forward card shows even with no forward story (healthy plan gets clutter)',find:'if(!(overspent||building||floorPressure)||!activity)return "";',repl:'if(false)return "";',                                                    by:'verify-multimonth-surface.js'},
   {n:'#6 Wren forward-timing route never fires (no "when will my contingency be rebuilt" answer)',find:'if(/(contingency|buffer|cushion)/.test(t)&&(_fwdCue||_fwdWhen)){',repl:'if(false){',                                                             by:'verify-multimonth-surface.js'},
+  {n:'lumpy evidence table drops its category filter (unrelated rows pollute "What <month> was")',find:'if(!nameSet[cn])return;',repl:'if(false)return;',                                                           by:'verify-lumpy-itemized.js'},
+  {n:'catNameSet drops the PARENT name (a parent-tagged row stops belonging to its own category)',find:'if(n)set[n]=1;',repl:'if(false)set[n]=1;',                                                        by:'verify-cat-membership.js'},
+  {n:'resolver commit applies nothing (Apply no longer moves the forecast the preview promised)',find:'function _committable(a){return a&&(a.status==="resolved"||a.status==="unresolved");}',repl:'function _committable(a){return false;}',by:'verify-resolver-engine.js'},
+  {n:'resolver preview leaks its staged cfg (staging no longer restored byte-exact)',find:'finally{state.meta.cats=snap;}',repl:'finally{}',                                                             by:'verify-resolver-engine.js'},
+  {n:'resolver draft resume loses the staged answers (Save & finish later comes back empty)',find:'answers:(m.answers&&typeof m.answers==="object"&&!Array.isArray(m.answers))?m.answers:{}',repl:'answers:{}',by:'verify-resolver-engine.js'},
+  {n:'resolver never flags a stale obligation link as needsReview',find:'return !found;});',repl:'return false;});',                                                            by:'verify-resolver-engine.js'},
+  {n:'wizard never advances to the next decision (progress stuck on 1 of N)',find:'checkupSetStep((d.step||0)+1)',repl:'checkupSetStep((d.step||0))',                                       by:'verify-resolver-wizard.js'},
+  {n:'wizard never surfaces a stale link as its own needs-review step',find:'if(ri&&ri.needsReview){var rid=',repl:'if(false){var rid=',                                                     by:'verify-resolver-wizard.js'},
 ];
 
 // Run a suite; capture exit code + combined output so we can classify WHY it passed/failed (not just the exit code).
