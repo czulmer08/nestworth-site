@@ -1290,6 +1290,10 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.64 - Aug 31, 2026 - Build 20260831.152 - GUIDED FORECAST CHECKUP, increment C: the WIZARD UI. The long scrolling checkup is replaced by a one-decision-per-screen resolver that reads the B engine directly (findings / preview / reasons / apply) - no classification or forecast logic in the UI. Each screen: a progress line ("2 of 6"), one question, the evidence right there, and choices that each show their CONSEQUENCE in one sentence before you tap ("It was a one-off - we'll note June as one-time and suggest trimming this budget; nothing is auto-changed"). Envelope purpose is its OWN step (never mixed with an unusual-spend decision): Saving for a future bill -> identify (Possible match -> Link this bill, or "haven't logged it yet" -> set a target amount + due month, no dead-end) -> "A bit of both" adds a numerical split screen (Normal $300 / Saving $500 / Total $800, "does not change your total budget"). Not sure and Skip for now are visibly DISTINCT (an answer that retains current treatment vs. leaving it unanswered). A stale link surfaces FIRST as its own "needs review" screen ("changed from $6,000 on Dec 15 to $7,200 on Jan 10" / "no longer in your ledger") feeding back into the resolver. The final REVIEW screen is the trust moment: counts (N resolved / not sure / skipped), "What will change" per item, "Your forecast" before->after for Safe to move / Reserved for what's ahead / Lowest projected cash, a "Why it changed" reason under a large safe-to-move move, and the explicit line "No transactions, bank balances, or total budget amounts will be changed" above Apply. The load-bearing UI guarantee: the "after" safe-to-move SHOWN on the review equals the live figure immediately after Apply (RES-APPLY at the UI layer). Engine additions: preview now returns lowest-projected-cash before/after; checkupFindings surfaces needsReview (stale links) and every unclassified envelope (candidate or not); checkupLinkReviewInfo gives the "changed from/to" detail. New verify-resolver-wizard.js (10), 2 mutations. forecastCheckupHTML (the old card) is kept for back-compat; renderCheckup now mounts the wizard.
+//   v0.68.63 - Aug 31, 2026 - Build 20260831.151 - GUIDED FORECAST CHECKUP, increment B: the resolver ENGINE (staged draft, headless). The checkup becomes a DRAFT you build up and Apply once, instead of a long list that changes your forecast on every tap. New state.checkupDraft (mirrored to meta.checkupDraft so "Save & finish later" persists the ANSWERS, never the effects). checkupFindings() enumerates what to review (unusual-budget + envelope-purpose, separate items) with a stable id that carries an evidence SIGNATURE. checkupAnswer/checkupSkip stage answers with an explicit status taxonomy - resolved / notSure / suppressed / unresolved / skipped(=no entry). checkupPreview() runs the REAL production engine (goalSafeToMove - the same safe-to-move every screen uses) against the applied cfg vs a CANDIDATE built by applying the draft to a CLONE, restoring byte-exact, and returns before/after + per-answer deltas + reason codes/text (req 6). checkupApply() commits the SAME answers through the SAME checkupSetEnvelope path - so the review screen's promise equals the live result to the cent (RES-APPLY-001). Guardrails honored: nothing touches the live forecast until Apply (RES-STAGE-001); resume restores answers+step with the forecast unchanged (RES-RESUME-001); "saving for a bill" with no bill/target stays UNRESOLVED (reserves nothing until identified); "Don't ask again" is signature-scoped so a NEW spike is a new finding; a linked obligation whose ledger row is deleted/materially changed flags checkupLinkNeedsReview (req 7); classification is metadata-only (no ledger/cash/total-budget change). Also FIXED a latent scope bug: meta.checkupDraft persistence used normMeta's local isObj out of scope, so the draft would never have saved. New verify-resolver-engine.js (7: RES-STAGE/RESUME/APPLY-001 + taxonomy + suppression scope + needsReview), 4 mutations. The wizard UI (increment C) renders on this.
+//   v0.68.62 - Aug 31, 2026 - Build 20260831.150 - CENTRALIZE parent/child membership (the architectural root of the v0.68.53 / .58 / .61 bug class). We had fixed the same "does this transaction belong to this category?" question independently in several scanners, and each isolated fix left the NEXT scanner wrong (unbudgeted double-count → Wren's own set → the empty lumpy evidence table). New catNameSet(name) is the ONE authoritative answer: the parent name PLUS every itemized child ("bill") name and its "↳ " form (children enumerated by catBills, which follows renames). Every forward-membership scanner now DERIVES from it - catSpend12 (spend), budgetedNameSet (the used/unbudgeted partition), catLinkedGoal12 (category-linked goal moves - now a child-tagged goal move correctly counts toward its parent), and lumpyCategories (the checkup evidence table) - so "Children" means Children + Baby Z + Baby B everywhere, and no surface can know a child-parent link another doesn't. Also adds catMatchesRow(row,name) for single-row checks. Pure refactor: byte-for-byte-equal results (full sweep 122/122 unchanged); the win is that a future itemized bug can't come from one scanner drifting from another. New verify-cat-membership.js (5) proves all consumers agree; 1 new mutation (dropping the parent name from the set); the lumpy break-audit retargeted to its category filter. This is the foundation for the guided one-at-a-time Forecast Checkup (next).
+//   v0.68.61 - Aug 31, 2026 - Build 20260831.149 - Forecast Checkup clarity, from device feedback ("I still don't have enough information to decide the unusual activity"). BUG (found on the user's phone): the "Unusual budget" prompt for an ITEMIZED category (Children, Home Services) showed a big spike with an EMPTY "What <month> was" transaction table - so there was nothing to decide on. Same itemized-membership family as v0.68.53/58: the spike AMOUNT comes from spentByMonth()=catSpend12 (which includes an itemized category's sub-item rows), but lumpyCategories()'s transaction scan matched the PARENT name only, and those rows are tagged with the SUB-ITEM name (Baby Z, etc.), so it found nothing. Fix: the scan now matches the SAME set as catSpend12 - parent name PLUS every itemized child ("bill") name and its "↳ " form - so the table fills with the real transactions that made the month unusual, and each row shows the sub-item ("Baby Z · KinderCare"). Also added a one-line "what this does" hint under BOTH the Unusual-budget answers ("One-off opens this category so you can lower its budget · That's normal keeps it as is - nothing is spent either way") and the purpose answers ("this only sets how the money set aside here is treated in your forecast - reserved vs spendable - it never moves money"), so tapping isn't a guess. New verify-lumpy-itemized.js (6), break-audited. Note: a one-at-a-time click-through version of the whole checkup (rather than one long scroll) is a larger redesign, offered separately.
 //   v0.68.60 - Aug 31, 2026 - Build 20260831.148 - #6 FLOOR-AWARE MULTI-MONTH RECONCILIATION (surface - increment 2). The engine from v0.68.59 is now VISIBLE and ASKABLE. (1) A forward view (multiMonthReconHTML) renders under the "where this month's cash is going" recon card on the Contingency card: it leads with the milestones - "Your $X contingency shortfall is repaired to $0 by <month>", "your $T cushion is built by <month>" (or "isn't reached by year-end" when the floor holds surplus back) - then lists each active future month's allocation (repair / build / goals / reserves) and a note on how much stays as reserves to keep every month at/above your Nest Egg Floor. It surfaces ONLY when there's a forward story (a shortfall to repair, a target to build, or floor-held reserves); a healthy, target-less plan shows nothing. (2) Wren answers forward-timing questions - "when will my contingency be repaired/rebuilt/reach its target?", "how long until it's caught up?" - from the SAME multiMonthReconciliation(), with cues specific enough never to steal a BACKWARD "when did it go negative / was it last positive?" question. Both read the one engine (no re-derivation), so the card, Wren, and the engine can't disagree. Full month names (MONF) in both. New verify-multimonth-surface.js (6). 2 new mutations (58->60), both CAUGHT: the card showing with no forward story; the Wren forward route never firing.
 //   v0.68.59 - Aug 31, 2026 - Build 20260831.147 - #6 FLOOR-AWARE MULTI-MONTH RECONCILIATION (engine core - increment 1). monthlyCashReconciliation() answers "where does THIS month's surplus go"; new multiMonthReconciliation() rolls the SAME repair->build->residual->reserves hierarchy FORWARD across the rest of the budget year, carrying the contingency pool month-to-month, so it can say WHEN an overspent contingency is repaired to $0 (repairedMonth), WHEN it reaches your target (targetMonth), and how much residual funding the plan supports. No duplicated math: the CURRENT month IS the exact monthlyCashReconciliation() (so it agrees with the Contingency card), future months use planned income/expense from _cfArrays (the arrays computeCashflow forecasts from), and the pool carries by the same hierarchy. FLOOR-AWARE via the EXISTING single source: goalSafeToMove().safeToGoal is the total that can be set aside today without any forward month dropping below the Nest Egg Floor, so cumulative DISCRETIONARY set-asides (contingency BUILD + RESIDUAL funding - never the deficit REPAIR, which is a priority) are capped at that headroom and the surplus the floor needs is reported as floorHeld reserves. Load-bearing invariants (verify-multimonth-recon.js, 8): per-month max(0,preSurplus) === repair+build+residual+reserves, pool_m === pool_(m-1)+repair+build, the repair-then-build-then-residual ordering, and the floor cap (repair uncapped, target unbuildable under a tight floor). 2 new mutations (56->58), both CAUGHT: ignoring the floor cap; dropping build from the pool carry. This is the computed engine; the Month/Contingency surface + Wren narration land in the next increment.
 //   v0.68.58 - Aug 31, 2026 - Build 20260831.146 - BUDGET-MEMBERSHIP LOCKDOWN (one authoritative definition, shared by every surface). v0.68.53 fixed the itemized double-count ("74% used yet over budget") for the Month headline and unbudgetedConsumption, but the SAME class of bug still lived in two other surfaces that kept their OWN top-level-only category set: (a) WREN'S unbudgeted-spending answer (var _known from state.cats names only) - so Wren would report itemized-child spend as "unbudgeted", contradicting the fixed Month headline; and (b) ledgerUnbudgeted() (the "pull into budget" candidates), whose set omitted the "↳ child" form. Both now route through the ONE helper budgetedNameSet() - promoted to the single authoritative "is this ledger row represented by the budget?" definition (top-level names, itemized child names, "↳ " forms; follows renames via catBills; INCLUDES hidden-but-budgeted categories per product decision; blank/unknown → unbudgeted) with an isBudgetedName() predicate and an enumerated consumer list in the header so no surface re-implements membership again. "Used" and "unbudgeted" can no longer maintain separate membership logic. New verify-item-ub.js (ITEM-UB-001…008: child counted once / ↳ form / multi-child summed once / unknown once / blank once / renamed child by current name / hidden-but-budgeted / the exact-reconciliation identity total = budget-represented + genuinely-unbudgeted, mutually exclusive) plus cross-surface Wren checks and a REPRODUCTION that drives the real Month headline to the screenshot numbers ($9,824.50 budgeted · $7,270.96 used · $2,553.54 left · 74% · not over). 2 new mutations (54→56), both CAUGHT: dropping child recognition reproduces the "74% used yet over budget" contradiction; reverting Wren to its own set drifts it from the headline.
@@ -1723,8 +1727,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.60"; // SemVer — what changed functionally (display only)
-var BUILD="20260831.148"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.64"; // SemVer — what changed functionally (display only)
+var BUILD="20260831.152"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -2743,7 +2747,8 @@ function normMeta(o){o=o||{};
   var hiddenCats=Array.isArray(o.hiddenCats)?o.hiddenCats.filter(function(x){return x!=null&&(""+x).trim();}):[]; // categories hidden from the picker (still in history)
   var acctAsOf=isObj(o.acctAsOf)?o.acctAsOf:{}; // per-account last-updated dates (lowercased name → YYYY-MM-DD) for freshness flags
   var checkupDone=isObj(o.checkupDone)?o.checkupDone:{}; // Forecast Checkup prompts the user has already answered (kind:cat → true)
-  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,acctAsOf:acctAsOf,checkupDone:checkupDone,floor:Number(o&&o.floor)||0,contingencyTarget:Math.max(0,Number(o&&o.contingencyTarget)||0),nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:"",schemaVersion:Number(o&&o.schemaVersion)||0};}
+  var checkupDraft=isObj(o.checkupDraft)?o.checkupDraft:{}; // the STAGED resolver draft (answers + step) — persisted for Save & finish later; NOT applied until Apply
+  return {cats:cats,cons:cons,goals:goals,carry:carry,gkey:gkey,startCash:Number(o&&o.startCash)||0,startYM:Number(o&&o.startYM)||0,payees:payees,prefs:prefs,hiddenCats:hiddenCats,acctAsOf:acctAsOf,checkupDone:checkupDone,checkupDraft:checkupDraft,floor:Number(o&&o.floor)||0,contingencyTarget:Math.max(0,Number(o&&o.contingencyTarget)||0),nwUpdated:(o&&typeof o.nwUpdated==="string")?o.nwUpdated:"",schemaVersion:Number(o&&o.schemaVersion)||0};}
 // ===== Formal schema versioning & migration =====
 // The metadata document carries an integer schemaVersion. Historical Nests are unversioned (treated as v0). CURRENT is the
 // shape this build writes. migrateMeta() runs the registered migrations in order (v_from+1 … CURRENT), is IDEMPOTENT (running it
@@ -2775,7 +2780,7 @@ function schemaTooNew(e){
   document.body.appendChild(bar);
 }
 function _clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
-var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],acctAsOf:{},checkupDone:{},floor:0,nwUpdated:""};
+var _metaBase={cats:{},cons:{},goals:[],carry:{},gkey:"",startCash:0,startYM:0,payees:["Me"],prefs:{},hiddenCats:[],acctAsOf:{},checkupDone:{},checkupDraft:{},floor:0,nwUpdated:""};
 async function readMeta(){
   try{
     var g=await vgetU(META_SHEET+"!A2");
@@ -2834,6 +2839,8 @@ async function writeMeta(){
       startYM:(state.meta.startYM!==_metaBase.startYM)?state.meta.startYM:remote.startYM,
       acctAsOf:_mergeMap(_metaBase.acctAsOf||{},state.meta.acctAsOf||{},remote.acctAsOf||{}),
       checkupDone:_mergeMap(_metaBase.checkupDone||{},state.meta.checkupDone||{},remote.checkupDone||{}), // which Forecast Checkup prompts the user has answered (persisted so they don't nag again)
+      checkupDraft:(state.meta.checkupDraft&&typeof state.meta.checkupDraft==="object"&&!Array.isArray(state.meta.checkupDraft))?state.meta.checkupDraft:{}, // the staged resolver draft (local, per-session) — answers+step only; effects are NOT applied until the user hits Apply
+
       floor:(state.meta.floor!==_metaBase.floor)?state.meta.floor:remote.floor,
       nwUpdated:(state.meta.nwUpdated!==_metaBase.nwUpdated)?state.meta.nwUpdated:remote.nwUpdated,
       schemaVersion:CURRENT_SCHEMA_VERSION // always stamp the current schema on write
@@ -2993,9 +3000,12 @@ function lumpyCategories(){ // budgeted categories whose LOGGED history has an u
     var mid=Math.floor(others.length/2),med=others.length?(others.length%2?others[mid]:r2((others[mid-1]+others[mid])/2)):0;
     if(med>0&&max>=2*med&&(max-med)>=2000){ // unusually large single month, materially so
       var spikeM=-1;for(var mm=0;mm<12;mm++){if(Math.abs((Number(sp[mm])||0)-max)<0.005){spikeM=mm;break;}}
-      // the transactions that MADE that month unusual (largest first) — so "was it a one-off?" is answerable at a glance
-      var y=bYear(),ck=(""+c.name).toLowerCase(),txns=[];
-      (state.rows||[]).forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==(spikeM+1))return;if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;if((""+((r&&r[4])||"")).toLowerCase()!==ck)return;var amt=Number(r[6])||0;if(amt<=0.005)return;txns.push({name:((""+((r&&r[5])||(r&&r[3])||"")).trim())||"—",amount:r2(amt),dateISO:(""+((r&&r[2])||""))});});
+      // the transactions that MADE that month unusual (largest first) — so "was it a one-off?" is answerable at a glance. The spike
+      // AMOUNT comes from spentByMonth()=catSpend12 (which includes an itemized category's sub-item rows), so the txn scan must match
+      // the SAME set — parent name PLUS every itemized child ("bill") name and its "↳ " form — or an itemized category (Children,
+      // Home Services) shows a big spike with an EMPTY table (the child rows are tagged with the sub-item name, not the parent).
+      var y=bYear(),nameSet=catNameSet(c.name),txns=[]; // authoritative parent/child membership — the SAME set catSpend12 sums, so the table can't disagree with the spike amount
+      (state.rows||[]).forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==(spikeM+1))return;if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;var cn=(""+((r&&r[4])||"")).trim().toLowerCase();if(!nameSet[cn])return;var amt=Number(r[6])||0;if(amt<=0.005)return;var sub=(""+((r&&r[4])||"")).trim(),payee=(""+((r&&r[5])||(r&&r[3])||"")).trim();txns.push({name:(sub&&sub.toLowerCase()!==(""+c.name).trim().toLowerCase())?(sub+(payee?(" · "+payee):"")):(payee||"—"),amount:r2(amt),dateISO:(""+((r&&r[2])||""))});});
       txns.sort(function(a,b){return b.amount-a.amount;});
       out.push({cat:c.name,spikeMonth:spikeM+1,spikeAmount:r2(max),typicalMonth:r2(med),
         monthlyBudget:r2((c.bud12&&c.bud12[(bYear()===curYear()?curMonth()-1:0)])||0),txns:txns});
@@ -3070,6 +3080,124 @@ async function doCheckupLink(catName,obligation){try{checkupSetEnvelope(catName,
 async function doCheckupUnlink(catName){try{checkupUnlink(catName);await writeMeta();renderAll();}catch(e){}}
 async function doCheckupDismiss(kind,catName){try{checkupMarkDone(kind,catName);await writeMeta();renderAll();}catch(e){}} // "Not now" / "That's normal" — persisted so it won't return on reload
 async function doCheckupAdjust(catName){try{checkupMarkDone("lumpy",catName);await writeMeta();}catch(e){}try{switchView("budget");openCatEdit(catName);}catch(e){}} // open the category to fix the budget, and mark the prompt answered
+// ============================================================================================================================
+// RESOLVER ENGINE (v0.68.63, increment B) — the guided one-at-a-time Forecast Checkup as a STAGED DRAFT. Nothing here touches the
+// live forecast until Apply. Answers live in state.checkupDraft (mirrored to meta.checkupDraft so "Save & finish later" persists the
+// ANSWERS, never the effects). The before/after preview runs the REAL production engine (goalSafeToMove — the same authoritative
+// safe-to-move every screen uses) against the applied config vs a CANDIDATE built by applying the draft answers to a CLONE, then
+// restores byte-exact. Apply commits those SAME answers through the SAME checkupSetEnvelope path — so what the review screen promises
+// is exactly what the live model produces (RES-APPLY-001). Classification is metadata-only: no ledger mutation, no fabricated
+// history, no cash movement, no total-budget change. Status taxonomy (explicit, req 4): resolved · notSure · suppressed · unresolved
+// · skipped(=no entry). "Don't ask again" is signature-scoped, so materially-new evidence is a NEW finding.
+var CK_STATUS={resolved:1,notSure:1,suppressed:1,unresolved:1};
+function _draft(){if(!state.checkupDraft||typeof state.checkupDraft!=="object")state.checkupDraft={answers:{},step:0,startedISO:(typeof todayISO==="function"?todayISO():"")};if(!state.checkupDraft.answers||typeof state.checkupDraft.answers!=="object")state.checkupDraft.answers={};return state.checkupDraft;}
+function _draftSync(){if(state.meta)state.meta.checkupDraft=state.checkupDraft;} // keep the persisted mirror pointing at the live draft (writeMeta stores answers+step, not effects)
+function checkupDraftReset(){state.checkupDraft={answers:{},step:0,startedISO:(typeof todayISO==="function"?todayISO():"")};_draftSync();}
+function checkupDraftRestore(){var m=state.meta&&state.meta.checkupDraft;if(m&&typeof m==="object"){state.checkupDraft={answers:(m.answers&&typeof m.answers==="object"&&!Array.isArray(m.answers))?m.answers:{},step:Number(m.step)||0,startedISO:m.startedISO||""};}else{state.checkupDraft={answers:{},step:0,startedISO:""};}return state.checkupDraft;} // Save & finish later: reopen restores answers + "3 of 6"; live forecast stays on the last APPLIED config
+// ---- findings: the ordered list of things to review (READ-ONLY scan). A stable id carries an evidence SIGNATURE. --------------
+function _lumpySig(L){return "unusual:"+(""+L.cat).trim().toLowerCase()+":"+L.spikeMonth+":"+r2(L.spikeAmount);}
+function _purposeSig(cat){return "purpose:"+(""+cat).trim().toLowerCase();}
+function _findingSuppressed(id){return !!(state.meta&&state.meta.checkupDone&&state.meta.checkupDone[id]);} // signature-scoped "don't ask again" — a NEW spike (new signature) is not suppressed
+function _checkupSuppress(id){if(!state.meta.checkupDone)state.meta.checkupDone={};state.meta.checkupDone[id]=true;}
+function checkupFindings(){
+  var list=[];
+  // needsReview FIRST — a linked obligation that has gone stale (its ledger row was deleted or materially changed) should be re-confirmed
+  (state.cats||[]).forEach(function(c){if(typeof catSinking==="function"&&catSinking(c.name)){var ri=checkupLinkReviewInfo(c.name);
+    if(ri&&ri.needsReview){var rid="review:"+(""+c.name).trim().toLowerCase();if(_findingSuppressed(rid))return;list.push({id:rid,type:"needsReview",cat:c.name,signature:rid,old:ri.old,current:ri.current});}}});
+  (typeof lumpyCategories==="function"?lumpyCategories():[]).forEach(function(L){var id=_lumpySig(L);if(_findingSuppressed(id))return;
+    list.push({id:id,type:"unusual",cat:L.cat,signature:id,spikeMonth:L.spikeMonth,spikeAmount:r2(L.spikeAmount),typicalMonth:r2(L.typicalMonth),monthlyBudget:r2(L.monthlyBudget),txns:L.txns||[]});});
+  var scan=(typeof forecastCheckup==="function")?forecastCheckup():{envelopes:[]};
+  (scan.envelopes||[]).forEach(function(e){
+    // a purpose finding = an UNCLASSIFIED envelope (not linked, still the default "ongoing", not already answered) — WHETHER OR NOT a
+    // bill candidate exists; the candidate (if any) pre-fills the "saving for a bill → possible match" sub-step.
+    if(e.linked)return;if(e.purpose&&e.purpose!=="ongoing")return;if(checkupIsDone("purpose",e.cat))return;
+    var id=_purposeSig(e.cat);if(_findingSuppressed(id))return;
+    list.push({id:id,type:"purpose",cat:e.cat,signature:id,banked:r2(e.banked),budget:r2(_catBudMonth(e.cat,(bYear()===curYear()?curMonth()-1:0))),candidate:e.candidate||null});});
+  return list; // needsReview, then unusual, then envelope purpose — separate steps even for the same category
+}
+// ---- draft answers (staged; never applied here) ----------------------------------------------------------------------------
+function checkupAnswer(id,ans){var d=_draft();if(!ans||!ans.status||!CK_STATUS[ans.status]){delete d.answers[id];}else{d.answers[id]=ans;}d.updatedISO=(typeof todayISO==="function"?todayISO():"");_draftSync();return d;}
+function checkupSkip(id){var d=_draft();delete d.answers[id];_draftSync();return d;} // skipped = NO entry — distinct from notSure (which is a real "retain existing" answer)
+function checkupSetStep(n){var d=_draft();d.step=Math.max(0,Number(n)||0);_draftSync();return d;}
+function checkupDraftCounts(){var d=_draft(),out={resolved:0,notSure:0,suppressed:0,unresolved:0,skipped:0,total:0};checkupFindings().forEach(function(f){out.total++;var a=d.answers[f.id],s=(a&&a.status)||"skipped";if(out[s]==null)s="skipped";out[s]++;});return out;}
+// ---- staging: apply the committable draft answers to the (live) cfg. Used by BOTH the preview (wrapped in snapshot/restore) and
+// the real commit (permanent), so the preview and the applied result are produced by the SAME code path (req 3). -------------
+function _committable(a){return a&&(a.status==="resolved"||a.status==="unresolved");} // both write cfg; only a resolved reservation moves safe-to-move
+function _applyDraftAnswerToCfg(id,ans){
+  if(!ans)return;var cat=ans.cat;if(!cat)return;
+  if(ans.action==="unlink"){checkupUnlink(cat);return;}                              // needsReview → remove the stale link (keeps the envelope + balance)
+  if(ans.type==="needsReview"){if(ans.obligation)checkupSetEnvelope(cat,{purpose:"sinking",obligation:ans.obligation});return;} // re-link to the corrected bill
+  if(ans.type==="purpose"){
+    if(ans.purpose==="ongoing")checkupSetEnvelope(cat,{purpose:"ongoing"});
+    else if(ans.purpose==="split"&&ans.contribution!=null)checkupSetEnvelope(cat,{purpose:"split",contribution:ans.contribution});
+    else if(ans.purpose==="sinking"){
+      if(ans.obligation)checkupSetEnvelope(cat,{purpose:"sinking",obligation:ans.obligation});
+      else if(ans.target&&Number(ans.target.amount)>0)checkupSetEnvelope(cat,{purpose:"sinking",obligation:{name:cat,amount:r2(Number(ans.target.amount)||0),dueYear:Number(ans.target.dueYear)||bYear(),dueMonth:Number(ans.target.dueMonth)||12,source:"target"}});
+      else checkupSetEnvelope(cat,{purpose:"sinking"}); // UNRESOLVED: intent recorded, but no obligation/target → reserves nothing until identified
+    }
+  }
+  // type "unusual": metadata-only (a one-off is a hand-off to a manual budget review; NEVER an auto total-budget change) — no cfg write here
+}
+function _safeNow(){var s=0;try{var gs=goalSafeToMove();s=gs?gs.safeToGoal:0;}catch(e){}return r2(s);}
+function _forwardLowNow(){var v=0;try{var gs=goalSafeToMove();v=gs?gs.forwardLow:0;}catch(e){}return r2(v);} // the lowest projected cash after today — shown before/after on the review screen
+function checkupReservedMonthly(){var s=0,m=(bYear()===curYear()?curMonth()-1:0);(state.cats||[]).forEach(function(c){if(typeof catSinking==="function"&&catSinking(c.name))s+=catContributionMonthly(c.name,m);});return r2(s);} // total monthly reserved toward known bills
+function _reasonCode(a){if(a.action==="unlink")return "unlinked";if(a.type==="needsReview")return "relinked";if(a.type==="unusual")return a.answer==="oneOff"?"unusual-oneoff":"unusual-normal";if(a.purpose==="sinking")return a.obligation?"sinking-linked":(a.target&&Number(a.target.amount)>0?"sinking-target":"sinking-unresolved");if(a.purpose==="split")return "split";if(a.purpose==="ongoing")return "ongoing";return "answer";}
+function _reasonText(a,delta){var cat=a.cat||"this envelope";var d=(delta>0.005?(" (+"+money(delta)+" safe to move)"):(delta<-0.005?(" ("+money(delta)+" safe to move)"):""));
+  if(a.action==="unlink")return cat+"’s stale bill link removed — the envelope and its balance are kept"+d;
+  if(a.type==="needsReview")return cat+"’s link updated to the corrected bill"+d;
+  if(a.type==="unusual")return a.answer==="oneOff"?(cat+" — "+(typeof MONF!=="undefined"&&a.spikeMonth?MONF[a.spikeMonth-1]+" ":"")+"treated as one-time (budget review suggested — nothing auto-changed)"):(cat+"’s spending confirmed normal — kept in the recurring forecast");
+  if(a.purpose==="ongoing")return cat+" set as ongoing spending"+d;
+  if(a.purpose==="split")return cat+" split — "+money(a.contribution||0)+"/mo reserved toward a bill, the rest spendable"+d;
+  if(a.purpose==="sinking"){if(a.obligation)return cat+" set as a sinking fund reserving toward the "+money((a.obligation.amount)||0)+" bill"+d;if(a.target&&Number(a.target.amount)>0)return cat+" set as a sinking fund toward a "+money(a.target.amount)+" target"+d;return cat+" marked as saving for a bill — not yet identified (unresolved; reserves nothing until you name it)";}
+  return cat;}
+// ---- the before/after preview: the REAL engine, applied vs staged candidate; per-answer deltas + reasons (req 6). -----------
+function checkupPreview(){
+  var before=_safeNow(),resBefore=checkupReservedMonthly(),lowBefore=_forwardLowNow();
+  var d=_draft(),ids=Object.keys(d.answers).filter(function(id){return _committable(d.answers[id]);});
+  var snap=_clone(state.meta.cats||{}),reasons=[],running=before,resAfter=resBefore,lowAfter=lowBefore;
+  try{
+    ids.forEach(function(id){var ans=d.answers[id];_applyDraftAnswerToCfg(id,ans);var s=_safeNow(),delta=r2(s-running);
+      reasons.push({id:id,cat:ans.cat||"",code:_reasonCode(ans),text:_reasonText(ans,delta),deltaSafe:delta,status:ans.status});running=s;});
+    resAfter=checkupReservedMonthly();lowAfter=_forwardLowNow();
+  }finally{state.meta.cats=snap;} // restore EXACT prior cfg — the preview leaves nothing behind
+  return {before:r2(before),after:r2(running),deltaSafe:r2(running-before),
+    reservedBefore:r2(resBefore),reservedAfter:r2(resAfter),reservedDelta:r2(resAfter-resBefore),
+    lowBefore:r2(lowBefore),lowAfter:r2(lowAfter),lowDelta:r2(lowAfter-lowBefore),
+    reasons:reasons,counts:checkupDraftCounts()};
+}
+// ---- commit: apply the SAME committable answers permanently; suppress the "don't ask again"/answered signatures; clear the draft.
+function _checkupCommit(){ // PURE (no async / no network) — the financial commit; RES-APPLY-001: goalSafeToMove() after this === checkupPreview().after
+  var d=_draft();
+  Object.keys(d.answers).forEach(function(id){if(_committable(d.answers[id]))_applyDraftAnswerToCfg(id,d.answers[id]);});
+  Object.keys(d.answers).forEach(function(id){var a=d.answers[id];
+    if(a.status==="suppressed"||(a.type==="unusual"&&a.status==="resolved"))_checkupSuppress(id);}); // signature-scoped: a NEW spike reappears
+  checkupDraftReset();
+}
+async function checkupApply(){_checkupCommit();try{await writeMeta();await loadCarryIn();renderAll();}catch(e){}} // metadata-only classification write, then persist + refresh
+// ---- a linked obligation that has gone stale (its ledger row was deleted or materially changed) → needsReview (req 7). --------
+function checkupLinkNeedsReview(catName){
+  var link=(typeof catSinking==="function")?catSinking(catName):null;if(!link)return false;
+  var obs=(typeof catObligations==="function")?catObligations(catName):[];
+  return obs.some(function(o){if((o.source||"row")!=="row")return false; // only a row-sourced obligation can go stale; a user target can't
+    var found=(state.rows||[]).some(function(r){if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return false;
+      return Number(r[0])===Number(o.dueYear)&&Number(r[1])===Number(o.dueMonth)&&Math.abs(r2(Number(r[6])||0)-r2(o.amount))<0.5&&catMatchesRow(r,catName);});
+    return !found;});
+}
+// The DETAIL behind a needsReview link — the stale obligation(s) and a plausible current replacement — so the wizard can say
+// "changed from $6,000 on Dec 15 to $7,200 on Jan 10" (or "no longer in your ledger"). Read-only; feeds the same resolver flow.
+function checkupLinkReviewInfo(catName){
+  var link=(typeof catSinking==="function")?catSinking(catName):null;if(!link)return {needsReview:false};
+  var obs=(typeof catObligations==="function")?catObligations(catName):[];
+  var stale=obs.filter(function(o){if((o.source||"row")!=="row")return false;
+    return !(state.rows||[]).some(function(r){if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return false;
+      return Number(r[0])===Number(o.dueYear)&&Number(r[1])===Number(o.dueMonth)&&Math.abs(r2(Number(r[6])||0)-r2(o.amount))<0.5&&catMatchesRow(r,catName);});});
+  if(!stale.length)return {needsReview:false};
+  var cm=(bYear()===curYear()?curMonth():1),cand=null;
+  (state.rows||[]).forEach(function(r){if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;if(Number(r[0])!==bYear())return;var mo=Number(r[1]);if(mo<cm)return;if(!catMatchesRow(r,catName))return;
+    var amt=r2(Number(r[6])||0);if(obs.some(function(o){return Number(o.dueMonth)===mo&&Math.abs(r2(o.amount)-amt)<0.5;}))return; // already a known obligation
+    if(!cand||mo<cand.dueMonth)cand={name:(""+((r[5])||catName)).trim()||catName,amount:amt,dueYear:Number(r[0]),dueMonth:mo,dateISO:(""+(r[2]||"")),source:"row"};});
+  return {needsReview:true,cat:catName,old:stale.map(function(o){return {name:o.name,amount:r2(o.amount),dueYear:o.dueYear,dueMonth:o.dueMonth};}),current:cand};
+}
 // "What is this envelope for?" — the explicit purpose classification. Ongoing / saving-for-a-bill / unsure. MOVES NO CASH.
 async function doCheckupPurpose(catName,kind){try{
   if(kind==="ongoing")checkupSetEnvelope(catName,{purpose:"ongoing"});               // normal spending that rolls forward
@@ -3213,6 +3341,7 @@ function forecastCheckupHTML(){ // the review card — one clear item per thing 
       +'<button class="gbtn" style="padding:9px 14px;font-size:13.5px;border-radius:10px" onclick="ckSplit('+i+')">A bit of both</button>'
       +'<button class="gbtn" style="padding:9px 14px;font-size:13.5px;border-radius:10px" onclick="ckPurpose('+i+',\'ongoing\')">Ongoing spending</button>'
       +'<button class="lnk2" onclick="ckPurpose('+i+',\'unsure\')">Not sure</button></div>';
+    h+='<div class="hintline" style="text-align:left;margin:7px 0 0;font-size:11px;color:var(--ink2)">This only sets how the money set aside here is treated in your forecast — reserved for a bill vs. spendable — it never moves money. <b>Not sure</b> leaves it unchanged.</div>';
     h+='</div>';
   });
   // lumpy-budget items — a one-time spike that may be skewing the recurring baseline; now with real responses
@@ -3233,6 +3362,7 @@ function forecastCheckupHTML(){ // the review card — one clear item per thing 
     h+='<div style="display:flex;align-items:center;gap:16px;margin-top:12px">'
       +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="ckAdjust('+i+')">It was a one-off</button>'   // → opens the category so you can lower the budget
       +'<button class="lnk2" onclick="ckDismiss('+i+',\'lumpy\')">That’s normal</button></div>';                                                        // → keep the budget as-is
+    h+='<div class="hintline" style="text-align:left;margin:7px 0 0;font-size:11px;color:var(--ink2)"><b>One-off</b> opens this category so you can lower its budget · <b>That’s normal</b> keeps it as it is. Nothing is spent either way.</div>';
     h+='</div>';
   });
   h+='</div>';return h;
@@ -3267,12 +3397,27 @@ function catBills(name){
   if(subs&&subs.length)return subs.map(function(s){return s.name;}).filter(Boolean);
   return [];
 }
-// A category's combined 12-month spend: its own rows PLUS every bill matched by name ("bill" and "↳ bill" buckets), so an
-// itemized parent's total (and its envelope balance) picks up imported transactions tagged with the bare bill name —
-// mirroring the summary's parent formula exactly. Buckets are disjoint by Category value, so nothing is double-counted.
+// ============================================================================================================================
+// catNameSet — THE authoritative parent/child membership. Given a category `name`, it returns the set of ledger Category values
+// that BELONG to it: the parent name PLUS every itemized child ("bill") name and its "↳ " form (children enumerated by catBills,
+// the single source of a category's children, which follows renames). This is the ONE answer to "does this transaction belong to
+// this category?", so "Children" means Children + Baby Z + Baby B EVERYWHERE that asks — spend (catSpend12), the budgeted set
+// (budgetedNameSet), category-linked goal moves (catLinkedGoal12), the checkup evidence table (lumpyCategories). No scanner may
+// re-derive parent/child membership on its own; that independent reimplementation was the v0.68.53 / .58 / .61 bug class (a big
+// spike with an empty evidence table; child spend double-counted as "unbudgeted"). Keys are trimmed+lowercased, matching buildIndexes.
+function catNameSet(name){
+  var set={},n=(""+(name||"")).trim().toLowerCase();if(n)set[n]=1;
+  if(typeof catBills==="function")catBills(name).forEach(function(b){var bl=(""+b).trim().toLowerCase();if(bl){set[bl]=1;set["↳ "+bl]=1;}});
+  return set;
+}
+// Does a ledger row's Category fall in this category's membership set? (blank/unknown → false)
+function catMatchesRow(row,name){var c=(""+((row&&row[4])||"")).trim().toLowerCase();return c?!!catNameSet(name)[c]:false;}
+// A category's combined 12-month spend: every membership bucket (parent + itemized "bill" + "↳ bill" names) summed from the index,
+// so an itemized parent's total (and its envelope balance) picks up imported transactions tagged with the bare bill name — mirroring
+// the summary's parent formula. Buckets are disjoint by Category value, so nothing is double-counted. Membership from catNameSet().
 function catSpend12(name){
-  var out=((state.spend&&state.spend[(""+name).toLowerCase()])||_z12()).slice();
-  catBills(name).forEach(function(b){var bl=(""+b).toLowerCase();[bl,"↳ "+bl].forEach(function(key){var sp=state.spend&&state.spend[key];if(sp)for(var k=0;k<12;k++)out[k]+=sp[k];});});
+  var out=_z12(),set=catNameSet(name);
+  Object.keys(set).forEach(function(key){var sp=state.spend&&state.spend[key];if(sp)for(var k=0;k<12;k++)out[k]+=sp[k];});
   return out;
 }
 // ============================================================================================================================
@@ -3292,15 +3437,14 @@ function catSpend12(name){
 //   • Wren's unbudgeted-spending answer  — so Wren's total matches the Month headline, never her own top-level-only view
 function budgetedNameSet(){
   var set={};
-  (state.cats||[]).forEach(function(c){var n=(""+c.name).trim().toLowerCase();if(n)set[n]=1;
-    if(typeof catBills==="function")catBills(c.name).forEach(function(b){var bl=(""+b).trim().toLowerCase();if(bl){set[bl]=1;set["↳ "+bl]=1;}});});
+  (state.cats||[]).forEach(function(c){var s=catNameSet(c.name);for(var k in s)set[k]=1;}); // union of the ONE per-category membership set
   return set;
 }
 // Convenience predicate over the ONE set above — for single-row membership checks. A blank/absent value is NOT budgeted.
 function isBudgetedName(name){var n=(""+(name||"")).trim().toLowerCase();return n?!!budgetedNameSet()[n]:false;}
 // Category budget MOVED into a category-linked goal (Category = this category, Company = the goal) per month. This money
 // consumed the category's allocation even though it isn't "spending" — so budget-used and remaining must include it.
-function catLinkedGoal12(name){var nl=(""+name).trim().toLowerCase(),out=_z12(),y=bYear();(state.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;if(typeof _asOfOK==="function"&&!_asOfOK(r))return;if(!isGoalMovementRow(r))return;var cat=(""+((r&&r[4])||"")).trim().toLowerCase();if(cat!==nl||isGoalName(cat))return;var mo=Number(r[1]);if(mo>=1&&mo<=12)out[mo-1]+=Number(r[6])||0;});return out;}
+function catLinkedGoal12(name){var set=catNameSet(name),out=_z12(),y=bYear();(state.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;if(typeof _asOfOK==="function"&&!_asOfOK(r))return;if(!isGoalMovementRow(r))return;var cat=(""+((r&&r[4])||"")).trim().toLowerCase();if(!set[cat]||isGoalName(cat))return;var mo=Number(r[1]);if(mo>=1&&mo<=12)out[mo-1]+=Number(r[6])||0;});return out;} // membership via catNameSet — a child-tagged goal move counts toward its parent
 function budUsed(c){return (c&&c.mused!=null)?c.mused:((c&&c.mspent)||0);} // BUDGET USED (consumption + linked-goal allocation), with a fallback for categories not yet run through applyBudgetSpend
 function applyBudgetSpend(){
   var cm=curMonth()-1;
@@ -7527,7 +7671,141 @@ function fillPayeeSource(){
     var lpS=lastPick("source");var pick=(cur2&&cur2!=="__new__")?cur2:((lpS&&sseen[lpS.toLowerCase()])?lpS:"");if(pick)src.value=pick;}
   var esrc=$("edSource");if(esrc){var cur3=esrc.value;var h=cons.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");if(cur3&&cons.indexOf(cur3)<0)h='<option>'+esc(cur3)+'</option>'+h;esrc.innerHTML=h;if(cur3)esrc.value=cur3;}
 }
-function renderCheckup(){var el=$("checkupSlot");if(!el)return;var h="";try{h=forecastCheckupHTML();}catch(e){h="";}el.innerHTML=h||"";}
+// ============================================================================================================================
+// GUIDED FORECAST CHECKUP — WIZARD UI (v0.68.64, increment C). One decision per screen; reads the B engine directly (findings,
+// preview, reasons, apply) — NO classification or forecast logic lives here. Six small decisions, then a trust-moment review.
+var _ckw=null; // transient sub-step (mid-answer identify/target/split). NOT persisted — leaving it means the finding stays unanswered.
+function _ckwReset(){_ckw=null;}
+function _mn3(m){return (typeof MONTHS!=="undefined"&&MONTHS[m-1])||("m"+m);}
+function _mnF(m){return (typeof MONF!=="undefined"&&MONF[m-1])||_mn3(m);}
+function _ckwCur(){var F=checkupFindings(),d=_draft(),step=Math.max(0,Math.min(d.step||0,F.length));return {F:F,step:step,f:F[step]||null,total:F.length};}
+function _ckwChoice(label,cons,onclick,primary){return '<button type="button" class="gbtn'+(primary?" gprimary":"")+'" style="display:block;width:100%;text-align:left;padding:11px 14px;border-radius:12px;margin-top:8px;border:1px solid var(--line)" onclick="'+onclick+'"><div style="font-size:14.5px;font-weight:700;color:'+(primary?"#fff":"var(--ink)")+'">'+esc(label)+'</div><div style="font-size:11.5px;font-weight:400;color:'+(primary?"rgba(255,255,255,.9)":"var(--ink2)")+';margin-top:2px;line-height:1.4">'+esc(cons)+'</div></button>';}
+function _ckwFoot(step,skippable){var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">';
+  h+=(step>0?'<button type="button" class="lnk2" onclick="ckwBack()">← Back</button>':'<span></span>');
+  h+='<span style="display:flex;gap:14px;align-items:center">'+(skippable?'<button type="button" class="lnk2" onclick="ckwSkip()">Skip for now</button>':'')+'<button type="button" class="lnk2" onclick="ckwSaveLater()">Save &amp; finish later</button></span></div>';return h;}
+function _ckwProg(step,total,title){return '<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">Forecast Checkup · '+(step+1)+' of '+total+'</div><div style="font-size:17px;font-weight:800;color:var(--ink);margin:3px 0 8px">'+esc(title)+'</div>';}
+function _ckwWrap(inner){return '<div style="border:1px solid var(--line);border-radius:16px;padding:16px 15px;background:var(--card,#fff)">'+inner+'</div>';}
+function checkupWizardHTML(){
+  var st=_ckwCur();if(!st.total)return _ckwEmptyHTML();
+  if(_ckw&&_ckw.cat)return _ckwWrap(_ckwSubHTML(st.step,st.total));    // an active sub-step takes the screen
+  if(st.step>=st.total)return _ckwWrap(_ckwReviewHTML(st.F));          // past the last finding → the review / trust screen
+  var f=st.f;
+  if(f.type==="needsReview")return _ckwWrap(_ckwNeedsReviewHTML(f,st.step,st.total));
+  if(f.type==="unusual")return _ckwWrap(_ckwUnusualHTML(f,st.step,st.total));
+  return _ckwWrap(_ckwPurposeHTML(f,st.step,st.total));
+}
+function _ckwUnusualHTML(f,step,total){
+  var smon=_mnF(f.spikeMonth),h=_ckwProg(step,total,f.cat+" looks unusual");
+  h+='<div class="hintline" style="text-align:left;margin:0 0 8px">In <b>'+esc(smon)+'</b> you spent '+money(f.spikeAmount)+' here — a typical month is about '+money(f.typicalMonth)+'. Here’s what '+esc(smon)+' contained:</div>';
+  if(f.txns&&f.txns.length){var lt=f.txns.slice(0,5).map(function(t){var dd="";if(/^\d{4}-\d{2}-\d{2}/.test(t.dateISO)){dd=smon.slice(0,3)+" "+Number(t.dateISO.split("-")[2])+" · ";}return '<div class="totrow" style="margin-top:2px;font-size:12.5px"><span style="color:var(--ink2)">'+dd+esc(t.name)+'</span><span class="num" style="color:var(--ink2)">'+money(t.amount)+'</span></div>';}).join("");
+    h+='<div style="margin:2px 0 4px;border:1px solid var(--line);border-radius:11px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:4px">What '+esc(smon)+' was</div>'+lt+(f.txns.length>5?('<div class="hintline" style="text-align:left;margin-top:2px;font-size:11px">+'+(f.txns.length-5)+' more in '+esc(smon)+'</div>'):'')+'</div>';}
+  h+='<div style="font-size:13.5px;font-weight:700;color:var(--ink);margin:12px 0 2px">Was this a one-off, or your normal?</div>';
+  h+=_ckwChoice("It was a one-off","We’ll note "+smon+" as one-time and suggest trimming this budget — nothing is auto-changed.","ckwUnusual('oneOff')",true);
+  h+=_ckwChoice("That’s normal","Keep it in your recurring forecast.","ckwUnusual('normal')",false);
+  h+=_ckwChoice("Not sure","You’re answering that you don’t know — leave the current treatment for now.","ckwUnusual('notsure')",false);
+  return h+_ckwFoot(step,true);
+}
+function _ckwPurposeHTML(f,step,total){
+  var h=_ckwProg(step,total,"What is your "+f.cat+" envelope for?");
+  h+='<div class="hintline" style="text-align:left;margin:0 0 8px">You have '+money(f.banked)+' set aside and budget '+money(f.budget)+'/month here.</div>';
+  h+=_ckwChoice("Saving for a future bill","We’ll reserve this toward a specific bill, not treat it as normal spending.","ckwPurpose('sinking')",true);
+  h+=_ckwChoice("A bit of both","Part reserved toward a bill, the rest normal monthly spending.","ckwPurpose('both')",false);
+  h+=_ckwChoice("Ongoing spending","Normal monthly spending you draw from over time.","ckwPurpose('ongoing')",false);
+  h+=_ckwChoice("Not sure","You’re answering that you don’t know — leave the current treatment for now.","ckwPurpose('notsure')",false);
+  return h+_ckwFoot(step,true);
+}
+function _ckwNeedsReviewHTML(f,step,total){
+  var h=_ckwProg(step,total,f.cat+" needs review");
+  var o=f.old&&f.old[0],oStr=o?(money(o.amount)+" on "+_mn3(o.dueMonth)+" "+o.dueYear):"the bill you linked";
+  if(f.current)h+='<div class="hintline" style="text-align:left;margin:0 0 8px">The bill you linked changed from <b>'+esc(oStr)+'</b> to <b>'+money(f.current.amount)+" on "+_mn3(f.current.dueMonth)+" "+f.current.dueYear+'</b>.</div>';
+  else h+='<div class="hintline" style="text-align:left;margin:0 0 8px">The bill you linked ('+esc(oStr)+') is no longer in your ledger.</div>';
+  if(f.current)h+=_ckwChoice("Update the link","Reserve toward the corrected "+money(f.current.amount)+" bill instead.","ckwRelink()",true);
+  h+=_ckwChoice("Unlink it","Keep the envelope and its balance, but stop reserving toward that bill.","ckwUnlinkStale()",!f.current);
+  h+=_ckwChoice("Not now","Leave the link as it is for now.","ckwNotSureCur()",false);
+  return h+_ckwFoot(step,true);
+}
+function _ckwSubHTML(step,total){
+  var cat=_ckw.cat,phase=_ckw.phase;
+  if(phase==="identify"){
+    var h=_ckwProg(step,total,"What are you saving for?"),cand=_ckw.cand;
+    if(cand){h+='<div style="margin:2px 0 6px;border:1px solid var(--line);border-radius:11px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:4px">Possible match</div><div class="totrow" style="font-size:13px"><span>'+esc(cand.name)+' · '+_mn3(cand.dueMonth)+' '+cand.dueYear+'</span><b>'+money(cand.amount)+'</b></div></div>';
+      h+=_ckwChoice("Link this bill","Reserve toward this "+money(cand.amount)+" bill.","ckwLinkCand()",true);}
+    h+=_ckwChoice("I haven’t logged it yet","Set a target amount and date now; we’ll offer to link the real bill when you enter it.","ckwToTarget()",!cand);
+    return h+_ckwFoot(step,true);
+  }
+  if(phase==="target"){
+    var h=_ckwProg(step,total,"Set your target"),opts="";for(var m=1;m<=12;m++)opts+='<option value="'+m+'"'+(m===12?" selected":"")+'>'+_mnF(m)+'</option>';
+    h+='<div class="hintline" style="text-align:left;margin:0 0 8px">How much are you saving for '+esc(cat)+', and when is it due?</div>';
+    h+='<div class="row" style="margin-top:2px"><label>Target amount</label><span class="mfield">$<input id="ckwTgtAmt" class="money" inputmode="decimal" placeholder="0.00"></span></div>';
+    h+='<div class="row" style="margin-top:8px"><label>Due month</label><select id="ckwTgtMonth" class="sel">'+opts+'</select></div>';
+    h+='<button type="button" class="addbtn" style="margin-top:12px" onclick="ckwSubmitTarget()">Save target</button>';
+    h+='<div style="text-align:center;margin-top:8px"><button type="button" class="lnk2" onclick="ckwUnresolved()">I don’t know yet — leave it unresolved</button></div>';
+    return h+_ckwFoot(step,false);
+  }
+  // split
+  var bud=r2(_catBudMonth(cat,(bYear()===curYear()?curMonth()-1:0))),h=_ckwProg(step,total,"How much is saving?");
+  h+='<div class="hintline" style="text-align:left;margin:0 0 8px">Your '+esc(cat)+' budget is '+money(bud)+'/month. How much of that is saving toward the bill?</div>';
+  h+='<div class="row" style="margin-top:2px"><label>Saving / month</label><span class="mfield">$<input id="ckwSplit" class="money" inputmode="decimal" placeholder="0.00" oninput="ckwSplitEcho()"></span></div>';
+  h+='<div id="ckwSplitEcho" class="hintline" style="text-align:left;margin:8px 0 0">Normal monthly spending: '+money(bud)+' · Saving: '+money(0)+' · Total: '+money(bud)+' ✓</div>';
+  h+='<div class="hintline" style="text-align:left;margin:4px 0 0;color:var(--ink2);font-size:11px">This does not change your total budget — it tells NestWorth what each part is for.</div>';
+  h+='<button type="button" class="addbtn" style="margin-top:12px" onclick="ckwSubmitSplit()">Save split</button>';
+  return h+_ckwFoot(step,false);
+}
+function ckwSplitEcho(){try{var cat=_ckw&&_ckw.cat;if(!cat)return;var bud=r2(_catBudMonth(cat,(bYear()===curYear()?curMonth()-1:0)));var c=Math.max(0,Math.min(parseFloat(($("ckwSplit")&&$("ckwSplit").value)||"0")||0,bud));if($("ckwSplitEcho"))$("ckwSplitEcho").innerHTML='Normal monthly spending: '+money(r2(bud-c))+' · Saving: '+money(r2(c))+' · Total: '+money(bud)+' ✓';}catch(e){}}
+function _ckwReviewHTML(F){
+  var pv=checkupPreview(),c=pv.counts,d=_draft();
+  var h='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">Forecast Checkup</div>';
+  h+='<div style="font-size:18px;font-weight:800;color:var(--ink);margin:3px 0 4px">Ready to apply</div>';
+  h+='<div class="hintline" style="text-align:left;margin:0 0 10px">'+c.resolved+' resolved · '+c.notSure+' not sure · '+c.skipped+' skipped'+(c.unresolved?(' · '+c.unresolved+' unresolved'):'')+'</div>';
+  var reasonById={};pv.reasons.forEach(function(x){reasonById[x.id]=x;});
+  var changed=[];Object.keys(d.answers).forEach(function(id){var a=d.answers[id];if(a.status==="resolved"||a.status==="unresolved")changed.push({id:id,a:a});});
+  var sec=function(t){return '<div style="font-size:12px;font-weight:700;color:var(--ink);margin:12px 0 4px;letter-spacing:.02em">'+t+'</div>';};
+  if(changed.length){h+=sec("What will change");
+    changed.forEach(function(o){var r=reasonById[o.id],txt=r?r.text:_reasonText(o.a,0);
+      h+='<div class="totrow" style="margin-top:4px;font-size:12.5px;align-items:flex-start"><span style="color:var(--ink2);line-height:1.4">'+esc(txt)+'</span></div>';});}
+  var fx=function(label,before,after){var chg=Math.abs(r2(after-before))>0.005;return '<div class="totrow" style="margin-top:5px"><span>'+esc(label)+'</span><b class="num">'+(chg?(money(before)+' → '+money(after)):money(after))+'</b></div>';};
+  h+=sec("Your forecast");
+  var gname=(typeof goalMoveName==="function")?goalMoveName():"savings";
+  h+=fx("Safe to move to "+gname,pv.before,pv.after);
+  h+=fx("Reserved for what’s ahead",pv.reservedBefore,pv.reservedAfter);
+  h+=fx("Lowest projected cash",pv.lowBefore,pv.lowAfter);
+  if(Math.abs(pv.deltaSafe)>100){var big=pv.reasons.slice().sort(function(a,b){return Math.abs(b.deltaSafe)-Math.abs(a.deltaSafe);})[0];if(big&&Math.abs(big.deltaSafe)>0.005)h+='<div class="hintline" style="text-align:left;margin:6px 0 0"><b>Why it changed:</b> '+esc(big.text)+'</div>';}
+  h+='<div class="hintline" style="text-align:left;margin:10px 0 0;color:var(--ink2);font-size:11.5px">No transactions, bank balances, or total budget amounts will be changed.</div>';
+  h+='<button type="button" class="addbtn" style="margin-top:12px" onclick="ckwApply()">Apply changes</button>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><button type="button" class="lnk2" onclick="ckwBack()">← Back</button><button type="button" class="lnk2" onclick="ckwSaveLater()">Save &amp; finish later</button></div>';
+  return h;
+}
+function _ckwEmptyHTML(){return '';} // nothing to review → the checkup slot is empty (Budget tab shows the normal budget)
+// ---- navigation + answer handlers (thin wrappers over the B engine) --------------------------------------------------------
+function _ckwAdvance(){var d=_draft();checkupSetStep((d.step||0)+1);_ckwReset();renderCheckup();}
+function ckwBack(){if(_ckw&&_ckw.cat){_ckwReset();renderCheckup();return;}var d=_draft();checkupSetStep(Math.max(0,(d.step||0)-1));renderCheckup();}
+function ckwSkip(){var st=_ckwCur();if(st.f)checkupSkip(st.f.id);_ckwAdvance();}
+async function ckwSaveLater(){try{await writeMeta();}catch(e){}try{if(typeof toast==="function")toast("Saved — finish your checkup any time.");}catch(e){}renderCheckup();}
+function ckwUnusual(kind){var st=_ckwCur(),f=st.f;if(!f)return;
+  if(kind==="notsure")checkupAnswer(f.id,{type:"unusual",status:"notSure",cat:f.cat,spikeMonth:f.spikeMonth});
+  else checkupAnswer(f.id,{type:"unusual",status:"resolved",cat:f.cat,answer:kind,spikeMonth:f.spikeMonth});
+  _ckwAdvance();}
+function ckwPurpose(kind){var st=_ckwCur(),f=st.f;if(!f)return;
+  if(kind==="ongoing"){checkupAnswer(f.id,{type:"purpose",status:"resolved",cat:f.cat,purpose:"ongoing"});_ckwAdvance();return;}
+  if(kind==="notsure"){checkupAnswer(f.id,{type:"purpose",status:"notSure",cat:f.cat});_ckwAdvance();return;}
+  var cand=null;try{var bc=checkupBillCandidates(f.cat);if(bc&&bc.length){var ob=bc[0];cand={name:ob.name||f.cat,amount:r2(ob.amount),dueYear:ob.dueYear||bYear(),dueMonth:ob.dueMonth||12,source:"row"};}}catch(e){}
+  _ckw={cat:f.cat,fid:f.id,phase:"identify",purpose:(kind==="both"?"split":"sinking"),cand:cand};renderCheckup();}
+function ckwLinkCand(){if(!_ckw||!_ckw.cand)return;_ckw.obligation=_ckw.cand;_ckwFinishSinking();}
+function ckwToTarget(){if(!_ckw)return;_ckw.phase="target";renderCheckup();}
+function _ckwFinishSinking(){if(_ckw.purpose==="split"){_ckw.phase="split";renderCheckup();return;} // "both" → collect the split next
+  var ans={type:"purpose",status:"resolved",cat:_ckw.cat,purpose:"sinking"};if(_ckw.obligation)ans.obligation=_ckw.obligation;else if(_ckw.target)ans.target=_ckw.target;
+  checkupAnswer(_ckw.fid,ans);_ckwAdvance();}
+function ckwSubmitTarget(){var amt=parseFloat(($("ckwTgtAmt")&&$("ckwTgtAmt").value)||"0")||0,mo=Number(($("ckwTgtMonth")&&$("ckwTgtMonth").value)||12)||12;
+  if(amt>0.005){_ckw.target={amount:r2(amt),dueYear:bYear(),dueMonth:mo};_ckw.obligation=null;_ckwFinishSinking();}else{ckwUnresolved();}}
+function ckwUnresolved(){checkupAnswer(_ckw.fid,{type:"purpose",status:"unresolved",cat:_ckw.cat,purpose:"sinking"});_ckwAdvance();}
+function ckwSubmitSplit(){var bud=r2(_catBudMonth(_ckw.cat,(bYear()===curYear()?curMonth()-1:0))),c=Math.max(0,Math.min(parseFloat(($("ckwSplit")&&$("ckwSplit").value)||"0")||0,bud));
+  var ans={type:"purpose",status:"resolved",cat:_ckw.cat,purpose:"split",contribution:r2(c)};if(_ckw.obligation)ans.obligation=_ckw.obligation;else if(_ckw.target)ans.target=_ckw.target;
+  checkupAnswer(_ckw.fid,ans);_ckwAdvance();}
+function ckwRelink(){var st=_ckwCur(),f=st.f;if(!f||!f.current)return;checkupAnswer(f.id,{type:"needsReview",status:"resolved",cat:f.cat,obligation:f.current});_ckwAdvance();}
+function ckwUnlinkStale(){var st=_ckwCur(),f=st.f;if(!f)return;checkupAnswer(f.id,{type:"needsReview",status:"resolved",cat:f.cat,action:"unlink"});_ckwAdvance();}
+function ckwNotSureCur(){var st=_ckwCur(),f=st.f;if(!f)return;checkupAnswer(f.id,{type:f.type,status:"notSure",cat:f.cat});_ckwAdvance();}
+async function ckwApply(){try{await checkupApply();}catch(e){}_ckwReset();try{renderAll();}catch(e){}}
+function renderCheckup(){var el=$("checkupSlot");if(!el)return;var h="";try{h=checkupWizardHTML();}catch(e){h="";}el.innerHTML=h||"";}
 function renderAll(){renderMonth();renderRecent();renderCats();renderContingency();renderGoals();fillCatSelect();fillCons();fillPayeeSource();fillCompanyList();renderS2S();renderCatTbl();renderDepTbl();renderWorth();renderFeas();renderStress();renderCheckup();updateBudPill();renderYearNav();applyFormPrefs();sizeAllMoney();maybeOfferTidy();maybeOfferPullIn();maybeOfferReview();}
 // One-time-per-load offer to fix a ledger whose rows were stranded near the bottom of the sheet (by Google's append on a Table).
 var _tidyOffered=false;

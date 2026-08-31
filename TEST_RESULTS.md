@@ -1,9 +1,56 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.60 · Build 20260831.148
-**app.html SHA-256:** `b9215e21900344ee40ccd425d8a7e0726aff6da3ebe8bb6579fedcf455acd230`
+**Build under test:** v0.68.64 · Build 20260831.152
+**app.html SHA-256:** `c010ced42f4caa7cb26358417cf32c44b5494b012fa6c9bc120492e707ea498b`
 **Executed:** 2026-08-31 UTC
 **Environment:** headless Chromium (Playwright) on Node v22.22.2, Linux cloud container.
+
+## v0.68.64 — Guided Forecast Checkup, increment C: the wizard UI
+
+- **The long scroll is replaced by one decision per screen**, reading the B engine directly (findings / preview / reasons / apply) — no classification or forecast logic in the UI. Each screen: a progress line ("2 of 6"), one question, the evidence in place, and choices that each show their **consequence in one sentence** before you tap.
+- **Envelope purpose is its own step** (never mixed with an unusual-spend decision): Saving for a future bill → identify (Possible match → Link, or "haven't logged it yet" → set a target amount + due month, no dead-end); "A bit of both" adds a numerical split screen ("does not change your total budget").
+- **Not sure and Skip for now are visibly distinct** — an answer that retains the current treatment vs. leaving it unanswered.
+- **Stale links surface first** as their own "needs review" screen ("no longer in your ledger" / "changed from … to …"), feeding back into the resolver.
+- **The review screen is the trust moment:** counts, "What will change" per item, "Your forecast" before→after for Safe to move / Reserved for what's ahead / Lowest projected cash, a "Why it changed" reason under a large move, and the explicit "No transactions, bank balances, or total budget amounts will be changed." above Apply.
+- **New suite `verify-resolver-wizard.js` — 10/10 PASS**, including the load-bearing UI guarantee: **the "after" safe-to-move shown on the review equals the live figure immediately after Apply** (RES-APPLY at the UI layer). Plus navigation (Back / advance), Not-sure-vs-Skip distinction, the identify Possible-match sub-step, Save & finish later persistence, and the stale-link review→unlink.
+- **Engine additions:** preview returns lowest-projected-cash before/after; `checkupFindings` surfaces `needsReview` and every unclassified envelope (candidate or not); `checkupLinkReviewInfo` gives the changed-from/to detail.
+- **2 new mutations (66→68), both CAUGHT:** the wizard never advancing; a stale link never surfacing.
+- **Results this build:** full functional sweep **125/125 suites pass** (the old `forecastCheckupHTML` kept for back-compat; `renderCheckup` now mounts the wizard); `verify-mutation.js` **68/68 caught, restored byte-exact**.
+
+## v0.68.63 — Guided Forecast Checkup, increment B: the resolver engine (staged draft)
+
+- **The checkup becomes a draft you build and Apply once** — not a long list that changes the forecast on every tap. `state.checkupDraft` (mirrored to `meta.checkupDraft`) persists the **answers, not the effects**, so Save & finish later restores your progress without moving the forecast.
+- **`checkupFindings()`** enumerates what to review (unusual-budget + envelope-purpose, as separate items) with a stable id carrying an evidence **signature**. **`checkupAnswer` / `checkupSkip`** stage answers with the explicit taxonomy **resolved / notSure / suppressed / unresolved / skipped**.
+- **`checkupPreview()`** runs the **real** production engine (`goalSafeToMove`) against the applied cfg vs a candidate built by applying the draft to a **clone** (restored byte-exact), returning before/after + per-answer deltas + **reason codes/text**. **`checkupApply()`** commits the same answers through the same `checkupSetEnvelope` path.
+- **New suite `verify-resolver-engine.js` — 7/7 PASS**, including the three load-bearing invariants:
+  - **RES-STAGE-001** — staged answers leave the live safe-to-move *and* the cfg untouched.
+  - **RES-RESUME-001** — persist the draft → restore → same answers + step, forecast unchanged.
+  - **RES-APPLY-001** — `checkupPreview().after` === live `goalSafeToMove()` immediately after commit, to the cent (and the preview leaves the cfg byte-exact).
+  - plus the status taxonomy counted distinctly, **signature-scoped suppression** (a new-sized spike is a new finding), and **needsReview** flagging a linked obligation whose ledger row was deleted.
+- **Latent bug fixed:** `meta.checkupDraft` persistence referenced `normMeta`'s *local* `isObj` out of scope — the draft would never have saved. Now inline object checks.
+- **4 new mutations (62→66), all CAUGHT:** commit applies nothing; preview leaks its staged cfg; resume loses answers; needsReview never fires.
+- **Results this build:** full functional sweep **124/124 suites pass** (meta/migration/write-contract green with the new field); `verify-mutation.js` **66/66 caught, restored byte-exact**.
+- **Increment C (the wizard UI) renders on this engine next.**
+
+## v0.68.62 — Centralize parent/child membership (one authoritative helper)
+
+- **The architectural root of the v0.68.53 / .58 / .61 bug class.** "Does this transaction belong to this category?" had been answered independently in several scanners, and each isolated fix left the *next* scanner wrong (unbudgeted double-count → Wren's own set → the empty lumpy evidence table).
+- **`catNameSet(name)` is now the one answer:** the parent name + every itemized child ("bill") name + its "↳ " form (children enumerated by `catBills`, which follows renames). Every forward-membership scanner derives from it — `catSpend12` (spend), `budgetedNameSet` (the used/unbudgeted partition), `catLinkedGoal12` (category-linked goal moves — a child-tagged goal move now correctly counts toward its parent), and `lumpyCategories` (the checkup evidence table). Plus `catMatchesRow(row, name)` for single-row checks.
+- **Pure refactor — result-identical.** The full sweep is unchanged (every existing suite green), so no behavior moved; the win is structural: a future itemized bug can't arise from one scanner drifting from another.
+- **New suite `verify-cat-membership.js` — 5/5 PASS:** the set contents; `catMatchesRow` (Baby Z / ↳ / parent belong, Parking/blank don't); `catSpend12` = $400 (parent + children + ↳, goal move excluded); `budgetedNameSet` includes the children; `catLinkedGoal12` counts a child-tagged goal move ($200) toward the parent.
+- **1 new mutation (61→62), CAUGHT** (dropping the parent name from `catNameSet`); the lumpy break-audit was retargeted to its category filter and its suite hardened with an unrelated same-month row so the filter is genuinely exercised.
+- **Results this build:** full functional sweep **123/123 suites pass**; `verify-mutation.js` **62/62 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+- **Foundation for the guided one-at-a-time Forecast Checkup** (resolver engine + wizard UI to follow).
+
+## v0.68.61 — Forecast Checkup clarity (device feedback: "not enough information to decide the unusual activity")
+
+- **Bug found on the user's phone.** The "Unusual budget" prompt for an **itemized** category (Children, Home Services) showed a big spike ($7,962.80) with an **empty** "What Jun was" transaction table — nothing to decide on. Same itemized-membership family as v0.68.53/58: the spike **amount** comes from `spentByMonth()` = `catSpend12` (which includes an itemized category's sub-item rows), but `lumpyCategories()`'s transaction scan matched the **parent name only**, and those rows are tagged with the sub-item name (Baby Z, …), so it found nothing.
+- **Fix.** The scan now matches the same set as `catSpend12` — parent name + every itemized child ("bill") name + its "↳ " form — so the table fills with the real transactions that made the month unusual, each row showing the sub-item ("Baby Z · KinderCare").
+- **"What this does" microcopy.** A one-line consequence hint now sits under both the Unusual-budget answers ("One-off opens this category so you can lower its budget · That's normal keeps it as is — nothing is spent either way") and the purpose answers ("this only sets how the money set aside here is treated in your forecast — reserved vs spendable — it never moves money").
+- **New suite `verify-lumpy-itemized.js` — 6/6 PASS:** the itemized spike amount; the now-non-empty txn list summing to the spike ($5,000 + $3,000); the sub-item names shown; the rendered "What Jun was" table; and both hints.
+- **1 new mutation (60→61), CAUGHT:** dropping child rows from the scan reproduces the empty-table-with-a-big-spike bug.
+- **Results this build:** full functional sweep **122/122 suites pass**; `verify-mutation.js` **61/61 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+- *Deferred (offered separately):* a one-at-a-time click-through version of the whole checkup, instead of one long scroll — a larger UX redesign.
 
 ## v0.68.60 — #6 Floor-aware multi-month reconciliation (surface, increment 2)
 
