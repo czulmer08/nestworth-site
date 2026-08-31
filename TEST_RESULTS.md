@@ -1,9 +1,25 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.64 · Build 20260831.152
-**app.html SHA-256:** `c010ced42f4caa7cb26358417cf32c44b5494b012fa6c9bc120492e707ea498b`
+**Build under test:** v0.68.66 · Build 20260831.154
+**app.html SHA-256:** `4851aabbdbc6a3b0e5384821502af703c438a7c3ee3bc4b6de135279de58cbf5`
 **Executed:** 2026-08-31 UTC
 **Environment:** headless Chromium (Playwright) on Node v22.22.2, Linux cloud container.
+
+## v0.68.66 — Repair ledger dates on Optimize (device: "still nothing in the Spent column")
+
+- **Root cause (user-spotted):** the Account Ledger's Date column (C) was stored as **text**, not real dates. The Account Summary's Spent SUMIFS filters by date; Sheets won't match a numeric date criterion against a text cell, so every Spent cell summed nothing → the whole column read blank. (The app itself was always right — its Year/Month helper columns coerce text dates via `YEAR()`/`MONTH()`; only the spreadsheet's SUMIFS broke.)
+- **Fix:** Optimize now repairs the dates. New `parseLedgerDate()` normalizes each Date cell (ISO, US M/D/Y with 2- or 4-digit year, serial numbers) to a real-date ISO; the row rewrite writes it `USER_ENTERED` so it parses to a real date; and column C is forced to a **DATE** number-format so a text-formatted import can't keep the values as text.
+- **New suite `verify-parse-date.js` — 6/6 PASS** (ISO / US formats / serials / junk-rejection). **`verify-optimize.js` extended to 10/10**: the column-C DATE format request and the end-to-end repair (`"1/1/2026"` → `"2026-01-01"` in the rewritten row).
+- **1 new mutation (69→70), CAUGHT:** dropping the ISO parse.
+- The template ships column C as a real date with `AC1 = TODAY()`, so fresh app-entered budgets were never affected — only imports of text-dated history.
+
+## v0.68.65 — Forecast Checkup wizard: surface upcoming bills to link (device: "doesn't recognize my upcoming travel bill")
+
+- On the wizard's "What are you saving for?" step, only "I haven't logged it yet" showed — even with a logged upcoming bill (Hyatt · Sep 6 · $501.60). Cause: the identify step reused the **passive** `checkupBillCandidates()`, whose strict gate (future *month* only, and *exceeds* the monthly budget) is right for avoiding noisy auto-matches but wrong once the user actively said "I'm saving for a bill."
+- **Fix:** new `checkupIdentifyCandidates()` — the broader active source: every **upcoming** (future-dated, from today) logged bill in the category, membership-correct via `catMatchesRow` (itemized children included), earliest first. The identify step now lists the real bills to link (up to 3), never a dead-end; past charges are excluded.
+- **New suite `verify-identify-candidates.js` — 5/5 PASS**; `verify-resolver-wizard.js` updated (10/10). **1 new mutation (68→69), CAUGHT:** inverting the upcoming filter.
+
+**Combined results (v0.68.66):** full functional sweep **127/127 suites pass**; `verify-mutation.js` **70/70 caught, restored byte-exact**.
 
 ## v0.68.64 — Guided Forecast Checkup, increment C: the wizard UI
 

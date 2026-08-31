@@ -45,7 +45,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     ckwBack();Rz.back={backToChildren:/1 of 3/.test(H())&&/Children looks unusual/.test(H())};
     // forward again, then into the sinking sub-step
     ckwUnusual('oneOff');ckwPurpose('sinking');
-    var sub=H();Rz.identify={q:/What are you saving for\?/.test(sub),match:/Possible match/.test(sub),amt:/\$6,000\.00/.test(sub),link:/Link this bill/.test(sub)};
+    var sub=H();Rz.identify={q:/What are you saving for\?/.test(sub),match:/Upcoming Tuition bills you could be saving toward/.test(sub),amt:/\$6,000\.00/.test(sub),link:/Link this bill/.test(sub)};
     ckwLinkCand();
     var s2=H();Rz.s2={prog:/3 of 3/.test(s2),vacation:/What is your Vacation envelope for\?/.test(s2)};
     // Not sure (an ANSWER) vs Skip (no answer) are recorded differently
@@ -91,7 +91,7 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
      R.s0.bothDistinct&&R.s0.oneOff, JSON.stringify(R.s0));
   ck('answering advances to "2 of 3" (the Tuition purpose question); Back returns to "1 of 3"',
      R.s1.prog&&R.s1.purposeQ&&R.back.backToChildren, JSON.stringify({s1:R.s1,back:R.back}));
-  ck('"Saving for a future bill" opens the identify sub-step with the Possible match ($6,000) and a Link button',
+  ck('"Saving for a future bill" opens the identify sub-step listing the upcoming Tuition bill ($6,000) with a Link button',
      R.identify.q&&R.identify.match&&R.identify.amt&&R.identify.link, JSON.stringify(R.identify));
   ck('linking advances to "3 of 3" (Vacation); "Not sure" is recorded as an ANSWER (status notSure)',
      R.s2.prog&&R.s2.vacation&&R.notSureRecorded, JSON.stringify({s2:R.s2,notSure:R.notSureRecorded}));

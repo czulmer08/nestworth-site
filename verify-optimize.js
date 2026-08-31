@@ -30,14 +30,15 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
       if(/:batchUpdate$/.test(url)){window.__batch.push(JSON.parse(opts.body));return {};}
       return {};
     };
-    state={rows:[[2026,1,'2026-01-01','Me','Groceries','Publix',50,'',''],[2026,2,'2026-02-01','Me','Gas','Shell',40,'','']]};
+    state={rows:[[2026,1,'1/1/2026','Me','Groceries','Publix',50,'',''],[2026,2,'2026-02-01','Me','Gas','Shell',40,'','']]}; // row1 has a US TEXT date to exercise the repair
     var r=await optimizeSheet();
     // find the formula write-back (a vBatchUpdate whose value contains SUMIFS)
     var fw=window.__writes.filter(function(w){return w.values&&(""+w.values[0][0]).indexOf("SUMIFS")>=0;});
-    var del=null,fmt=null;window.__batch.forEach(function(bd){(bd.requests||[]).forEach(function(rq){if(rq.deleteDimension)del=rq.deleteDimension;if(rq.repeatCell&&rq.repeatCell.cell&&rq.repeatCell.cell.userEnteredFormat&&rq.repeatCell.cell.userEnteredFormat.numberFormat)fmt=rq.repeatCell;});});
+    var del=null,fmtAB=null,fmtC=null;window.__batch.forEach(function(bd){(bd.requests||[]).forEach(function(rq){if(rq.deleteDimension)del=rq.deleteDimension;
+      if(rq.repeatCell&&rq.repeatCell.cell&&rq.repeatCell.cell.userEnteredFormat&&rq.repeatCell.cell.userEnteredFormat.numberFormat){var rg=rq.repeatCell.range;if(rg.startColumnIndex===0)fmtAB=rq.repeatCell;else if(rg.startColumnIndex===2)fmtC=rq.repeatCell;}});});
     var acWrite=window.__writes.filter(function(w){return /AC1$/.test(w.range||"");})[0]||null;
     var rowW=window.__writes.filter(function(w){return /!A2$/.test(w.range||"")&&w.values&&w.values[0].length>=3;})[0]||null;
-    return {ret:r, fw:fw, del:del, fmt:fmt, cleared:window.__cleared, acWrite:acWrite, rowW:rowW};
+    return {ret:r, fw:fw, del:del, fmtAB:fmtAB, fmtC:fmtC, cleared:window.__cleared, acWrite:acWrite, rowW:rowW};
   });
 
   ck('ledger cleared + trimmed (deleteDimension issued)', res.cleared.some(x=>/A2:I/.test(x))&&!!res.del&&res.del.range.dimension==='ROWS', JSON.stringify({c:res.cleared,d:res.del}));
@@ -45,8 +46,10 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
   ck('volatile TODAY() re-pointed at the non-volatile $AC$1 helper', res.fw.length>0 && res.fw[0].values[0][0].indexOf('TODAY(')<0 && res.fw[0].values[0][0].indexOf('$AC$1')>=0, JSON.stringify(res.fw[0]&&res.fw[0].values[0][0]));
   ck('optimize stamps the AC1 helper date', res.acWrite&&/\d{4}-\d{2}-\d{2}/.test(''+res.acWrite.values[0][0]), JSON.stringify(res.acWrite));
   ck('reports cells streamlined', res.ret&&res.ret.cells>=1, JSON.stringify(res.ret));
-  ck('Year/Month columns (A:B) reset to plain-number format', !!res.fmt&&res.fmt.range.startColumnIndex===0&&res.fmt.range.endColumnIndex===2&&res.fmt.cell.userEnteredFormat.numberFormat.type==='NUMBER'&&res.fmt.cell.userEnteredFormat.numberFormat.pattern==='0', JSON.stringify(res.fmt&&res.fmt.range));
+  ck('Year/Month columns (A:B) reset to plain-number format', !!res.fmtAB&&res.fmtAB.range.startColumnIndex===0&&res.fmtAB.range.endColumnIndex===2&&res.fmtAB.cell.userEnteredFormat.numberFormat.type==='NUMBER'&&res.fmtAB.cell.userEnteredFormat.numberFormat.pattern==='0', JSON.stringify(res.fmtAB&&res.fmtAB.range));
   ck('rewritten rows get self-maintaining Year/Month formulas off the Date', !!res.rowW&&/^=IFERROR\(YEAR\(C2\)/.test(''+res.rowW.values[0][0])&&/^=IFERROR\(MONTH\(C2\)/.test(''+res.rowW.values[0][1]), JSON.stringify(res.rowW&&res.rowW.values[0].slice(0,3)));
+  ck('Date column (C) is forced to a DATE number-format (so a text-formatted import can’t keep dates as text)', !!res.fmtC&&res.fmtC.range.startColumnIndex===2&&res.fmtC.range.endColumnIndex===3&&res.fmtC.cell.userEnteredFormat.numberFormat.type==='DATE', JSON.stringify(res.fmtC&&res.fmtC.range));
+  ck('the DATE REPAIR normalizes a text date to real-date ISO ("1/1/2026" → "2026-01-01" in the rewritten row)', !!res.rowW&&(''+res.rowW.values[0][2])==='2026-01-01', JSON.stringify(res.rowW&&res.rowW.values[0][2]));
 
   let pass=0,fail=0;out.forEach(r=>{console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d?('  ['+r.d+']'):''));r.ok?pass++:fail++;});
   if(errs.length)console.log('  page errors: '+errs.join(' | '));

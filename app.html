@@ -1290,6 +1290,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.66 - Aug 31, 2026 - Build 20260831.154 - REPAIR LEDGER DATES on Optimize (device: "optimized the spreadsheet and it's still not showing anything in the Spent column"). Root cause the user spotted: the Account Ledger's Date column (C) was stored as TEXT, not real dates. The Account Summary's Spent SUMIFS filters by date (C>=DATE(...), C<=EOMONTH(...), C<=$AC$1); Google Sheets won't match a numeric date criterion against a text cell, so every Spent cell summed nothing → the whole column read blank. (The APP was always right because its Year/Month helper columns coerce text dates via YEAR()/MONTH(); only the spreadsheet's SUMIFS broke.) Fix: Optimize now REPAIRS the dates - new parseLedgerDate() normalizes each Date cell (ISO, US M/D/Y with 2- or 4-digit year, serial numbers) to a real-date ISO, the row rewrite writes it USER_ENTERED so it parses to a real date, and column C is forced to a DATE number-format so a text-formatted import can't keep them as text. So "Settings -> Optimize this spreadsheet" now un-blanks the Spent column. Confirm copy updated. New verify-parse-date.js (6), break-audited. (The template itself ships C as a real-date column with AC1==TODAY(), so fresh app-entered budgets were never affected - only imports of text-dated history.)
+//   v0.68.65 - Aug 31, 2026 - Build 20260831.153 - Forecast Checkup wizard fix (device: "it doesn't recognize that I have an upcoming travel bill to link"). On the "What are you saving for?" step the wizard offered ONLY "I haven't logged it yet", even though the user had a logged Travel bill (Hyatt House Charleston · Sep 6 · $501.60). Cause: the identify step reused checkupBillCandidates() - the PASSIVE sinking-fund scan - whose strict gate is (a) a FUTURE month only (mo>cm) and (b) EXCEEDS the monthly budget. The Hyatt bill is later THIS month (Sep, when it's Sep) and within the $1,292.92 Travel budget, so it was hidden. That gate is correct for AVOIDING noisy auto-matches in the passive scan, but wrong once the user has actively said "I'm saving for a bill." New checkupIdentifyCandidates() is the broader ACTIVE source: every UPCOMING (future-dated, from today) logged bill in the category, membership-correct via catMatchesRow (itemized children included), earliest first - so the identify step now lists the real bills to link (up to 3, each with Link this bill), never a dead-end. Past charges are excluded (already spent). New verify-identify-candidates.js (5), break-audited. The passive scan is unchanged (still hides within-budget/this-month bills from auto-suggestions).
 //   v0.68.64 - Aug 31, 2026 - Build 20260831.152 - GUIDED FORECAST CHECKUP, increment C: the WIZARD UI. The long scrolling checkup is replaced by a one-decision-per-screen resolver that reads the B engine directly (findings / preview / reasons / apply) - no classification or forecast logic in the UI. Each screen: a progress line ("2 of 6"), one question, the evidence right there, and choices that each show their CONSEQUENCE in one sentence before you tap ("It was a one-off - we'll note June as one-time and suggest trimming this budget; nothing is auto-changed"). Envelope purpose is its OWN step (never mixed with an unusual-spend decision): Saving for a future bill -> identify (Possible match -> Link this bill, or "haven't logged it yet" -> set a target amount + due month, no dead-end) -> "A bit of both" adds a numerical split screen (Normal $300 / Saving $500 / Total $800, "does not change your total budget"). Not sure and Skip for now are visibly DISTINCT (an answer that retains current treatment vs. leaving it unanswered). A stale link surfaces FIRST as its own "needs review" screen ("changed from $6,000 on Dec 15 to $7,200 on Jan 10" / "no longer in your ledger") feeding back into the resolver. The final REVIEW screen is the trust moment: counts (N resolved / not sure / skipped), "What will change" per item, "Your forecast" before->after for Safe to move / Reserved for what's ahead / Lowest projected cash, a "Why it changed" reason under a large safe-to-move move, and the explicit line "No transactions, bank balances, or total budget amounts will be changed" above Apply. The load-bearing UI guarantee: the "after" safe-to-move SHOWN on the review equals the live figure immediately after Apply (RES-APPLY at the UI layer). Engine additions: preview now returns lowest-projected-cash before/after; checkupFindings surfaces needsReview (stale links) and every unclassified envelope (candidate or not); checkupLinkReviewInfo gives the "changed from/to" detail. New verify-resolver-wizard.js (10), 2 mutations. forecastCheckupHTML (the old card) is kept for back-compat; renderCheckup now mounts the wizard.
 //   v0.68.63 - Aug 31, 2026 - Build 20260831.151 - GUIDED FORECAST CHECKUP, increment B: the resolver ENGINE (staged draft, headless). The checkup becomes a DRAFT you build up and Apply once, instead of a long list that changes your forecast on every tap. New state.checkupDraft (mirrored to meta.checkupDraft so "Save & finish later" persists the ANSWERS, never the effects). checkupFindings() enumerates what to review (unusual-budget + envelope-purpose, separate items) with a stable id that carries an evidence SIGNATURE. checkupAnswer/checkupSkip stage answers with an explicit status taxonomy - resolved / notSure / suppressed / unresolved / skipped(=no entry). checkupPreview() runs the REAL production engine (goalSafeToMove - the same safe-to-move every screen uses) against the applied cfg vs a CANDIDATE built by applying the draft to a CLONE, restoring byte-exact, and returns before/after + per-answer deltas + reason codes/text (req 6). checkupApply() commits the SAME answers through the SAME checkupSetEnvelope path - so the review screen's promise equals the live result to the cent (RES-APPLY-001). Guardrails honored: nothing touches the live forecast until Apply (RES-STAGE-001); resume restores answers+step with the forecast unchanged (RES-RESUME-001); "saving for a bill" with no bill/target stays UNRESOLVED (reserves nothing until identified); "Don't ask again" is signature-scoped so a NEW spike is a new finding; a linked obligation whose ledger row is deleted/materially changed flags checkupLinkNeedsReview (req 7); classification is metadata-only (no ledger/cash/total-budget change). Also FIXED a latent scope bug: meta.checkupDraft persistence used normMeta's local isObj out of scope, so the draft would never have saved. New verify-resolver-engine.js (7: RES-STAGE/RESUME/APPLY-001 + taxonomy + suppression scope + needsReview), 4 mutations. The wizard UI (increment C) renders on this.
 //   v0.68.62 - Aug 31, 2026 - Build 20260831.150 - CENTRALIZE parent/child membership (the architectural root of the v0.68.53 / .58 / .61 bug class). We had fixed the same "does this transaction belong to this category?" question independently in several scanners, and each isolated fix left the NEXT scanner wrong (unbudgeted double-count → Wren's own set → the empty lumpy evidence table). New catNameSet(name) is the ONE authoritative answer: the parent name PLUS every itemized child ("bill") name and its "↳ " form (children enumerated by catBills, which follows renames). Every forward-membership scanner now DERIVES from it - catSpend12 (spend), budgetedNameSet (the used/unbudgeted partition), catLinkedGoal12 (category-linked goal moves - now a child-tagged goal move correctly counts toward its parent), and lumpyCategories (the checkup evidence table) - so "Children" means Children + Baby Z + Baby B everywhere, and no surface can know a child-parent link another doesn't. Also adds catMatchesRow(row,name) for single-row checks. Pure refactor: byte-for-byte-equal results (full sweep 122/122 unchanged); the win is that a future itemized bug can't come from one scanner drifting from another. New verify-cat-membership.js (5) proves all consumers agree; 1 new mutation (dropping the parent name from the set); the lumpy break-audit retargeted to its category filter. This is the foundation for the guided one-at-a-time Forecast Checkup (next).
@@ -1727,8 +1729,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.64"; // SemVer — what changed functionally (display only)
-var BUILD="20260831.152"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.66"; // SemVer — what changed functionally (display only)
+var BUILD="20260831.154"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -1911,6 +1913,17 @@ function sizeMoney(el){if(!el)return;var v=(el.value||el.getAttribute("placehold
 function sizeAllMoney(root){var els=(root||document).querySelectorAll("input.money");Array.prototype.forEach.call(els,sizeMoney);}
 function pad2(n){return ("0"+n).slice(-2);}
 function serialToISO(v){if(v==null||v==="")return "";if(typeof v==="number"){var d=new Date(Math.round((v-25569)*86400000));return d.getUTCFullYear()+"-"+pad2(d.getUTCMonth()+1)+"-"+pad2(d.getUTCDate());}var s=(""+v).trim();var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+"-"+m[2]+"-"+m[3];var d2=new Date(s);if(!isNaN(d2.getTime()))return d2.getFullYear()+"-"+pad2(d2.getMonth()+1)+"-"+pad2(d2.getDate());return "";}
+// Parse a ledger Date cell — a real serial number, an ISO string, or US M/D/Y (with 2- or 4-digit year) — to a canonical ISO
+// "YYYY-MM-DD", else "" if unparseable. Used by Optimize to REPAIR imported ledgers whose Date column came in as TEXT: text dates
+// silently zero the summary's Spent SUMIFS (its date criteria can't match text), which is why "Spent" reads blank for the whole year.
+function parseLedgerDate(v){
+  if(v==null||v==="")return "";
+  if(typeof v==="number"){if(!isFinite(v)||v<=0)return "";var dn=new Date(Math.round((v-25569)*86400000));return isNaN(dn.getTime())?"":(dn.getUTCFullYear()+"-"+pad2(dn.getUTCMonth()+1)+"-"+pad2(dn.getUTCDate()));}
+  var s=(""+v).trim();if(!s)return "";var m;
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return m[1]+"-"+pad2(m[2])+"-"+pad2(m[3]);                         // ISO (optionally with a time suffix)
+  if(m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/)){var yy=m[3];if(yy.length===2)yy="20"+yy;return yy+"-"+pad2(m[1])+"-"+pad2(m[2]);} // US M/D/Y
+  var d2=new Date(s);return isNaN(d2.getTime())?"":(d2.getFullYear()+"-"+pad2(d2.getMonth()+1)+"-"+pad2(d2.getDate()));
+}
 // A month cell can be a number (8), a name ("August"), or an abbreviation ("Aug") if someone types a row by hand in Sheets.
 function monthNum(v){if(v==null||v==="")return 0;var n=Number(v);if(isFinite(n)&&n>=1&&n<=12)return Math.round(n);var s=(""+v).trim().toLowerCase();if(!s)return 0;for(var i=0;i<MONTHS.length;i++){var mn=MONTHS[i].toLowerCase();if(s===mn||mn.slice(0,3)===s.slice(0,3))return i+1;}return 0;}
 // Manually-entered ledger rows often have a blank or non-numeric Year/Month (people fill the Date but not those columns, or
@@ -2986,6 +2999,24 @@ function checkupBillCandidates(catName){ // candidate obligations to LINK (never
   });
   list.sort(function(a,b){return (a.dueMonth-b.dueMonth)||(b.amount-a.amount);}); // earliest-due first (the deterministic order)
   return list;
+}
+// The ACTIVE "what are you saving for?" candidates — broader than the passive scan above. Once the user has SAID they're saving for a
+// bill, the strict "next month AND over budget" gate is wrong: it hides a real upcoming bill that's later THIS month or within the
+// monthly budget (e.g. a $501.60 Sep 6 Travel charge against a $1,292.92 budget). This surfaces every UPCOMING (future-dated) logged
+// bill in the category — membership-correct via catMatchesRow (itemized children included) — earliest first, for the user to pick.
+function checkupIdentifyCandidates(catName){
+  var y=bYear(),today=(typeof todayISO==="function"?todayISO():""),out=[];
+  (state.rows||[]).forEach(function(r){
+    if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;                 // expense rows only — never a goal move or deposit
+    if(Number(r[0])!==y)return;
+    if(!catMatchesRow(r,catName))return;                                         // parent + itemized child membership (one authoritative helper)
+    var amt=r2(Number(r[6])||0);if(amt<=0.005)return;
+    var iso=(typeof serialToISO==="function")?serialToISO(r&&r[2]):(""+((r&&r[2])||""));if(!iso)return;
+    if(today&&iso<today)return;                                                  // UPCOMING only — a past charge is already spent, not something to save toward
+    out.push({name:(""+((r&&r[5])||(r&&r[3])||catName)).trim()||catName,amount:amt,dueYear:Number(r[0]),dueMonth:Number(r[1]),dateISO:iso,source:"row"});
+  });
+  out.sort(function(a,b){return a.dateISO<b.dateISO?-1:(a.dateISO>b.dateISO?1:0);});
+  return out;
 }
 function _ckKey(kind,cat){return kind+":"+(""+cat).toLowerCase();}
 function checkupIsDone(kind,cat){return !!(state.meta&&state.meta.checkupDone&&state.meta.checkupDone[_ckKey(kind,cat)]);} // a match/lumpy the user has already answered
@@ -7727,10 +7758,15 @@ function _ckwNeedsReviewHTML(f,step,total){
 function _ckwSubHTML(step,total){
   var cat=_ckw.cat,phase=_ckw.phase;
   if(phase==="identify"){
-    var h=_ckwProg(step,total,"What are you saving for?"),cand=_ckw.cand;
-    if(cand){h+='<div style="margin:2px 0 6px;border:1px solid var(--line);border-radius:11px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:4px">Possible match</div><div class="totrow" style="font-size:13px"><span>'+esc(cand.name)+' · '+_mn3(cand.dueMonth)+' '+cand.dueYear+'</span><b>'+money(cand.amount)+'</b></div></div>';
-      h+=_ckwChoice("Link this bill","Reserve toward this "+money(cand.amount)+" bill.","ckwLinkCand()",true);}
-    h+=_ckwChoice("I haven’t logged it yet","Set a target amount and date now; we’ll offer to link the real bill when you enter it.","ckwToTarget()",!cand);
+    var h=_ckwProg(step,total,"What are you saving for?"),cands=_ckw.cands||[];
+    if(cands.length){
+      h+='<div class="hintline" style="text-align:left;margin:0 0 4px">Upcoming '+esc(cat)+' bills you could be saving toward:</div>';
+      cands.slice(0,3).forEach(function(cn,i){var day=Number((cn.dateISO||"").split("-")[2])||cn.dueMonth;
+        h+='<div style="border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-top:6px"><div class="totrow" style="font-size:13px"><span>'+esc(cn.name)+' · '+_mn3(cn.dueMonth)+' '+day+'</span><b>'+money(cn.amount)+'</b></div>'
+          +'<button type="button" class="gbtn gprimary" style="width:100%;padding:8px;border-radius:9px;margin-top:6px;font-size:13px" onclick="ckwLinkIdx('+i+')">Link this bill</button></div>';});
+      if(cands.length>3)h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:11px">+'+(cands.length-3)+' more upcoming</div>';
+    }
+    h+=_ckwChoice("I haven’t logged it yet","Set a target amount and date now; we’ll offer to link the real bill when you enter it.","ckwToTarget()",!cands.length);
     return h+_ckwFoot(step,true);
   }
   if(phase==="target"){
@@ -7788,9 +7824,10 @@ function ckwUnusual(kind){var st=_ckwCur(),f=st.f;if(!f)return;
 function ckwPurpose(kind){var st=_ckwCur(),f=st.f;if(!f)return;
   if(kind==="ongoing"){checkupAnswer(f.id,{type:"purpose",status:"resolved",cat:f.cat,purpose:"ongoing"});_ckwAdvance();return;}
   if(kind==="notsure"){checkupAnswer(f.id,{type:"purpose",status:"notSure",cat:f.cat});_ckwAdvance();return;}
-  var cand=null;try{var bc=checkupBillCandidates(f.cat);if(bc&&bc.length){var ob=bc[0];cand={name:ob.name||f.cat,amount:r2(ob.amount),dueYear:ob.dueYear||bYear(),dueMonth:ob.dueMonth||12,source:"row"};}}catch(e){}
-  _ckw={cat:f.cat,fid:f.id,phase:"identify",purpose:(kind==="both"?"split":"sinking"),cand:cand};renderCheckup();}
-function ckwLinkCand(){if(!_ckw||!_ckw.cand)return;_ckw.obligation=_ckw.cand;_ckwFinishSinking();}
+  var cands=[];try{cands=checkupIdentifyCandidates(f.cat);}catch(e){}
+  _ckw={cat:f.cat,fid:f.id,phase:"identify",purpose:(kind==="both"?"split":"sinking"),cands:cands};renderCheckup();}
+function ckwLinkIdx(i){if(!_ckw||!_ckw.cands||!_ckw.cands[i])return;_ckw.obligation=_ckw.cands[i];_ckwFinishSinking();}
+function ckwLinkCand(){ckwLinkIdx(0);} // back-compat: link the first (earliest) candidate
 function ckwToTarget(){if(!_ckw)return;_ckw.phase="target";renderCheckup();}
 function _ckwFinishSinking(){if(_ckw.purpose==="split"){_ckw.phase="split";renderCheckup();return;} // "both" → collect the split next
   var ans={type:"purpose",status:"resolved",cat:_ckw.cat,purpose:"sinking"};if(_ckw.obligation)ans.obligation=_ckw.obligation;else if(_ckw.target)ans.target=_ckw.target;
@@ -7983,7 +8020,9 @@ async function optimizeSheet(){
   var rows=state.rows||[],real=[];
   for(var i=0;i<rows.length;i++){var r=rows[i];var y=Number(r&&r[0]);if(y>=1900&&y<=9999)real.push(r.slice(0,9));}
   await vBatchClear([LEDGER+"!A2:I"]);
-  for(var s=0;s<real.length;s+=500){var chunk=real.slice(s,s+500);var d=chunk.map(function(row,j){var rn=2+s+j;var rr=row.slice();rr[0]='=IFERROR(YEAR(C'+rn+'),"")';rr[1]='=IFERROR(MONTH(C'+rn+'),"")';return {range:LEDGER+"!A"+rn,values:[rr]};});await vBatchUpdate(d);}// Year/Month become live formulas off the Date, so they self-maintain and can never drift from an import or edit
+  for(var s=0;s<real.length;s+=500){var chunk=real.slice(s,s+500);var d=chunk.map(function(row,j){var rn=2+s+j;var rr=row.slice();rr[0]='=IFERROR(YEAR(C'+rn+'),"")';rr[1]='=IFERROR(MONTH(C'+rn+'),"")';
+      var _iso=(typeof parseLedgerDate==="function")?parseLedgerDate(row[2]):"";if(_iso)rr[2]=_iso; // REPAIR: normalize the Date to real-date ISO so text-dated imports parse (USER_ENTERED write) — otherwise the Spent SUMIFS never match
+      return {range:LEDGER+"!A"+rn,values:[rr]};});await vBatchUpdate(d);}// Year/Month become live formulas off the Date, so they self-maintain and can never drift from an import or edit
   var gid=await ledgerGid(),before=0,keep=Math.max(2000,real.length+1001);
   try{var m0=await api(ssBase()+"?fields=sheets(properties(sheetId,gridProperties(rowCount)))");(m0.sheets||[]).forEach(function(sh){if(sh.properties.sheetId===gid)before=(sh.properties.gridProperties&&sh.properties.gridProperties.rowCount)||0;});
     if(gid!=null&&before>keep){await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:gid,dimension:"ROWS",startIndex:keep,endIndex:before}}}]})});}
@@ -7991,7 +8030,10 @@ async function optimizeSheet(){
   // Normalize the Year/Month columns to plain numbers. Imports left DATE values (with day-month formatting) in the Month
   // column, so it showed as "01-Jan" instead of a clean month number. We already rewrote the values as numbers above; here
   // we clear the date number-format on columns A & B so they display as 1–12 (and future rows land formatted the same).
-  try{if(gid!=null){await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{repeatCell:{range:{sheetId:gid,startRowIndex:1,endRowIndex:Math.max(keep,2),startColumnIndex:0,endColumnIndex:2},cell:{userEnteredFormat:{numberFormat:{type:"NUMBER",pattern:"0"}}},fields:"userEnteredFormat.numberFormat"}}]})});}}catch(e){}
+  try{if(gid!=null){await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[
+    {repeatCell:{range:{sheetId:gid,startRowIndex:1,endRowIndex:Math.max(keep,2),startColumnIndex:0,endColumnIndex:2},cell:{userEnteredFormat:{numberFormat:{type:"NUMBER",pattern:"0"}}},fields:"userEnteredFormat.numberFormat"}},
+    {repeatCell:{range:{sheetId:gid,startRowIndex:1,endRowIndex:Math.max(keep,2),startColumnIndex:2,endColumnIndex:3},cell:{userEnteredFormat:{numberFormat:{type:"DATE",pattern:"yyyy-mm-dd"}}},fields:"userEnteredFormat.numberFormat"}} // force column C (Date) to a DATE format so a text-formatted import can't keep the re-written dates as text
+  ]})});}}catch(e){}
   var cellsFixed=0;
   try{
     var meta=await api(ssBase()+"?fields=sheets.properties(title)");
@@ -8018,7 +8060,7 @@ async function optimizeSheet(){
 }
 async function runOptimize(){
   var btn=$("trimLedgerBtn"),msg=$("trimMsg");
-  if(!await askConfirm({title:"Optimize this spreadsheet?",msg:"Tidies your transactions to the top, deletes the empty rows, fixes the Year/Month columns to clean numbers (imports sometimes leave dates there), and updates the summary formulas to be faster and unbounded. Your transactions and budget are untouched.",ok:"Optimize"}))return;
+  if(!await askConfirm({title:"Optimize this spreadsheet?",msg:"Tidies your transactions to the top, deletes the empty rows, fixes the Year/Month columns to clean numbers, repairs the Date column to real dates (imports sometimes bring dates in as text, which blanks the Account Summary’s Spent column), and updates the summary formulas to be faster and unbounded. Your transactions and budget are untouched.",ok:"Optimize"}))return;
   if(btn){btn.disabled=true;btn.textContent="Optimizing…";}if(msg){msg.textContent="Working… this can take a moment.";msg.className="msg";}
   try{
     var r=await optimizeSheet();var bits=["kept "+r.rows+" transaction"+(r.rows===1?"":"s")];

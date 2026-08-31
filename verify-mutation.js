@@ -82,6 +82,8 @@ const MUT=[
   {n:'resolver never flags a stale obligation link as needsReview',find:'return !found;});',repl:'return false;});',                                                            by:'verify-resolver-engine.js'},
   {n:'wizard never advances to the next decision (progress stuck on 1 of N)',find:'checkupSetStep((d.step||0)+1)',repl:'checkupSetStep((d.step||0))',                                       by:'verify-resolver-wizard.js'},
   {n:'wizard never surfaces a stale link as its own needs-review step',find:'if(ri&&ri.needsReview){var rid=',repl:'if(false){var rid=',                                                     by:'verify-resolver-wizard.js'},
+  {n:'identify step inverts its upcoming filter (offers past charges, hides the real upcoming bill)',find:'if(today&&iso<today)return;',repl:'if(today&&iso>today)return;',                              by:'verify-identify-candidates.js'},
+  {n:'ledger-date repair drops the ISO parse (text dates never normalize → Spent stays blank)',find:'return m[1]+"-"+pad2(m[2])+"-"+pad2(m[3]);',repl:'return "";',                                             by:'verify-parse-date.js'},
 ];
 
 // Run a suite; capture exit code + combined output so we can classify WHY it passed/failed (not just the exit code).
