@@ -1,9 +1,104 @@
 # NestWorth — executed test results
 
-**Build under test:** v0.68.50 · Build 20260830.138
-**app.html SHA-256:** `6bf8139e38389fa9099e037285213db39f2faea8e6c5e12fd1400dff52d9d58f`
-**Executed:** 2026-08-30 UTC
+**Build under test:** v0.68.60 · Build 20260831.148
+**app.html SHA-256:** `b9215e21900344ee40ccd425d8a7e0726aff6da3ebe8bb6579fedcf455acd230`
+**Executed:** 2026-08-31 UTC
 **Environment:** headless Chromium (Playwright) on Node v22.22.2, Linux cloud container.
+
+## v0.68.60 — #6 Floor-aware multi-month reconciliation (surface, increment 2)
+
+- **The v0.68.59 engine is now visible and askable — both reading only `multiMonthReconciliation()`, so the card, Wren, and the engine can't disagree.**
+- **Forward card (`multiMonthReconHTML`).** Renders under the "where this month's cash is going" recon card. Leads with the milestones — "Your $X contingency shortfall is repaired to $0 by **February**", "your $T cushion is built by **March**" (or "isn't reached by year-end" when the floor holds surplus back) — then lists each active future month's allocation (repair / build / goals / reserves) and the floor-held reserves note. Surfaces **only** when there's a forward story (a shortfall to repair, a target to build, or floor-held reserves); a healthy, target-less plan shows nothing.
+- **Wren forward-timing answer.** "When will my contingency be repaired / rebuilt / reach its target?" / "how long until it's caught up?" answered from the same engine, with cues specific enough that a **backward** "when did it go negative / was it last positive?" question still routes to the existing history answer (verified — every Wren suite stays green).
+- **New suite `verify-multimonth-surface.js` — 6/6 PASS:** the milestones and per-month rows; Wren's repaired-by/built-by months; the floor-constrained case (target not reached + floor note, in card and Wren); and the healthy case (card empty, Wren "nothing to rebuild").
+- **2 new mutations (58→60), both CAUGHT:** the card showing with no forward story; the Wren forward route never firing.
+- **Results this build:** full functional sweep **121/121 suites pass**; `verify-mutation.js` **60/60 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.59 — #6 Floor-aware multi-month reconciliation (engine core, increment 1)
+
+- **What it is.** `monthlyCashReconciliation()` is single-month; new `multiMonthReconciliation()` rolls the same **repair → build → residual → reserves** hierarchy *forward* across the rest of the budget year, carrying the contingency pool month-to-month — so it can report **when** an overspent contingency is repaired to $0 (`repairedMonth`), **when** it reaches the target (`targetMonth`), and how much residual funding the plan supports over the horizon.
+- **No duplicated math.** The current month IS the exact `monthlyCashReconciliation()` (agrees with the Contingency card); future months use planned income/expense from `_cfArrays` (the arrays `computeCashflow` forecasts from); the pool carries by the same hierarchy.
+- **Floor-aware via the one existing source.** `goalSafeToMove().safeToGoal` is the total set-aside capacity today that keeps every forward month at/above the Nest Egg Floor. Cumulative **discretionary** set-asides (contingency build + residual funding — never the deficit **repair**, which is a priority) are capped at that headroom; the surplus the floor needs is reported as `floorHeld` reserves.
+- **New suite `verify-multimonth-recon.js` — 8/8 PASS.** Per-month identity `max(0,preSurplus) === repair+build+residual+reserves`; the pool carry `pool_m === pool_(m-1)+repair+build`; a −$900 deficit repaired in Feb then $500 target built by Mar; residual absorbing surplus once built; the floor cap (only $300 headroom ⇒ build+residual capped at $300, rest `floorHeld`, target un-buildable under the tight floor) with **repair never capped**; and a null for a non-current budget year.
+- **2 new mutations (56→58), both CAUGHT:** ignoring the floor cap; dropping `build` from the pool carry (contingency never reaches target).
+- **Results this build:** full functional sweep **120/120 suites pass**; `verify-mutation.js` **58/58 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+- **Increment scope:** this is the computed engine. The Month/Contingency **UI surface + Wren narration** (and optional Decision-Engine tie-in) are the next increment — the engine is inert until surfaced, and fully proven.
+
+## v0.68.58 — Budget-membership lockdown (one authoritative definition, shared by every surface)
+
+- **Root problem.** v0.68.53 fixed the itemized double-count ("74% used yet over budget") for the Month headline and `unbudgetedConsumption`, but the *same class of bug still lived in two other surfaces* that kept their own top-level-only category set — the exact "one part of NestWorth knows Electricity belongs to Utilities; another part didn't" drift.
+- **Real bug found & fixed — Wren.** `wrenAnalyze`'s unbudgeted-spending answer built `_known` from `state.cats` names only, so Wren would report itemized-child spend (the user's $3,103.43) as "unbudgeted," contradicting the fixed Month headline. Now routes through `budgetedNameSet()`.
+- **Real bug found & fixed — `ledgerUnbudgeted`.** The "pull into budget" candidate set omitted the "↳ child" form, so a `↳`-tagged (already-budgeted) name could be offered as a pull-in candidate. Now routes through `budgetedNameSet()`.
+- **The lockdown.** `budgetedNameSet()` is promoted to *the* authoritative "is this ledger row represented by the budget?" definition — top-level names, itemized child names, "↳ " forms; follows renames via `catBills`; **includes hidden-but-budgeted categories** (product decision: has a budget line ⇒ budgeted); blank/unknown ⇒ unbudgeted — with an `isBudgetedName()` predicate and an **enumerated consumer list** in the header comment so no surface re-implements membership again. Used ⇄ unbudgeted can no longer maintain separate logic.
+- **New suite `verify-item-ub.js` — 11/11 PASS.** ITEM-UB-001 child counted once / 002 the ↳ form / 003 multi-child summed once / 004 unknown once / 005 blank once / 006 renamed child by current name (stale old name not budgeted) / 007 hidden-but-budgeted / **008 the exact-reconciliation identity: total consumption = budget-represented + genuinely-unbudgeted, mutually exclusive**; plus two cross-surface Wren checks ($0 when all budgeted; the real $55 when not); plus a **reproduction** that drives the *real* Month headline to the screenshot numbers — $9,824.50 budgeted · $7,270.96 used · **$2,553.54 left · 74% · not over**.
+- **2 new mutations (54→56), both CAUGHT:** dropping child recognition reproduces the exact "74% used yet over budget" contradiction on the rendered headline (mapped to `verify-item-ub.js`); reverting Wren to its own set drifts it from the headline.
+- **Results this build:** full functional sweep **119/119 suites pass** (every Wren suite green — the consolidation changed no correct behavior); `verify-mutation.js` **56/56 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.57 — Deferred reconciliation surfaces: Decision-Engine contingency (#5) + recon→cash-flow bridge (#7)
+
+- **#5 Decision-Engine contingency surfacing:** when the contingency is currently **overspent and this month's surplus hasn't fully covered it**, the Decision result surfaces its reconciled status (`contingencyReconSentence` — the single cross-surface source) and says **directionally** whether the what-if gives more/less monthly room to rebuild it. The only added inference is the sign of the annual-surplus delta (÷12 → run-rate) the engine already computes — no new accounting. A fully-repaired or in-the-black contingency, and a null note, are not surfaced. (`decisionContingencyNote`/`decisionContingencyHTML`, rendered under the `decRenderResult` table.)
+- **#7 recon → cash-flow bridge:** the "Where this month's cash is going" card now walks the exact dollars from cash-on-hand-today to the **Cash Flow projected month-end** — cash carried in + deposits so far − spending so far = today; then − the rest of the month's planned spending (+ any deposits still expected) = the month-end. `reconCashFlowBridge().end` **is** `computeCashflow(actual).months[thisMonth].bal` (single source, not re-derived); the walk reconciles to the cent. Answers "why isn't 'cash remaining after that' the same as my Cash Flow number?". Gated to the live budget year.
+- **New suite `verify-decision-contingency.js` — 7/7 PASS:** helps/hurts/neutral direction from the surplus delta; the rendered single-source sentence + "Contingency to rebuild" head + "$X/mo → $Y still short" copy; and the three non-surfaced cases (fully-repaired, in-the-black, no-note).
+- **New suite `verify-recon-bridge.js` — 6/6 PASS:** the bridge end equals `computeCashflow(actual)` month-end to the cent across three scenarios (mid-month with rest-of-month planned; January where entering = start cash; actual-exceeds-plan where restOut = $0); the walk reconciles; the card renders the block; and a non-current budget year yields a null bridge.
+- **2 new mutations (52→54), both CAUGHT:** #5's direction collapsed to always-"neutral"; #7's "cash on hand today" thrown off by $1 (breaks the reconciliation).
+- **Results this build:** full functional sweep **118/118 suites pass**; `verify-mutation.js` **54/54 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+- Both surfaces are display-only over already-tested engine helpers (`contingencyReconNote`, `computeCashflow`, `actualIE`) — the existing Decision-UI and cash-flow-presentation suites remain green, confirming no regression to those renders.
+
+## v0.68.56 — Checkup continuations: at-log link suggestion (#2) + multi-bill (#4)
+
+- **#2 at-log-time link suggestion:** when you log a save-ahead future bill in an envelope (next month onward, larger than that month's budget), the Add screen offers a **"Link it"** prompt inline — confirm only, never auto (`maybeSuggestLink`/`_logLinkCandidate`/`doCheckupLinkFromLog`).
+- **#4 multi-bill:** a **linked** envelope with another unlinked future bill now shows an **"Also a match → Add this bill"** item; adding it uses `checkupAddObligation` (earliest-due-first), and "Not now" dismisses that bill.
+- **#1** (new envelopes) needs no new code — an unclassified envelope automatically surfaces in the Checkup's "What is this for?" review.
+- **New suite `verify-checkup-continuation.js` — 6/6 PASS:** save-ahead candidate detection (and the three non-candidate cases: current-month, within-budget, non-envelope); the inline "Link it" prompt without auto-linking; the multi-bill "also a match" item, its render, and adding it linking both bills earliest-due-first with the prompt clearing.
+- **2 new mutations (50→52), both CAUGHT:** the at-log suggestion firing for within-budget bills; the multi-bill extra never surfacing.
+- **Results this build:** full functional sweep **117/117 suites pass**; `verify-mutation.js` **52/52 caught, restored byte-exact**.
+
+## v0.68.55 — Forecast Checkup: the three remaining pieces
+
+Completes the review-and-confirm design: (1) **"What is this envelope for?"** — an unclassified envelope with no matching bill now gets an explicit purpose question with four answers (Saving for a bill → sinking, A bit of both → split, Ongoing spending, Not sure), persisted so it never re-asks; (2) **the split** — "A bit of both" prompts for how much of the monthly budget is saving and sets `purpose=split` + `contribution` without changing the total (a $900 Children line → $600 spend + $300 save); (3) **the completion summary** — once everything is reviewed, a wrap-up shows the counts (sinking funds linked / ongoing envelopes / Contingency preserved) and the **before → after safe-to-move** for the session (baseline captured when the checkup first has work), with a Done button. All cash-neutral and prospective.
+
+- **New suite `verify-checkup-classify.js` — 7/7 PASS.** The purpose question appears for an unclassified no-bill envelope with all four answers wired to real handlers; answering drops it from the scan; the split gives $300 saving + $200 spend = the same $500; the completion summary renders "Your forecast is ready", the counts, Contingency preserved, and a +$1,500 before/after with a Done button; the handlers exist.
+- **2 new mutations (48→50), both CAUGHT:** never asking an envelope its purpose; suppressing the completion summary.
+- **Results this build:** full functional sweep **116/116 suites pass**; `verify-mutation.js` **50/50 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.54 — BUG FIX: Account Summary "Spent" blank for the whole year
+
+Found by reading the user's live sheet. The per-month **Spent** SUMIFS gate their date range on an "as of" helper cell `$AC$1`. A new year tab is created by **duplicating** the nearest year (`ensureYearTabFor`), which inherits the source's `$AC$1` — often **blank** — and it wasn't being re-set (and `refreshAsOf`'s per-day guard could skip a tab created after it stamped). With `$AC$1` blank, `"<="&$AC$1` matches nothing → **every Spent cell reads 0** across the year, while Budgeted/Remaining (which don't use it) look fine. The app itself was unaffected (it reads the Year/Month columns, not the Spent formulas).
+
+Two fixes: (1) `sumifTerm` degrades gracefully — `"<="&IF($AC$1="",EOMONTH(month),$AC$1)` — so a blank helper falls back to end-of-month and can never blank the year, while still using `$AC$1` as the "spent so far" cutoff when set; (2) `ensureYearTabFor` now writes `$AC$1=today` on tab creation and resets the refresh guard.
+
+- **New suite `verify-summary-spent.js` — 5/5 PASS.** The Spent formula still sums Amount by Category within month bounds; the cutoff is graceful (blank `$AC$1` → end-of-month, no bare `"<="&$AC$1)`); it still references `$AC$1` when set; bill and parent formulas carry the guard on every term.
+- **1 new mutation (47→48), CAUGHT:** removing the graceful fallback (a blank helper re-zeroes the year).
+- **No regression:** `verify-optimize` (annual formula), `verify-adopt-itemized`, `verify-breakdown-sync` all still pass.
+- **Results this build:** full functional sweep **115/115 suites pass**; `verify-mutation.js` **48/48 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+- **To repair an already-affected sheet:** reopen the app (rewrites `$AC$1`), or Settings → Optimize / Build itemized breakdown (rewrites the formulas + sets the date).
+
+## v0.68.53 — BUG FIX: itemized sub-items double-counted as "outside budget"
+
+Found by reading the user's live sheet (Google Drive connector): the Holland budget uses **itemized** categories (Utilities → Electricity/Water/Gas/…; Children → Baby Z/Baby B; Subscriptions/Home Services/Membership), and the ledger tags many rows with the **sub-item** names the app's own dropdown offers. `catSpend12`/`catBills` already count a row tagged "Electricity" toward Utilities' **spend** — but `unbudgetedConsumption()` and the Add-screen `renderS2S` banner built their budgeted-name set from **top-level names only**, so that same row was counted **twice**: once in its parent's "used", and again as "spent outside budget". With itemized budgets this inflates the total — reading **"$X over budget" even below 100% used**, plus a large phantom "unbudgeted" figure.
+
+Fix: `budgetedNameSet()` includes every top-level name **plus** every itemized sub-item name (and its "↳ " form), mirroring `catSpend12`; both unbudgeted paths use it.
+
+- **New suite `verify-itemized-unbudgeted.js` — 5/5 PASS.** `budgetedNameSet` contains parents *and* sub-items; `unbudgetedConsumption()` returns only the genuinely-outside rows ($2,050 Mortgage+blank, not the $310 of sub-item rows — it was $2,360 before); the banner shows "$2,050.00 spent outside budget"; the breakdown excludes the sub-item rows and keeps the real one.
+- **1 new mutation (46→47), CAUGHT:** omitting sub-items from the budgeted set (the double-count returns).
+- **No regression:** `verify-goal-funding`, `verify-goal-funding-reconcile`, `verify-unbudgeted-label`, `verify-cash-allocation`, `verify-contingency-goals` all still pass (they use non-itemized categories, so the set is unchanged for them).
+- **Results this build:** full functional sweep **114/114 suites pass**; `verify-mutation.js` **47/47 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.52 — Forecast Checkup "Unusual budget" made a real yes/no, with evidence
+
+Device feedback: the "Unusual budget" prompt reads as a yes/no ("is this normal, or was it a one-off?") but its buttons were "Adjust budget" (an action) + "That's normal" (an answer) — a mismatch; and unlike the "Possible match" items, it showed no transactions behind the spike. Fixed both. The buttons are now the two **answers** — **"It was a one-off"** (green → opens the category to lower the budget) and **"That's normal"** (keep) — and each item shows a **"What &lt;month&gt; was"** transaction table (the spike month's actual transactions, largest first, date · payee · amount) so "was it a one-off?" is a look, not a guess. `lumpyCategories()` now returns the spike month's `txns` (scanned from the ledger); the question was reworded ("In Jun you spent $X here — a typical month is about $Y. Was that a one-off, or your normal?").
+
+- **`verify-forecast-checkup.js` — 14/14 PASS** (added a June Home spike with real transactions): the reworded prompt, the "What Jun was" table (Roof repair $11,200), and the two answer buttons ("It was a one-off" → adjust, "That's normal").
+- **1 new mutation (45→46), CAUGHT:** reverting the lumpy button to the action label instead of the yes/no answer.
+- **Results this build:** full functional sweep **113/113 suites pass**; `verify-mutation.js` **46/46 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
+
+## v0.68.51 — Add-screen "spent outside budget" clarity + breakdown
+
+Device confusion: the banner fragment "+$3,103.43 unbudgeted" read like a *count of entries*. It's a **dollar total** of this month's spending in categories that aren't budget lines. Relabeled to **"$3,103.43 spent outside budget"** and made **tappable** — "See the $X spent outside your budget" opens a per-category breakdown (largest first; blank category → "Uncategorized") so you can see exactly which transactions fell outside the budget, e.g. to confirm a ledger re-categorization took effect. A transaction is "budgeted" only when its category matches a **budget** category name (trimmed/case-insensitive); a category that exists in the ledger but isn't a budget line, or a blank category, is "outside budget". Display-only — the total is unchanged and still reduces "left in this month's budget".
+
+- **New suite `verify-unbudgeted-label.js` — 5/5 PASS.** The relabel ("$X spent outside budget"; the count-like "+$X unbudgeted" is gone); the tappable summary; the per-category breakdown (Mortgage / Uncategorized / PetSmart · Dog Food with their totals); a budgeted category's spend stays out of the breakdown; and largest-first ordering.
+- **1 new mutation (44→45), CAUGHT:** relabeling back to the count-like "unbudgeted".
+- **Results this build:** full functional sweep **113/113 suites pass**; `verify-mutation.js` **45/45 caught, restored byte-exact**. Hash stable across the mutation run and the sweep.
 
 ## v0.68.50 — envelope coverage: upcoming bills with a covered/short indicator
 

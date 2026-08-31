@@ -19,6 +19,10 @@ growing_empty.png
 suite_report.png
 v2_*.png
 
+# ALL root-level screenshots stay out of the repo — audit/dev captures can contain real
+# household data (e.g. holland-*.png, money-*.png). Product character art lives in wren/ and is unaffected.
+/*.png
+
 # Node
 node_modules/
 package-lock.json

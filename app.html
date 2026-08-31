@@ -1290,6 +1290,16 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 // 0.x while in active development; bump to 1.0.0 at first stable public release. Bump BUILD every deploy; reset .# each day.
 //   PATCH (0.9.0 -> 0.9.1): bug fix / styling / perf   ·   MINOR (0.9.x -> 0.10.0): new feature   ·   MAJOR: stable release
 // CHANGELOG:
+//   v0.68.60 - Aug 31, 2026 - Build 20260831.148 - #6 FLOOR-AWARE MULTI-MONTH RECONCILIATION (surface - increment 2). The engine from v0.68.59 is now VISIBLE and ASKABLE. (1) A forward view (multiMonthReconHTML) renders under the "where this month's cash is going" recon card on the Contingency card: it leads with the milestones - "Your $X contingency shortfall is repaired to $0 by <month>", "your $T cushion is built by <month>" (or "isn't reached by year-end" when the floor holds surplus back) - then lists each active future month's allocation (repair / build / goals / reserves) and a note on how much stays as reserves to keep every month at/above your Nest Egg Floor. It surfaces ONLY when there's a forward story (a shortfall to repair, a target to build, or floor-held reserves); a healthy, target-less plan shows nothing. (2) Wren answers forward-timing questions - "when will my contingency be repaired/rebuilt/reach its target?", "how long until it's caught up?" - from the SAME multiMonthReconciliation(), with cues specific enough never to steal a BACKWARD "when did it go negative / was it last positive?" question. Both read the one engine (no re-derivation), so the card, Wren, and the engine can't disagree. Full month names (MONF) in both. New verify-multimonth-surface.js (6). 2 new mutations (58->60), both CAUGHT: the card showing with no forward story; the Wren forward route never firing.
+//   v0.68.59 - Aug 31, 2026 - Build 20260831.147 - #6 FLOOR-AWARE MULTI-MONTH RECONCILIATION (engine core - increment 1). monthlyCashReconciliation() answers "where does THIS month's surplus go"; new multiMonthReconciliation() rolls the SAME repair->build->residual->reserves hierarchy FORWARD across the rest of the budget year, carrying the contingency pool month-to-month, so it can say WHEN an overspent contingency is repaired to $0 (repairedMonth), WHEN it reaches your target (targetMonth), and how much residual funding the plan supports. No duplicated math: the CURRENT month IS the exact monthlyCashReconciliation() (so it agrees with the Contingency card), future months use planned income/expense from _cfArrays (the arrays computeCashflow forecasts from), and the pool carries by the same hierarchy. FLOOR-AWARE via the EXISTING single source: goalSafeToMove().safeToGoal is the total that can be set aside today without any forward month dropping below the Nest Egg Floor, so cumulative DISCRETIONARY set-asides (contingency BUILD + RESIDUAL funding - never the deficit REPAIR, which is a priority) are capped at that headroom and the surplus the floor needs is reported as floorHeld reserves. Load-bearing invariants (verify-multimonth-recon.js, 8): per-month max(0,preSurplus) === repair+build+residual+reserves, pool_m === pool_(m-1)+repair+build, the repair-then-build-then-residual ordering, and the floor cap (repair uncapped, target unbuildable under a tight floor). 2 new mutations (56->58), both CAUGHT: ignoring the floor cap; dropping build from the pool carry. This is the computed engine; the Month/Contingency surface + Wren narration land in the next increment.
+//   v0.68.58 - Aug 31, 2026 - Build 20260831.146 - BUDGET-MEMBERSHIP LOCKDOWN (one authoritative definition, shared by every surface). v0.68.53 fixed the itemized double-count ("74% used yet over budget") for the Month headline and unbudgetedConsumption, but the SAME class of bug still lived in two other surfaces that kept their OWN top-level-only category set: (a) WREN'S unbudgeted-spending answer (var _known from state.cats names only) - so Wren would report itemized-child spend as "unbudgeted", contradicting the fixed Month headline; and (b) ledgerUnbudgeted() (the "pull into budget" candidates), whose set omitted the "↳ child" form. Both now route through the ONE helper budgetedNameSet() - promoted to the single authoritative "is this ledger row represented by the budget?" definition (top-level names, itemized child names, "↳ " forms; follows renames via catBills; INCLUDES hidden-but-budgeted categories per product decision; blank/unknown → unbudgeted) with an isBudgetedName() predicate and an enumerated consumer list in the header so no surface re-implements membership again. "Used" and "unbudgeted" can no longer maintain separate membership logic. New verify-item-ub.js (ITEM-UB-001…008: child counted once / ↳ form / multi-child summed once / unknown once / blank once / renamed child by current name / hidden-but-budgeted / the exact-reconciliation identity total = budget-represented + genuinely-unbudgeted, mutually exclusive) plus cross-surface Wren checks and a REPRODUCTION that drives the real Month headline to the screenshot numbers ($9,824.50 budgeted · $7,270.96 used · $2,553.54 left · 74% · not over). 2 new mutations (54→56), both CAUGHT: dropping child recognition reproduces the "74% used yet over budget" contradiction; reverting Wren to its own set drifts it from the headline.
+//   v0.68.57 - Aug 31, 2026 - Build 20260831.145 - Two deferred reconciliation surfaces from the contingency/cash-flow work. #5 DECISION-ENGINE CONTINGENCY SURFACING: when your contingency is currently overspent and this month's surplus hasn't fully covered it, the Decision result now surfaces its reconciled status (contingencyReconSentence - the single cross-surface source) and says directionally whether the what-if gives you more or less monthly room to rebuild it. It reads the existing recon note + the annual-surplus delta the engine already computes (÷12 for run-rate); the only added inference is the sign of that delta, worded as run-rate - no new accounting. #7 RECON -> CASH-FLOW BRIDGE: the "Where this month's cash is going" card now walks the exact dollars from cash-on-hand-today to the Cash Flow projected month-end - cash carried in + deposits so far - spending so far = today, then - the rest of the month's planned spending (+ any deposits still expected) = the Cash Flow month-end. Its end IS computeCashflow(actual).months[thisMonth].bal (single source, not re-derived) and the walk reconciles to the cent; it finally answers "why isn't 'cash remaining after that' the same as my Cash Flow number?". Both are display-only over tested engine helpers. New verify-decision-contingency.js + verify-recon-bridge.js, break-audited.
+//   v0.68.56 - Aug 31, 2026 - Build 20260831.144 - Two more Forecast Checkup pieces from the design. #2 AT-LOG-TIME LINK SUGGESTION: when you log a save-ahead future bill in an envelope (next month+, bigger than that month\x27s budget), the Add screen offers a "Link it" prompt right there - confirm only, never auto (maybeSuggestLink/_logLinkCandidate/doCheckupLinkFromLog). #4 MULTI-BILL IN THE CHECKUP: a LINKED envelope with ANOTHER unlinked future bill now shows an "Also a match - Add this bill" item; adding it uses checkupAddObligation (earliest-due-first allocation), and "Not now" dismisses per-bill. (#1 - new envelopes - is already handled: an unclassified envelope automatically surfaces in the checkup\x27s "What is this for?" review.) All cash-neutral, suggestion-only. New verify-checkup-continuation.js, break-audited.
+//   v0.68.55 - Aug 31, 2026 - Build 20260831.143 - Forecast Checkup: the three remaining pieces. (1) WHAT IS THIS ENVELOPE FOR? - an unclassified envelope with no matching future bill now gets an explicit purpose question with four answers: Saving for a bill (purpose sinking), A bit of both (split), Ongoing spending, Not sure. Answers persist via meta.checkupDone (never re-asks). (2) SPLIT - "A bit of both" prompts for how much of the monthly budget is saving; sets purpose=split + contribution WITHOUT changing the total (consumption = budget - contribution), so a Children $900 line becomes $600 spend + $300 save. (3) COMPLETION SUMMARY - once everything is reviewed, a wrap-up shows the counts (sinking funds linked / ongoing envelopes / Contingency preserved) and the BEFORE -> AFTER safe-to-move for the whole session (baseline captured when the checkup first has work), with a Done button. All cash-neutral, prospective. New verify-checkup-classify.js, break-audited.
+//   v0.68.54 - Aug 31, 2026 - Build 20260831.142 - BUG FIX (Account Summary "Spent" blank for the whole year). The per-month Spent SUMIFS stop counting at an "as of" helper cell ($AC$1). A NEW year tab is created by duplicating the nearest year (ensureYearTabFor), which inherits the source tab's $AC$1 - often BLANK - and it wasn't being re-set; refreshAsOf's per-day guard could also skip a tab created after it stamped. With $AC$1 blank, "<="&$AC$1 matches nothing → every Spent cell reads 0 (Budgeted/Remaining, which don't use it, look fine). The APP itself was unaffected (it reads the Year/Month columns). Two fixes: (1) sumifTerm now degrades gracefully - "<="&IF($AC$1="",EOMONTH(month),$AC$1) - so a blank helper can never blank the year; (2) ensureYearTabFor now writes $AC$1=today when creating a year tab (and resets the refresh guard). Found by reading the user's live sheet. New verify-summary-spent.js, break-audited. To repair an already-affected sheet: reopen the app, or Settings -> Optimize / Build itemized breakdown (rewrites the formulas + sets the date).
+//   v0.68.53 - Aug 31, 2026 - Build 20260831.141 - BUG FIX (double-counted spend → false "over budget" / phantom "unbudgeted"). An itemized category (e.g. Utilities → Electricity/Water/Gas; Children → Baby Z/Baby B) counts a ledger row tagged with a SUB-ITEM name toward its parent's spend (catSpend12/catBills). But the "unbudgeted" checks (unbudgetedConsumption and the Add-screen renderS2S banner) built their budgeted-name set from TOP-LEVEL category names only — so the SAME sub-item row was counted twice: once inside its parent's "used", and again as "spent outside budget". With itemized budgets that inflates the total and can read "$X over budget" even at <100% used, and shows a large phantom "unbudgeted" figure. Fix: new budgetedNameSet() includes every top-level name PLUS every itemized sub-item name (and its "↳ " form), mirroring catSpend12 exactly; both unbudgeted paths now use it. A row tagged "Electricity" is now correctly budgeted (once), not "outside budget". New verify-itemized-unbudgeted.js, break-audited. Found by reading the user's live Holland sheet: itemized Utilities/Subscriptions/Children/Home Services/Membership with sub-item-tagged ledger rows.
+//   v0.68.52 - Aug 30, 2026 - Build 20260830.140 - Forecast Checkup "Unusual budget" prompt made a real yes/no with evidence. (1) The buttons were "Adjust budget" (an action) + "That's normal" (an answer) - a mismatch for a yes/no question. They are now the two ANSWERS: "It was a one-off" (green - opens the category so you can lower the budget) and "That's normal" (keep it). (2) Like the "Possible match" bill table, each lumpy item now shows a "What <month> was" TRANSACTION TABLE - the actual spikemonth transactions (largest first, date + payee + amount) - so "was it a one-off?" is a look, not a guess. lumpyCategories() now returns the spike month's txns (scanned from the ledger). Question reworded ("In Jun you spent $X here - a typical month is about $Y. Was that a one-off, or your normal?"). verify-forecast-checkup.js updated for the new copy, the transaction table, and the answer buttons.
+//   v0.68.51 - Aug 30, 2026 - Build 20260830.139 - Add-screen "unbudgeted" clarity (from device confusion: "why are there 3,000 unbudgeted entries?"). The banner fragment "+$3,103.43 unbudgeted" read like a COUNT of entries; it is a DOLLAR TOTAL of this month's spending in categories with no budget line. Relabeled to "$3,103.43 spent outside budget", and made TAPPABLE: "See the $X spent outside your budget" opens a per-category breakdown (blank category → "Uncategorized", largest first) so you can see exactly which transactions fell outside the budget - e.g. to confirm a ledger re-categorization took effect. A transaction counts as budgeted only when its category cell matches a budget category NAME (trimmed/case-insensitive); a name that isn't a budget category, or a blank category, is "outside budget". Display-only; the unbud total is unchanged (still reduces "left in this month's budget" as before). New verify-unbudgeted-label.js, break-audited.
 //   v0.68.50 - Aug 30, 2026 - Build 20260830.138 - Envelope coverage: "View envelopes" now lists each envelope's UPCOMING BILLS with a covered/short indicator. New envelopeUpcoming(name) gathers the bills an envelope is covering (its linked obligations if any, else the upcoming logged expenses in that category, this month forward) and marks each COVERED (✓) or SHORT (⚠ "$X to go") against the CURRENT banked balance, allocated earliest-due-first (a banked dollar covers the nearest bill first, never double-counted). Each envelope with bills gets a one-line roll-up: "All N upcoming bills covered" or "$X still needed across N upcoming bills". A negative/overspent envelope honestly shows its bills unfunded. READ-ONLY display over tested pieces (catObligations/catBalance) - no engine change. New verify-envelope-bills.js, break-audited.
 //   v0.68.49 - Aug 30, 2026 - Build 20260830.137 - Goals page now shows what's available to appropriate. The Month tab said "$X safe to move to your goals," but the Goals page - where you actually allocate it - never showed that number. renderGoals() now LEADS with a "Safe to move to your goals now" banner carrying the exact goalSafeToMove().safeToGoal figure (the same one the Month card shows), with guidance to put it toward any goal (Add money) or split it. A breach shows $0 with the reason, never a misleading positive. Display-only - reads the existing engine, changes nothing. New verify-goals-safe-banner.js (5 cases), break-audited.
 //   v0.68.48 - Aug 30, 2026 - Build 20260830.136 - Forecast Checkup fixes from device feedback. (1) NEXT MONTH AND BEYOND: a sinking-fund candidate is now a bill due in a FUTURE month that also EXCEEDS that month's budget - the current month's bills are already covered by the current budget, and a bill within the monthly budget is ordinary spend, not a save-ahead lump. This removes the noisy false matches (an $87.75 bill against a ~$441 budget). (2) THE BUTTONS NOW WORK: the previous onclick inlined JSON with double quotes inside a double-quoted attribute (malformed HTML - "Link them" silently did nothing); every action is now stashed by integer index (ckLink/ckDismiss/ckAdjust), bulletproof against quoting. "Not now" and the new lumpy responses ("Adjust budget" opens the category; "That's normal" dismisses) now PERSIST via meta.checkupDone so an answered prompt never nags again (new top-level meta field, threaded through normMeta/_metaBase/writeMeta). (3) TRANSACTION SUMMARY: each possible match now shows a small "The bill" table - Due date, Payee, Category, Amount - so the bill is identifiable without looking it up. verify-forecast-checkup.js updated + extended for the new timing, filter, summary, working handlers, and persistence.
@@ -1713,8 +1723,8 @@ var ACCT_CATS="Account Categories", CONTRIB_TAB="Contributors"; // hidden tabs t
 //     • Whole-column summary formulas; ledger table grows with the data; TODAY() moved to a single non-volatile helper cell
 //     • Recent list scoped to the feedback month; Search respects the tab (expense/deposit); over-budget shows as negative
 //     • "Optimize this spreadsheet" (compact + trim + modernize formulas); itemized categories round-trip from the sheet
-var VERSION="0.68.50"; // SemVer — what changed functionally (display only)
-var BUILD="20260830.138"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
+var VERSION="0.68.60"; // SemVer — what changed functionally (display only)
+var BUILD="20260831.148"; // YYYYMMDD.# — exact deployment; this is the value the update-check compares
 // Register the offline service worker (caches app.html + Wren's images). Harmless if unsupported or blocked.
 if("serviceWorker" in navigator){window.addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
 // Bottom-toolbar pin: when the app runs in a BROWSER TAB (e.g. opened/added-to-home-screen from Chrome on iOS, which doesn't
@@ -2318,7 +2328,10 @@ async function ensureYearTabFor(y){
     // pick the closest existing year as the template so budgets/formulas carry over
     years.sort(function(a,b){return Math.abs(a.y-y)-Math.abs(b.y-y);});var src=years[0];
     await api(ssBase()+":batchUpdate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requests:[{duplicateSheet:{sourceSheetId:src.id,newSheetName:name,insertSheetIndex:src.idx+1}}]})});
-    await vBatchUpdate([{range:"'"+name+"'!B2",values:[[y]]}]);
+    // Set the year (B2) AND the "as of" helper ($AC$1): a copied tab inherits the source's $AC$1 (often blank or a stale prior-year
+    // date), which would make every Spent formula on the new tab read 0. Writing today's date makes the year's actuals resolve immediately.
+    await vBatchUpdate([{range:"'"+name+"'!B2",values:[[y]]},{range:"'"+name+"'!AC1",values:[[todayISO()]]}]);
+    _asOfStamp=""; // force refreshAsOf to re-stamp every summary tab (incl. this new one) on its next run
     return true;
   }catch(e){return false;}
 }
@@ -2593,7 +2606,7 @@ function decRenderResult(res){
   if(b.netEnd!=null&&d.netEnd!=null)rows.push(['Net worth · year-end',money(b.netEnd),money(d.netEnd),d.netEnd>=b.netEnd-0.005]);
   if(res.goal&&res.goal.before&&res.goal.after)rows.push(['“'+esc(res.goal.name)+'” done',res.goal.before,res.goal.after,true]);
   if(res.floor>0)rows.push(['Nest Egg Floor '+money(res.floor),'',(res.passesFloor?'✓ holds':'⚠ breached'),res.passesFloor]);
-  $("decTable").innerHTML='<div class="dec-th"><span></span><span>Now</span><span>After</span></div>'+rows.map(function(r){return '<div class="dec-tr"><span class="dec-lab">'+r[0]+'</span><span class="dec-b">'+r[1]+'</span><span class="dec-a '+(r[3]?'ok':'warn')+'">'+r[2]+'</span></div>';}).join("");
+  $("decTable").innerHTML='<div class="dec-th"><span></span><span>Now</span><span>After</span></div>'+rows.map(function(r){return '<div class="dec-tr"><span class="dec-lab">'+r[0]+'</span><span class="dec-b">'+r[1]+'</span><span class="dec-a '+(r[3]?'ok':'warn')+'">'+r[2]+'</span></div>';}).join("")+decisionContingencyHTML(res);
   $("decVerdict").innerHTML='<span class="dec-badge '+(res.feasible?'ok':'warn')+'">'+(res.feasible?'✓ You can do it':'⚠ This would stretch you')+'</span>';
   $("decNarr").innerHTML='<span class="sw-hi wren-happy" style="width:32px;height:36px;display:inline-block;vertical-align:middle;margin-right:8px"></span>'+wrenDecisionMsg(res);
   $("decTitle").textContent=res._life?(res._life.icon+' '+res._life.label):"What happens";decShow(3);
@@ -2980,24 +2993,37 @@ function lumpyCategories(){ // budgeted categories whose LOGGED history has an u
     var mid=Math.floor(others.length/2),med=others.length?(others.length%2?others[mid]:r2((others[mid-1]+others[mid])/2)):0;
     if(med>0&&max>=2*med&&(max-med)>=2000){ // unusually large single month, materially so
       var spikeM=-1;for(var mm=0;mm<12;mm++){if(Math.abs((Number(sp[mm])||0)-max)<0.005){spikeM=mm;break;}}
+      // the transactions that MADE that month unusual (largest first) — so "was it a one-off?" is answerable at a glance
+      var y=bYear(),ck=(""+c.name).toLowerCase(),txns=[];
+      (state.rows||[]).forEach(function(r){if(Number(r[0])!==y||Number(r[1])!==(spikeM+1))return;if(typeof isExpenseRow==="function"&&!isExpenseRow(r))return;if((""+((r&&r[4])||"")).toLowerCase()!==ck)return;var amt=Number(r[6])||0;if(amt<=0.005)return;txns.push({name:((""+((r&&r[5])||(r&&r[3])||"")).trim())||"—",amount:r2(amt),dateISO:(""+((r&&r[2])||""))});});
+      txns.sort(function(a,b){return b.amount-a.amount;});
       out.push({cat:c.name,spikeMonth:spikeM+1,spikeAmount:r2(max),typicalMonth:r2(med),
-        monthlyBudget:r2((c.bud12&&c.bud12[(bYear()===curYear()?curMonth()-1:0)])||0)});
+        monthlyBudget:r2((c.bud12&&c.bud12[(bYear()===curYear()?curMonth()-1:0)])||0),txns:txns});
     }
   });
   return out;
 }
 function forecastCheckup(){ // the scan that drives the review flow. READ-ONLY — surfaces candidates, changes nothing.
-  var envs=[],counts={sinkingCandidates:0,linked:0,ongoing:0,lumpy:0};
+  var envs=[],counts={sinkingCandidates:0,linked:0,ongoing:0,lumpy:0,purposeReview:0,extraBills:0};
   (state.cats||[]).forEach(function(c){
     if(catRoll(c.name)!=="envelope")return;
-    var linked=!!catSinking(c.name),done=checkupIsDone("match",c.name);
+    var linked=!!catSinking(c.name),done=checkupIsDone("match",c.name),purposeDone=checkupIsDone("purpose",c.name);
     var cand=(linked||done)?null:(checkupBillCandidates(c.name)[0]||null),banked=r2(Math.max(0,catBalance(c)));
-    envs.push({cat:c.name,banked:banked,linked:linked,purpose:catPurpose(c.name),candidate:cand});
+    // an envelope with no matching bill and no purpose answer yet → ask what it's FOR (ongoing / saving / both / unsure).
+    var needsPurpose=(!linked&&!cand&&!purposeDone&&catPurpose(c.name)==="ongoing"); // "ongoing" is the unset default; an already-classified envelope isn't re-asked
+    // #4 MULTI-BILL: a LINKED envelope may fund ANOTHER future bill that isn't linked yet → offer to add it (earliest-due-first allocation handles the rest).
+    var extra=null;
+    if(linked){var obs=catObligations(c.name);
+      extra=checkupBillCandidates(c.name).filter(function(bb){return !obs.some(function(o){return Number(o.dueMonth)===bb.dueMonth&&Math.abs((Number(o.amount)||0)-bb.amount)<0.5;});})[0]||null;
+      if(extra&&checkupIsDone("extra"+extra.dueMonth+"_"+r2(extra.amount),c.name))extra=null;}         // don't re-nag a dismissed extra
+    envs.push({cat:c.name,banked:banked,linked:linked,purpose:catPurpose(c.name),candidate:cand,needsPurpose:needsPurpose,extra:extra});
     if(linked)counts.linked++;else if(cand)counts.sinkingCandidates++;else counts.ongoing++;
+    if(needsPurpose)counts.purposeReview++;
+    if(extra)counts.extraBills++;
   });
   var lumpy=lumpyCategories().filter(function(L){return !checkupIsDone("lumpy",L.cat);}); // drop prompts the user already answered
   counts.lumpy=lumpy.length;
-  return {envelopes:envs,lumpy:lumpy,counts:counts,hasWork:(counts.sinkingCandidates>0||counts.lumpy>0)};
+  return {envelopes:envs,lumpy:lumpy,counts:counts,hasWork:(counts.sinkingCandidates>0||counts.lumpy>0||counts.purposeReview>0||counts.extraBills>0)};
 }
 function _checkupPatch(catName,obligation){ // the cfg patch a "link this envelope to this bill" would apply — purpose sinking, the whole
   var of=captureOpeningFunded(catName);      // envelope budget as the contribution, and the link with opening-funded captured AT link time
@@ -3044,23 +3070,93 @@ async function doCheckupLink(catName,obligation){try{checkupSetEnvelope(catName,
 async function doCheckupUnlink(catName){try{checkupUnlink(catName);await writeMeta();renderAll();}catch(e){}}
 async function doCheckupDismiss(kind,catName){try{checkupMarkDone(kind,catName);await writeMeta();renderAll();}catch(e){}} // "Not now" / "That's normal" — persisted so it won't return on reload
 async function doCheckupAdjust(catName){try{checkupMarkDone("lumpy",catName);await writeMeta();}catch(e){}try{switchView("budget");openCatEdit(catName);}catch(e){}} // open the category to fix the budget, and mark the prompt answered
+// "What is this envelope for?" — the explicit purpose classification. Ongoing / saving-for-a-bill / unsure. MOVES NO CASH.
+async function doCheckupPurpose(catName,kind){try{
+  if(kind==="ongoing")checkupSetEnvelope(catName,{purpose:"ongoing"});               // normal spending that rolls forward
+  else if(kind==="sinking")checkupSetEnvelope(catName,{purpose:"sinking"});          // the whole budget is saving toward a bill (link a specific one via a Possible match)
+  // "unsure" leaves the cfg exactly as-is — no inference
+  checkupMarkDone("purpose",catName);await writeMeta();renderAll();
+}catch(e){}}
+// "A bit of both" — split the monthly budget into recurring spend + a saving contribution, WITHOUT changing the total.
+async function doCheckupSplit(catName){try{
+  var bud=r2(_catBudMonth(catName,(bYear()===curYear()?curMonth()-1:0)));
+  var amt=await askAmount({title:"Part of it is saving",label:"Of "+money(bud)+"/mo, how much is saving toward a bill?",ok:"Save split"});
+  if(amt==null)return;                                                                // cancelled — leave it unclassified so it's still reviewable
+  var c=Math.max(0,Math.min(Number(amt)||0,bud));
+  checkupSetEnvelope(catName,{purpose:"split",contribution:c});checkupMarkDone("purpose",catName);await writeMeta();renderAll();
+}catch(e){}}
+function doCheckupFinish(){_ckBaseSafe=null;try{renderAll();}catch(e){}} // dismiss the completion summary (session-only; nothing persisted)
+// #2 AT-LOG-TIME LINK SUGGESTION — when you log a save-ahead future bill in an envelope, offer to link it right there (confirm, never auto).
+function _logLinkCandidate(vals){ // is this just-logged row a save-ahead bill an envelope could fund? → {cat, ob} or null
+  try{
+    var y=Number(vals[0]),mo=Number(vals[1]),cat=(""+((vals&&vals[4])||"")).trim(),amt=Number((vals&&vals[6]))||0;
+    if(!cat||amt<=0.005||y!==bYear())return null;
+    var cm=(bYear()===curYear())?curMonth():1;if(mo<=cm)return null;                                   // next month and beyond only
+    if(typeof catRoll!=="function"||catRoll(cat)!=="envelope")return null;                              // only envelopes save ahead
+    var bud=(typeof _catBudMonth==="function")?_catBudMonth(cat,mo-1):0;if(amt<=bud+0.005)return null;  // a real save-ahead lump, not routine spend
+    var obs=(typeof catObligations==="function")?catObligations(cat):[];                               // already linked to THIS bill? skip
+    for(var i=0;i<obs.length;i++){if(Number(obs[i].dueMonth)===mo&&Math.abs((Number(obs[i].amount)||0)-amt)<0.5)return null;}
+    return {cat:cat,ob:{name:((""+((vals[5]||vals[3]||cat))).trim())||cat,amount:r2(amt),dueYear:y,dueMonth:mo,source:"row"}};
+  }catch(e){return null;}
+}
+var _logLinkPend=null;
+function maybeSuggestLink(vals){ // shows a gentle "Link it" prompt in the Add message area after a save-ahead bill is logged
+  var c=_logLinkCandidate(vals);if(!c)return;_logLinkPend=c;
+  var msg=$("addMsg");if(!msg)return;var mn=(typeof MONTHS!=="undefined"&&MONTHS[c.ob.dueMonth-1])||"";
+  msg.innerHTML=(msg.innerHTML||"")+'<div class="hintline" style="text-align:left;margin-top:7px;font-size:12px;line-height:1.5">A '+money(c.ob.amount)+' bill due '+esc(mn)+' — bigger than your '+esc(c.cat)+' budget. Saving for it in the <b>'+esc(c.cat)+'</b> envelope? <button class="lnk2" id="logLinkBtn" style="font-size:12.5px">Link it</button></div>';
+  var lb=$("logLinkBtn");if(lb)lb.onclick=function(ev){ev.preventDefault();doCheckupLinkFromLog();};
+}
+async function doCheckupLinkFromLog(){var c=_logLinkPend;_logLinkPend=null;if(!c)return;
+  try{checkupAddObligation(c.cat,c.ob);checkupMarkDone("match",c.cat);checkupMarkDone("purpose",c.cat);await writeMeta();await loadCarryIn();renderAll();
+    var msg=$("addMsg");if(msg)msg.innerHTML='Linked to your '+esc(c.cat)+' envelope ✓ — it won’t be counted twice.';}catch(e){}}
 // The card's buttons carry NO inline data — every action is stashed by integer index (bulletproof against quoting), so the handlers
 // fire reliably on device. _ckActions is rebuilt every render; ck* wrappers look up the stashed {cat, ob} and call the real handler.
 var _ckActions=[];
+var _ckBaseSafe=null; // safe-to-move captured when the checkup first has work this SESSION — powers the before/after in the completion summary
 function ckLink(i){var a=_ckActions[i];if(a)doCheckupLink(a.cat,a.ob);}
 function ckDismiss(i,kind){var a=_ckActions[i];if(a)doCheckupDismiss(kind,a.cat);}
 function ckAdjust(i){var a=_ckActions[i];if(a)doCheckupAdjust(a.cat);}
+function ckPurpose(i,kind){var a=_ckActions[i];if(a)doCheckupPurpose(a.cat,kind);}
+function ckSplit(i){var a=_ckActions[i];if(a)doCheckupSplit(a.cat);}
+function ckAddBill(i){var a=_ckActions[i];if(a&&a.ob)doCheckupAddBill(a.cat,a.ob);}
+function ckExtraDismiss(i){var a=_ckActions[i];if(a&&a.ob)doCheckupDismiss("extra"+a.ob.dueMonth+"_"+r2(a.ob.amount),a.cat);}
+async function doCheckupAddBill(catName,ob){try{checkupAddObligation(catName,ob);await writeMeta();await loadCarryIn();renderAll();}catch(e){}} // #4: this envelope also funds another bill (earliest-due-first allocation)
 function _ckDate(iso,mo,yr){var M=(typeof MONTHS!=="undefined")?MONTHS:[];if(iso&&/^\d{4}-\d{2}-\d{2}/.test(iso)){var p=iso.split("-");return (M[Number(p[1])-1]||"")+" "+Number(p[2])+", "+p[0];}return (M[(mo||1)-1]||"")+" "+(yr||bYear());}
+function _checkupSummaryHTML(ck){ // the wrap-up shown once the review is done: what got classified, and the before/after safe-to-move
+  var sinking=0,ongoing=0;
+  (ck.envelopes||[]).forEach(function(e){var p=catPurpose(e.cat);if(e.linked||p==="sinking"||p==="split")sinking++;else ongoing++;});
+  var after=null;try{var gs=goalSafeToMove();after=(gs?gs.safeToGoal:null);}catch(_){}
+  var before=r2(_ckBaseSafe||0),aft=r2(after||0),delta=r2(aft-before);
+  var gname=(typeof goalMoveName==="function")?goalMoveName():"your goals";
+  var row=function(lbl,val){return '<div class="totrow" style="font-size:13px;margin-top:4px"><span style="color:var(--ink)">'+lbl+'</span><span class="num" style="color:var(--ink2)">'+val+'</span></div>';};
+  var h='<div class="card"><p class="eyebrow">Forecast Checkup</p>';
+  h+='<div style="font-size:16px;font-weight:700;color:var(--ink)">Your forecast is ready</div>';
+  h+='<div style="margin-top:8px">'
+    +row('✓ Sinking funds linked to a bill',sinking)
+    +row('✓ Ongoing spending envelopes',ongoing)
+    +'<div class="totrow" style="font-size:13px;margin-top:4px"><span style="color:var(--ink)">✓ Contingency</span><span style="color:var(--ink2);font-size:12px">preserved, unchanged</span></div></div>';
+  h+='<div style="margin-top:12px;background:var(--soft);border-radius:12px;padding:12px 14px">'
+    +'<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">Safe to move to '+esc(gname)+'</div>'
+    +'<div class="num" style="font-size:15px;color:var(--ink2);margin-top:4px">'+money(before)+' <span style="opacity:.55">→</span> <b style="color:var(--ink);font-size:19px">'+money(aft)+'</b>'
+    +(Math.abs(delta)>0.005?(' <b style="color:'+(delta>0?'var(--green)':'var(--bad)')+';font-size:15px">'+(delta>0?'+':'')+money(delta)+'</b>'):'')+'</div>'
+    +'<div class="hintline" style="text-align:left;margin-top:6px;font-size:11.5px;line-height:1.5">'+(Math.abs(delta)>0.005?'That’s the double-counting removed — your monthly set-asides no longer count as spending on top of the bills they fund. No cash moved.':'Nothing you reviewed changed the forecast. No cash moved.')+'</div></div>';
+  h+='<div style="margin-top:12px"><button class="gbtn gprimary" style="padding:9px 18px;font-size:14px;border-radius:10px" onclick="doCheckupFinish()">Done</button></div>';
+  h+='</div>';return h;
+}
 function forecastCheckupHTML(){ // the review card — one clear item per thing worth a look, with an easy-to-scan hierarchy
   var ck;try{ck=forecastCheckup();}catch(e){return "";}
   if(!ck||(!ck.envelopes.length&&!ck.lumpy.length))return "";
   _ckActions=[];
   var matches=ck.envelopes.filter(function(e){return e.candidate;});
+  var purposeItems=ck.envelopes.filter(function(e){return e.needsPurpose;});
+  var extraItems=ck.envelopes.filter(function(e){return e.extra;});
+  if(ck.hasWork&&_ckBaseSafe==null){try{var gs0=goalSafeToMove();_ckBaseSafe=(gs0?gs0.safeToGoal:null);}catch(_){}} // session baseline for the before/after
   if(!ck.hasWork){
-    return '<div class="card"><p class="eyebrow">Forecast Checkup</p><div class="hintline" style="text-align:left;margin-top:0">Your envelopes and budgets look consistent with your forecast — nothing to review right now.</div></div>';
+    if(_ckBaseSafe==null)return '<div class="card"><p class="eyebrow">Forecast Checkup</p><div class="hintline" style="text-align:left;margin-top:0">Your envelopes and budgets look consistent with your forecast — nothing to review right now.</div></div>';
+    return _checkupSummaryHTML(ck); // the user reviewed something this session → show the wrap-up with before/after
   }
   var kv=function(label,val){return '<div style="display:flex;justify-content:space-between;gap:10px;margin-top:2px"><span style="font-size:12px;color:var(--ink2);flex-shrink:0">'+label+'</span><span style="font-size:12.5px;color:var(--ink);text-align:right;overflow-wrap:anywhere">'+val+'</span></div>';};
-  var n=matches.length+ck.lumpy.length;
+  var n=matches.length+ck.lumpy.length+purposeItems.length+extraItems.length;
   var h='<div class="card"><p class="eyebrow">Forecast Checkup</p>';
   h+='<div style="font-size:16px;font-weight:700;color:var(--ink);line-height:1.25">'+n+' thing'+(n===1?'':'s')+' worth a look</div>';
   h+='<div class="hintline" style="text-align:left;margin-top:5px;font-size:12.5px;line-height:1.5">Connect money you set aside to the bill it funds, so a sinking fund isn’t counted twice. Your balances and history don’t change — only how the forecast reads them.</div>';
@@ -3091,16 +3187,52 @@ function forecastCheckupHTML(){ // the review card — one clear item per thing 
       +'<button class="lnk2" onclick="ckDismiss('+i+',\'match\')">Not now</button></div>';
     h+='</div>';
   });
+  // #4 also-funds items — a LINKED envelope with another future bill it could also fund
+  extraItems.forEach(function(e){
+    var x=e.extra,i=_ckActions.length;_ckActions.push({cat:e.cat,ob:x});
+    var mn=(typeof MONTHS!=="undefined"&&MONTHS[x.dueMonth-1])||"";
+    h+='<div style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
+    h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)">Also a match</div>';
+    h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(e.cat)+'</div>';
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55">Your <b>'+esc(e.cat)+'</b> envelope is already saving for a bill — and there’s another: '+money(x.amount)+(x.name&&x.name!==e.cat?(' · '+esc(x.name)):'')+' due '+esc(mn)+'. Fund this one from the same envelope too? (Earliest-due bill is covered first.)</div>';
+    h+='<div style="display:flex;align-items:center;gap:16px;margin-top:12px">'
+      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="ckAddBill('+i+')">Add this bill</button>'
+      +'<button class="lnk2" onclick="ckExtraDismiss('+i+')">Not now</button></div>';
+    h+='</div>';
+  });
+  // "What is this envelope for?" — unclassified envelopes with no matching bill. The explicit purpose question, with the split.
+  purposeItems.forEach(function(e){
+    var i=_ckActions.length;_ckActions.push({cat:e.cat});
+    var bud=r2(_catBudMonth(e.cat,(bYear()===curYear()?curMonth()-1:0)));
+    h+='<div style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
+    h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">What is this envelope for?</div>';
+    h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(e.cat)+'</div>';
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55">'+money(e.banked)+' set aside, '+money(bud)+'/mo budgeted. Is this ongoing spending, or are you saving toward a specific future bill?</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:10px">'
+      +'<button class="gbtn gprimary" style="padding:9px 14px;font-size:13.5px;border-radius:10px" onclick="ckPurpose('+i+',\'sinking\')">Saving for a bill</button>'
+      +'<button class="gbtn" style="padding:9px 14px;font-size:13.5px;border-radius:10px" onclick="ckSplit('+i+')">A bit of both</button>'
+      +'<button class="gbtn" style="padding:9px 14px;font-size:13.5px;border-radius:10px" onclick="ckPurpose('+i+',\'ongoing\')">Ongoing spending</button>'
+      +'<button class="lnk2" onclick="ckPurpose('+i+',\'unsure\')">Not sure</button></div>';
+    h+='</div>';
+  });
   // lumpy-budget items — a one-time spike that may be skewing the recurring baseline; now with real responses
   ck.lumpy.forEach(function(L){
     var i=_ckActions.length;_ckActions.push({cat:L.cat});
     h+='<div style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">';
     h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)">Unusual budget</div>';
     h+='<div style="font-size:15px;font-weight:700;color:var(--ink);margin-top:3px">'+esc(L.cat)+'</div>';
-    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55"><b>'+esc((typeof MONTHS!=="undefined"&&MONTHS[L.spikeMonth-1])||"")+'</b> was '+money(L.spikeAmount)+', but a typical month is about '+money(L.typicalMonth)+'. Is '+money(L.monthlyBudget)+'/mo really your normal — or was that a one-off skewing the forecast?</div>';
+    var smon=esc((typeof MONTHS!=="undefined"&&MONTHS[L.spikeMonth-1])||"");
+    h+='<div class="hintline" style="text-align:left;margin-top:4px;font-size:12.5px;line-height:1.55">In <b>'+smon+'</b> you spent '+money(L.spikeAmount)+' here — a typical month is about '+money(L.typicalMonth)+'. Was that a one-off, or your normal? (Your budget is set to '+money(L.monthlyBudget)+'/mo.)</div>';
+    // the transactions that made that month unusual — so "was it a one-off?" is a look, not a guess
+    if(L.txns&&L.txns.length){
+      var lt=L.txns.slice(0,5).map(function(t){var dd="";if(/^\d{4}-\d{2}-\d{2}/.test(t.dateISO)){var p=t.dateISO.split("-");dd=(smon.slice(0,3))+" "+Number(p[2])+" · ";}return '<div class="totrow" style="margin-top:2px;font-size:12.5px"><span style="color:var(--ink2)">'+dd+esc(t.name)+'</span><span class="num" style="color:var(--ink2)">'+money(t.amount)+'</span></div>';}).join("");
+      var moreT=(L.txns.length>5)?('<div class="hintline" style="text-align:left;margin-top:2px;font-size:11px">+'+(L.txns.length-5)+' more in '+smon+'</div>'):'';
+      h+='<div style="margin-top:9px;border:1px solid var(--line);border-radius:11px;padding:10px 12px">'
+        +'<div style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:4px">What '+smon+' was</div>'+lt+moreT+'</div>';
+    }
     h+='<div style="display:flex;align-items:center;gap:16px;margin-top:12px">'
-      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="ckAdjust('+i+')">Adjust budget</button>'
-      +'<button class="lnk2" onclick="ckDismiss('+i+',\'lumpy\')">That’s normal</button></div>';
+      +'<button class="gbtn gprimary" style="padding:9px 16px;font-size:14px;border-radius:10px" onclick="ckAdjust('+i+')">It was a one-off</button>'   // → opens the category so you can lower the budget
+      +'<button class="lnk2" onclick="ckDismiss('+i+',\'lumpy\')">That’s normal</button></div>';                                                        // → keep the budget as-is
     h+='</div>';
   });
   h+='</div>';return h;
@@ -3143,6 +3275,29 @@ function catSpend12(name){
   catBills(name).forEach(function(b){var bl=(""+b).toLowerCase();[bl,"↳ "+bl].forEach(function(key){var sp=state.spend&&state.spend[key];if(sp)for(var k=0;k<12;k++)out[k]+=sp[k];});});
   return out;
 }
+// ============================================================================================================================
+// THE ONE authoritative answer to "is this ledger Category value represented by the budget?" — the single membership definition
+// that budget-USED and UNBUDGETED must share so they can never drift apart (the v0.68.53 class of bug: a child counted inside
+// its parent's "used" AND again as "outside budget", producing "74% used yet over budget"). It returns the set of Category
+// values that count as budgeted: every top-level category name (state.cats — which STILL includes hidden-but-budgeted
+// categories, so a hidden category with a budget line is budgeted per product decision), PLUS every itemized sub-item ("bill")
+// name AND its "↳ " form (via catBills, which follows renames — a renamed child is recognized by its CURRENT name). Blank and
+// genuinely-unknown Category values are simply absent from the set → unbudgeted. It MUST mirror catSpend12/catBills exactly (both
+// enumerate children through catBills), so a name that contributes to some category's "used" is exactly a name in this set.
+// EVERY surface that partitions consumption into budgeted vs unbudgeted MUST call this — do NOT rebuild a top-level-only set:
+//   • unbudgetedConsumption()            — the safe-to-move / residual cash-pressure figure
+//   • renderS2S()                        — the Month headline "$X used / $Y spent outside budget / left / over"
+//   • the Month card "spent outside budget" per-category breakdown
+//   • ledgerUnbudgeted()                 — the "pull into budget" candidates (a child-tagged name is NOT a candidate)
+//   • Wren's unbudgeted-spending answer  — so Wren's total matches the Month headline, never her own top-level-only view
+function budgetedNameSet(){
+  var set={};
+  (state.cats||[]).forEach(function(c){var n=(""+c.name).trim().toLowerCase();if(n)set[n]=1;
+    if(typeof catBills==="function")catBills(c.name).forEach(function(b){var bl=(""+b).trim().toLowerCase();if(bl){set[bl]=1;set["↳ "+bl]=1;}});});
+  return set;
+}
+// Convenience predicate over the ONE set above — for single-row membership checks. A blank/absent value is NOT budgeted.
+function isBudgetedName(name){var n=(""+(name||"")).trim().toLowerCase();return n?!!budgetedNameSet()[n]:false;}
 // Category budget MOVED into a category-linked goal (Category = this category, Company = the goal) per month. This money
 // consumed the category's allocation even though it isn't "spending" — so budget-used and remaining must include it.
 function catLinkedGoal12(name){var nl=(""+name).trim().toLowerCase(),out=_z12(),y=bYear();(state.rows||[]).forEach(function(r){if(Number(r[0])!==y)return;if(typeof _asOfOK==="function"&&!_asOfOK(r))return;if(!isGoalMovementRow(r))return;var cat=(""+((r&&r[4])||"")).trim().toLowerCase();if(cat!==nl||isGoalName(cat))return;var mo=Number(r[1]);if(mo>=1&&mo<=12)out[mo-1]+=Number(r[6])||0;});return out;}
@@ -3418,8 +3573,7 @@ function coverageReport(){
 // isExpenseRow (a goal-tagged row is a transfer, not consumption). Budgeted categories are skipped — their spend is already in
 // mspent/budUsed → fixedTot/underRoom, so counting it here too would double-charge the same dollar.
 function unbudgetedConsumption(){
-  var y=curYear(),mo=curMonth(),budgeted={};
-  (state.cats||[]).forEach(function(c){budgeted[(""+c.name).trim().toLowerCase()]=1;});
+  var y=curYear(),mo=curMonth(),budgeted=budgetedNameSet(); // includes itemized sub-item names — a row tagged "Electricity" is budgeted (counts toward Utilities), NOT unbudgeted
   var s=0;(state.rows||[]).forEach(function(r){
     if(Number(r[0])!==y||Number(r[1])!==mo)return;
     if(typeof _asOfOK==="function"&&!_asOfOK(r))return;         // future-dated excluded, same cutoff as every actuals path
@@ -3576,6 +3730,108 @@ function contingencyReconSentence(){
   if(n.fullyRepairs)return "Your raw contingency is "+money(n.raw)+", but this month's surplus covers the "+money(n.deficit)+" shortfall"+buildTxt+", leaving it effectively at "+money(n.effective)+" for planning — NestWorth doesn't move or rewrite your historical transactions.";
   if(n.partlyRepairs)return "Your raw contingency is "+money(n.raw)+"; this month's surplus covers "+money(n.repair)+" of the "+money(n.deficit)+" shortfall (effective "+money(n.effective)+") — NestWorth doesn't move or rewrite your historical transactions.";
   return "Your contingency is overspent by "+money(n.deficit)+" ($0 available), and this month has no surplus to cover it — rebuilding it needs your buffer categories to come in under budget.";
+}
+// #5 DECISION-ENGINE CONTINGENCY SURFACING (v0.68.57). A what-if changes your ONGOING surplus — and your surplus is exactly what
+// rebuilds an overspent contingency (repairs the shortfall) or builds it toward your target. When the contingency is currently
+// RELEVANT (overspent this month and not yet fully covered, OR a target that isn't fully built yet), surface its reconciled status
+// inside the Decision result and say — DIRECTIONALLY — whether this change gives you more or less monthly room to rebuild it. It
+// reads contingencyReconNote()/contingencyReconSentence() (the single cross-surface source) plus the annual-surplus delta the engine
+// already computes (÷12 → run-rate/month). No new accounting: the sign of the delta is the only added inference, worded as run-rate.
+function decisionContingencyNote(res){
+  var n;try{n=contingencyReconNote();}catch(e){return null;}
+  if(!n)return null;
+  // Surface ONLY the overspent-and-not-yet-fully-covered case — the reconciliation language (contingencyReconSentence) is built for
+  // exactly that reality, and it's the case a what-if most affects. (A positive buffer still building toward a target is not flagged.)
+  var relevant=(n.over&&!n.fullyRepairs);
+  if(!relevant)return null;
+  var b=res&&res.before,d=res&&res.after;
+  var moDelta=(b&&d&&b.surplus!=null&&d.surplus!=null)?r2((d.surplus-b.surplus)/12):0;  // annual surplus is what the table shows → ÷12 for run-rate/month
+  var dir=(moDelta>0.005)?"helps":((moDelta<-0.005)?"hurts":"neutral");
+  var gap=r2(Math.max(0,n.deficit-n.repair));                                             // the shortfall this month's surplus hasn't covered
+  return {relevant:true,sentence:contingencyReconSentence(),direction:dir,monthlyDelta:moDelta,gap:gap};
+}
+function decisionContingencyHTML(res){
+  var c;try{c=decisionContingencyNote(res);}catch(e){return "";}
+  if(!c||!c.relevant)return "";
+  var gapTxt="the "+money(c.gap)+" still short",dirTxt;
+  if(c.direction==="helps")dirTxt="This change frees about "+money(Math.abs(c.monthlyDelta))+" more each month — room that could rebuild "+gapTxt+" faster.";
+  else if(c.direction==="hurts")dirTxt="This change leaves about "+money(Math.abs(c.monthlyDelta))+" less each month, so "+gapTxt+" would take longer to rebuild.";
+  else dirTxt="This change doesn’t move your monthly room to rebuild it either way.";
+  return '<div class="hintline" style="text-align:left;margin:10px 0 0;padding-top:8px;border-top:1px dashed var(--line)">'
+    +'<b style="color:var(--ink)">Contingency to rebuild</b><br>'+esc(c.sentence)+'<br><span style="color:var(--ink2)">'+esc(dirTxt)+'</span></div>';
+}
+// #6 FLOOR-AWARE MULTI-MONTH RECONCILIATION (v0.68.59). monthlyCashReconciliation() answers "where does THIS month's surplus go";
+// this rolls that same hierarchy FORWARD across the rest of the budget year, carrying the contingency pool month-to-month, so you can
+// see WHEN an overspent contingency is repaired to $0, WHEN it reaches your target, and how much residual funding the plan supports —
+// all while respecting the Nest Egg Floor. No duplicated math: the CURRENT month is the exact monthlyCashReconciliation() (so month 1
+// matches the Contingency card), future months use planned income/expense from _cfArrays (the same arrays computeCashflow forecasts
+// from), the pool carries via the same repair→build hierarchy, and the FLOOR is enforced through the EXISTING single source —
+// goalSafeToMove().safeToGoal is the total that can be set aside today without any forward month dropping below the floor, so the
+// cumulative discretionary set-asides (contingency BUILD + RESIDUAL funding, never the deficit REPAIR, which is a priority) are capped
+// at that headroom and the surplus the floor needs is reported as floorHeld reserves. Per-month identity (proven in
+// verify-multimonth-recon.js): max(0,preSurplus) === repair + build + residual + reserves, and pool_m === pool_(m-1) + repair + build.
+function multiMonthReconciliation(opts){
+  opts=opts||{};
+  if(typeof bYear==="function"&&typeof curYear==="function"&&bYear()!==curYear())return null; // live budget year only (the forward path is actual-mode)
+  var y=curYear(),cm=curMonth(),toMonth=Math.min(12,Math.max(cm,opts.toMonth||12));
+  var plan=currentPlan(),a=_cfArrays(plan),planGh=Number(plan.goalMonthlyFixed)||0;
+  var target=r2(Math.max(0,(state.meta&&Number(state.meta.contingencyTarget))||0));
+  var residualPlanned=r2((typeof residualPool==="function")?residualPool():0);
+  var floor=r2((typeof nestFloor==="function")?nestFloor():0);
+  var gs=null;try{gs=(typeof goalSafeToMove==="function")?goalSafeToMove():null;}catch(e){}
+  var headroom=gs?r2(Math.max(0,gs.safeToGoal||0)):Infinity;                 // floor-safe set-aside capacity today (the ONE floor source)
+  var cf=null;try{cf=computeCashflow(plan,{mode:"actual",year:y});}catch(e){}
+  var rc0=null;try{rc0=monthlyCashReconciliation(y,cm);}catch(e){}
+  var pool=r2((typeof _contingencyEntering==="function")?_contingencyEntering(cm):0);        // contingency pool ENTERING the current month
+  var months=[],committed=0,floorHeld=0,repairedMonth=0,targetMonth=0,reconciles=true;
+  for(var m=cm;m<=toMonth;m++){
+    var preS,repair,build,residual,reserves,reserveDraw;
+    var enteringDeficit=r2(Math.max(0,-pool));
+    if(m===cm&&rc0){                                                         // CURRENT month = the exact single-month reconciliation
+      preS=rc0.preAllocationSurplus;repair=r2(Math.max(0,rc0.contingencyRepair||0));build=r2(Math.max(0,rc0.contingencyBuild||0));
+      residual=r2(Math.max(0,rc0.residualFunding||0));reserves=r2(Math.max(0,rc0.unallocated||0));reserveDraw=r2(Math.max(0,rc0.reserveDraw||0));
+    }else{                                                                   // FUTURE month = planned income − planned expense − fixed goal hold
+      preS=r2((a.inc[m-1]||0)-(a.exp[m-1]||0)-planGh);
+      var pos=Math.max(0,preS);
+      repair=r2(Math.min(pos,enteringDeficit));
+      var afterRepair=r2(Math.max(0,pos-repair));
+      var cushion=r2(Math.max(0,pool+repair));                              // positive part of the pool after repairing to $0
+      build=r2(Math.min(afterRepair,r2(Math.max(0,target-cushion))));
+      var afterBuild=r2(Math.max(0,afterRepair-build));
+      residual=r2(Math.min(afterBuild,residualPlanned));
+      reserves=r2(Math.max(0,afterBuild-residual));
+      reserveDraw=r2(Math.max(0,-preS));
+    }
+    // FLOOR CAP: discretionary set-asides (build + residual) can't cumulatively exceed the floor-safe headroom — the excess is held
+    // as floor-protected reserves. Repair is never capped (closing a deficit is a priority, not a discretionary set-aside).
+    var disc=r2(build+residual);
+    if(isFinite(headroom)&&r2(committed+disc)>headroom+0.005){
+      var allow=r2(Math.max(0,headroom-committed));
+      var held=r2(disc-allow);
+      // trim residual first, then build (residual is the softer commitment; the cushion build is closer to a priority)
+      var trimR=r2(Math.min(residual,held));residual=r2(residual-trimR);var held2=r2(held-trimR);
+      var trimB=r2(Math.min(build,held2));build=r2(build-trimB);
+      reserves=r2(reserves+held);floorHeld=r2(floorHeld+held);
+    }
+    committed=r2(committed+build+residual);
+    pool=r2(pool+repair+build);
+    if(!repairedMonth&&pool>=-0.005&&enteringDeficit>0.005)repairedMonth=m;   // the month a deficit is first back to $0
+    if(!targetMonth&&target>0.005&&pool>=target-0.005)targetMonth=m;          // the month the cushion first reaches target
+    var cashProj=(cf&&cf.months[m-1])?r2(cf.months[m-1].bal):null;
+    var below=(cashProj!=null&&floor>0&&cashProj<floor-0.005);
+    // per-month identity check
+    if(preS>0.005&&Math.abs(r2(Math.max(0,preS))-r2(repair+build+residual+reserves))>0.02)reconciles=false;
+    months.push({m:m,name:(typeof MONTHS!=="undefined"?MONTHS[m-1]:""),preSurplus:r2(preS),repair:repair,build:build,
+      residual:residual,reserves:reserves,reserveDraw:reserveDraw,poolAfter:pool,cashProjected:cashProj,belowFloor:below});
+  }
+  var totalRepair=0,totalBuild=0,totalResidual=0,totalReserves=0;
+  months.forEach(function(mm){totalRepair=r2(totalRepair+mm.repair);totalBuild=r2(totalBuild+mm.build);totalResidual=r2(totalResidual+mm.residual);totalReserves=r2(totalReserves+mm.reserves);});
+  return {year:y,fromMonth:cm,toMonth:toMonth,months:months,
+    enteringPool:r2((typeof _contingencyEntering==="function")?_contingencyEntering(cm):0),endingPool:pool,
+    target:target,residualPlanned:residualPlanned,floor:floor,headroom:isFinite(headroom)?headroom:null,floorHeld:floorHeld,
+    forwardLow:gs?r2(gs.forwardLow):null,forwardLowMonth:gs?gs.forwardLowMonth:0,breachesFloor:gs?!!gs.breach:false,
+    repairedMonth:repairedMonth,targetMonth:targetMonth,
+    totalRepair:totalRepair,totalBuild:totalBuild,totalResidual:totalResidual,totalReserves:totalReserves,reconciles:reconciles};
 }
 // ---- Goals (savings earmarks — money movements, NOT expenses) ----
 function loadGoals(){
@@ -4400,7 +4656,10 @@ function esc2(s){return (""+s).replace(/"/g,'""');} // escape double-quotes for 
 function sumifTerm(catRef,company,m){
   var f="SUMIFS('Account Ledger'!$G:$G,'Account Ledger'!$E:$E,"+catRef+",";
   if(company!=null)f+="'Account Ledger'!$F:$F,\""+esc2(company)+"\",";
-  f+="'Account Ledger'!$C:$C,\">=\"&DATE($B$2,"+m+",1),'Account Ledger'!$C:$C,\"<=\"&EOMONTH(DATE($B$2,"+m+",1),0),'Account Ledger'!$C:$C,\"<=\"&$AC$1)";
+  // "spent so far" cutoff reads $AC$1 (an "as of" date the app keeps current), so the formulas are non-volatile. GRACEFUL:
+  // if $AC$1 is ever blank (e.g. a freshly-copied year tab whose helper cell wasn't set), fall back to end-of-month so the
+  // whole year doesn't zero out — an empty helper must never silently blank every Spent cell (device-reported).
+  f+="'Account Ledger'!$C:$C,\">=\"&DATE($B$2,"+m+",1),'Account Ledger'!$C:$C,\"<=\"&EOMONTH(DATE($B$2,"+m+",1),0),'Account Ledger'!$C:$C,\"<=\"&IF($AC$1=\"\",EOMONTH(DATE($B$2,"+m+",1),0),$AC$1))";
   return f;
 }
 function catSpentF(catRef,company,m){return "="+sumifTerm(catRef,company,m);} // plain (non-itemized) category / kept for callers
@@ -5795,7 +6054,7 @@ function ledgerMonthlySuggest(name,isSource,year){
 // (and the Budget-tab button) follow the year you're looking at — 2026 entries pull into the 2026 budget, 2027 into 2027.
 function ledgerUnbudgeted(){
   var y=bYear();
-  var budCat={};(state.cats||[]).forEach(function(c){budCat[c.name.toLowerCase()]=1;catBills(c.name).forEach(function(b){budCat[(""+b).toLowerCase()]=1;});});
+  var budCat=budgetedNameSet(); // ONE authoritative membership set (incl. ↳ child forms) — a child-tagged name is already budgeted, never a "pull into budget" candidate
   var budSrc={};(state.cons||[]).forEach(function(c){budSrc[c.name.toLowerCase()]=1;});
   return {
     cats:ledgerCatsUsed(y).filter(function(n){return !budCat[n.toLowerCase()];}).map(function(n){return {name:n,sugg:ledgerMonthlySuggest(n,false,y)};}),
@@ -6877,6 +7136,32 @@ async function gtxSubmit(){
 // A visual "where this month's cash is going" waterfall — the SAME facts monthlyCashReconciliation() computes and Wren narrates,
 // no math duplicated here. Shows deposits → spending → protected goals → surplus → contingency repair → residual → remaining, with
 // a one-line interpretation. Returns "" until a deposit has landed this month (nothing to reconcile yet).
+// #7 RECON → CASH-FLOW BRIDGE (v0.68.57). The recon card shows how THIS MONTH's cash-so-far is allocated; the Cash Flow screen shows a
+// projected month-END balance. Those two numbers differ by exactly two things: (a) the cash you were already carrying INTO the month,
+// and (b) the rest of the month's PLANNED activity still to come. This walks the exact dollars from "cash on hand today" to the Cash
+// Flow month-end. No duplicated math: it reuses computeCashflow(actual)'s own per-month balances — .end here IS cf.months[thisMonth].bal
+// — and replicates its current-month max(actual,planned) rule only to SPLIT the remainder into rest-in / rest-out for display. The
+// identity today+restIn−restOut−oneTime === cf month-end holds to the cent (asserted in verify-recon-bridge.js).
+function reconCashFlowBridge(){
+  if(bYear()!==curYear())return null;                              // only meaningful for the LIVE budget year (actual-mode projection)
+  var plan=currentPlan(),cf;try{cf=computeCashflow(plan,{mode:"actual",year:curYear()});}catch(e){return null;}
+  if(!cf||!cf.months)return null;
+  var m0=curMonth()-1;if(m0<0||m0>11||!cf.months[m0])return null;
+  var IE=actualIE(plan.rows,curYear()),a=_cfArrays(plan),planGh=Number(plan.goalMonthlyFixed)||0;
+  var ai=r2((IE.ai&&IE.ai[m0])||0),ae=r2((IE.ae&&IE.ae[m0])||0),ag=r2((IE.ag&&IE.ag[m0])||0),actualOut=r2(ae+ag);
+  // Replicate computeCashflow's current-month rule EXACTLY: a linked sinking contribution is a reservation, then max(actual,planned).
+  var sfC=(typeof _cfSinkFree==="function")?r2(_cfSinkFree(plan,m0)):0;
+  var pAdj=(sfC>0)?r2(Math.max(0,a.exp[m0]-sfC)+planGh):r2((a.exp[m0]||0)+planGh);
+  var im=Math.max(ai,r2(a.inc[m0]||0)),outM=Math.max(actualOut,pAdj);
+  var one=r2((plan.oneTime&&plan.oneTime[m0])||0);
+  var entering=r2(m0>0?cf.months[m0-1].bal:(Number(plan.startCash)||0));
+  var today=r2(entering+ai-actualOut);                             // ACTUAL cash on hand right now (entering + this month's real net so far)
+  var restIn=r2(Math.max(0,im-ai)),restOut=r2(Math.max(0,outM-actualOut));  // the rest of the month's PLANNED income / spending still to come
+  var end=r2(cf.months[m0].bal);                                   // the Cash Flow projected month-end — the single source, not re-derived
+  return {month:curMonth(),entering:entering,depositsSoFar:ai,spentSoFar:actualOut,today:today,
+    restIn:restIn,restOut:restOut,oneTime:one,end:end,
+    reconciles:(Math.abs(r2(today+restIn-restOut-one)-end)<0.02)};
+}
 function cashReconCardHTML(){
   var rc;try{rc=monthlyCashReconciliation();}catch(e){return "";}
   if(!rc||rc.income<=0.005)return "";
@@ -6905,6 +7190,65 @@ function cashReconCardHTML(){
   }else{
     h+='<div class="hintline" style="text-align:left;margin:4px 0 0">After actual spending and protected goals, '+esc(mn)+' is drawing '+money(rc.reserveDraw)+' from reserves — no surplus to cover the contingency shortfall or fund residual goals.</div>';
   }
+  // #7 the dollar-for-dollar bridge from THIS number (cash so far) to the Cash Flow projected month-end.
+  var br;try{br=reconCashFlowBridge();}catch(e){br=null;}
+  if(br){
+    var bl=function(label,amt,sign,indent){return '<div class="totrow" style="margin-top:4px"><span'+(indent?' style="padding-left:12px;color:var(--ink2)"':'')+'>'+esc(label)+'</span><span>'+(sign==="+"?"+":(sign==="-"?"−":""))+money(Math.abs(amt))+'</span></div>';};
+    h+='<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">';
+    h+='<div class="hintline" style="text-align:left;margin:0 0 4px;font-weight:600;color:var(--ink)">How this connects to your Cash Flow month-end</div>';
+    h+=bl('Cash on hand entering '+esc(mn),br.entering,"");
+    h+=bl('Deposits so far',br.depositsSoFar,"+");
+    h+=bl('Spending & goal moves so far',br.spentSoFar,"-");
+    h+='<div class="totrow" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)"><span>Cash on hand today</span><b>'+money(br.today)+'</b></div>';
+    if(br.restIn>0.005)h+=bl('Deposits still expected',br.restIn,"+",true);
+    if(br.restOut>0.005)h+=bl('Rest of '+esc(mn)+'’s planned spending',br.restOut,"-",true);
+    if(br.oneTime>0.005)h+=bl('One-time set for this month',br.oneTime,"-",true);
+    h+='<div class="totrow" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)"><span style="font-weight:600">Cash Flow projected month-end</span><b>'+money(br.end)+'</b></div>';
+    h+='<div class="hintline" style="text-align:left;margin:6px 0 0;color:var(--ink2)">The difference is just the cash you carried in plus the rest of '+esc(mn)+'’s planned activity — the same figure the Cash Flow screen shows.</div>';
+    h+='</div>';
+  }
+  h+='</div>';return h;
+}
+// #6 increment 2 — the FORWARD view of the recon card: over the coming months, when the overspent contingency returns to $0, when the
+// cushion reaches your target, and what stays held for the Nest Egg Floor. Renders straight from multiMonthReconciliation() (the same
+// forward hierarchy the engine reconciles) — no math here. Surfaces only when there's a forward story: a shortfall to repair, a target
+// to build, or floor-held reserves; a healthy, target-less plan shows nothing (the single-month card already covers it).
+function multiMonthReconHTML(){
+  var u;try{u=multiMonthReconciliation();}catch(e){return "";}
+  if(!u||!u.months||!u.months.length)return "";
+  var overspent=(u.enteringPool<-0.005),building=(u.target>0.005),floorPressure=(u.floorHeld>0.005);
+  var activity=r2(u.totalRepair+u.totalBuild+u.totalResidual)>0.005;
+  if(!(overspent||building||floorPressure)||!activity)return "";
+  var mn=function(m){return (typeof MONF!=="undefined"&&MONF[m-1])||(typeof MONTHS!=="undefined"&&MONTHS[m-1])||("month "+m);};
+  var bits=[];
+  if(overspent){
+    var def=money(Math.max(0,-u.enteringPool));
+    bits.push(u.repairedMonth?("Your "+def+" contingency shortfall is repaired to $0 by <b>"+esc(mn(u.repairedMonth))+"</b>")
+      :("At this plan your "+def+" contingency shortfall isn’t fully repaired by year-end"));
+  }
+  if(building){
+    var tgt=money(u.target);
+    if(u.targetMonth)bits.push((overspent?"then your ":"Your ")+tgt+" cushion is built by <b>"+esc(mn(u.targetMonth))+"</b>");
+    else bits.push((overspent?"but the ":"The ")+tgt+" target isn’t reached by year-end"+(floorPressure?" (your floor holds the surplus back)":""));
+  }
+  var lead=bits.length?(bits.join(", ")+"."):"";
+  var h='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)">';
+  h+='<div class="hintline" style="text-align:left;margin:0 0 4px;font-weight:600;color:var(--ink)">Over the coming months</div>';
+  if(lead)h+='<div class="hintline" style="text-align:left;margin:0 0 6px">'+lead+'</div>';
+  // the active future months: show each month's forward allocation (repair / build / residual), a few rows
+  var active=u.months.filter(function(m){return m.m>u.fromMonth&&(m.repair>0.005||m.build>0.005||m.residual>0.005||m.reserves>0.005);});
+  var shown=active.slice(0,4);
+  shown.forEach(function(m){
+    var parts=[];
+    if(m.repair>0.005)parts.push("repair "+money(m.repair));
+    if(m.build>0.005)parts.push("build "+money(m.build));
+    if(m.residual>0.005)parts.push("goals "+money(m.residual));
+    if(m.reserves>0.005)parts.push("reserves "+money(m.reserves));
+    h+='<div class="totrow" style="margin-top:3px;font-size:12.5px"><span style="color:var(--ink2)">'+esc(mn(m.m))+' · +'+money(Math.max(0,m.preSurplus))+'</span><span class="num" style="color:var(--ink2)">'+esc(parts.join(" · "))+'</span></div>';
+  });
+  if(active.length>shown.length)h+='<div class="hintline" style="text-align:left;margin:2px 0 0;font-size:11px">+'+(active.length-shown.length)+' more month'+(active.length-shown.length===1?'':'s')+'</div>';
+  if(floorPressure)h+='<div class="hintline" style="text-align:left;margin:6px 0 0;color:var(--ink2)">'+money(u.floorHeld)+' of surplus stays as reserves to keep every month at or above your '+money(u.floor)+' floor.</div>';
+  h+='<div class="hintline" style="text-align:left;margin:6px 0 0;font-size:11px;color:var(--ink2)">A projection at your current plan — the repair comes first, then the cushion, then residual goals, capped by your floor.</div>';
   h+='</div>';return h;
 }
 function contingencyTrendHTML(){
@@ -6962,6 +7306,7 @@ function renderContingency(){
   }
   h+=contingencyTrendHTML(); // month-by-month trend of the pooled balance — the history Wren narrates, now visible
   h+=cashReconCardHTML();    // "where this month's cash is going" waterfall — same monthlyCashReconciliation() facts, drawn
+  h+=multiMonthReconHTML();  // #6 the forward view — when the shortfall repairs, when the cushion builds, what the floor holds back
   if(r.contingencyUsed>0.005){
     h+='<div class="totrow" style="margin-top:6px"><span style="padding-left:12px;color:var(--ink2)">Covering envelope deficits</span><span class="neg">−'+money(r.contingencyUsed)+'</span></div>';
     h+='<div class="totrow" style="margin-top:2px"><span style="padding-left:12px">Available</span><b class="'+(r.remainingContingency>0.005?"pos":"")+'">'+money(r.remainingContingency)+'</b></div>';
@@ -7016,9 +7361,10 @@ function renderS2S(){
   if($("s2sCard"))$("s2sCard").style.display=showFR?"none":"block";
   var tb=0,ts=0,tsp=0;state.cats.forEach(function(c){tb+=c.mbud;ts+=budUsed(c);tsp+=((c&&c.mspent!=null)?c.mspent:budUsed(c));}); // ts = budget USED (consumption + category-linked goal allocation); tsp = consumption spending only
   if(tb<=0.005){el.innerHTML='<div class="s2s-big">Set a budget to see what\'s left</div><div class="s2s-sub">Add categories in <b>Budget</b> and this shows what\'s left to spend this month.</div>';return;}
-  var y=curYear(),m=curMonth(),names={};state.cats.forEach(function(c){names[c.name.toLowerCase()]=1;});
-  // unbudgeted spending this month (canonical classifier + as-of), i.e. real outflow in a category with no budget line
-  var unbud=0;state.rows.forEach(function(r){if(!isExpenseRow(r)||(typeof _asOfOK==="function"&&!_asOfOK(r)))return;if(Number(r[0])!==y||Number(r[1])!==m)return;var e=(""+((r&&r[4])||"")).trim().toLowerCase();if(!e||!names[e])unbud+=Number(r[6])||0;});
+  var y=curYear(),m=curMonth(),names=budgetedNameSet(); // top-level AND itemized sub-item names — so a row tagged "Electricity"/"Baby Z" isn't wrongly "outside budget" (it already counts toward its parent)
+  // unbudgeted spending this month (canonical classifier + as-of), i.e. real outflow in a category with no budget line — plus a
+  // per-category breakdown so the user can SEE what the "$X outside budget" figure is made of (it's a dollar total, not a count).
+  var unbud=0,unbMap={};state.rows.forEach(function(r){if(!isExpenseRow(r)||(typeof _asOfOK==="function"&&!_asOfOK(r)))return;if(Number(r[0])!==y||Number(r[1])!==m)return;var raw=(""+((r&&r[4])||"")).trim(),e=raw.toLowerCase();if(!e||!names[e]){var amt=Number(r[6])||0;unbud+=amt;var key=raw||"Uncategorized";unbMap[key]=(unbMap[key]||0)+amt;}});
   var hold=goalHold();
   var left=r2(tb-ts-hold-unbud),pct=Math.round(ts/tb*100); // unbudgeted spending genuinely eats into what's left, not just an annotation (audit v0.56 #8)
   var big=(left<-0.005)?(money(-left)+" over this month's budget"):(money(left)+" left in this month's budget"); // spending-budget capacity, NOT cash remaining — a deliberately narrow claim
@@ -7027,9 +7373,20 @@ function renderS2S(){
   sub+=" · "+pct+"% used";
   var linkedUse=r2(ts-tsp);
   if(linkedUse>0.005)sub+=" · ("+money(tsp)+" spent + "+money(linkedUse)+" moved to goals)"; // separate consumption from goal-funding so "used" isn't read as "spent"
-  if(unbud>0.005)sub+=" · +"+money(unbud)+" unbudgeted";
+  if(unbud>0.005)sub+=" · "+money(unbud)+" spent outside budget"; // a DOLLAR total of spending in categories with no budget line — not a count
   var pw=Math.max(0,Math.min(100,pct)),cls=(left<-0.005)?"over":(ts/tb>=0.85?"warn":"");
-  el.innerHTML='<div class="s2s-big '+(left<-0.005?"neg":"")+'">'+big+'</div><div class="s2s-sub">'+sub+'</div><div class="s2s-bar"><span class="'+cls+'" style="width:'+pw+'%"></span></div>';
+  // Tappable breakdown of the "spent outside budget" figure — WHAT it's made of, by category (blank category → "Uncategorized"),
+  // so the user can see exactly which transactions fell outside the budget (e.g. to confirm a ledger re-categorization took effect).
+  var unbDetail="";
+  if(unbud>0.005){
+    var arr=Object.keys(unbMap).map(function(k){return {name:k,amt:r2(unbMap[k])};}).filter(function(x){return x.amt>0.005;}).sort(function(a,b){return b.amt-a.amt;});
+    var rowsU=arr.slice(0,10).map(function(x){return '<div class="totrow" style="margin-top:2px;font-size:12.5px"><span style="color:var(--ink2)">'+esc(x.name)+'</span><span class="num" style="color:var(--ink2)">'+money(x.amt)+'</span></div>';}).join("");
+    if(arr.length>10)rowsU+='<div class="hintline" style="text-align:left;margin-top:2px;font-size:11px">+'+(arr.length-10)+' more</div>';
+    unbDetail='<details style="margin-top:8px"><summary class="mn-sum" style="font-size:12.5px">See the '+money(unbud)+' spent outside your budget</summary>'
+      +'<div style="margin-top:6px">'+rowsU+'</div>'
+      +'<div class="hintline" style="text-align:left;margin:6px 0 0;font-size:11px">These are this month’s expenses in a category that isn’t in your budget (or with no category). To fold them in, give each the name of a budget category in your ledger, or add the category on the <b>Budget</b> tab.</div></details>';
+  }
+  el.innerHTML='<div class="s2s-big '+(left<-0.005?"neg":"")+'">'+big+'</div><div class="s2s-sub">'+sub+'</div><div class="s2s-bar"><span class="'+cls+'" style="width:'+pw+'%"></span></div>'+unbDetail;
 }
 function renderCatTbl(){
   var el=$("catTbl");if(!el)return;
@@ -7410,7 +7767,7 @@ async function addEntry(){
   if(!credit&&hasDupExpense(co,amt,y,m)&&!await askConfirm({title:"Log it again?",msg:"You already logged "+money(amt)+(co?(" at <b>"+esc(co)+"</b>"):"")+" this month.",ok:"Add anyway"}))return;
   var signed=credit?-Math.abs(amt):amt; // a credit is stored as a negative row so it lowers the category's spending
   var d=new Date(date+"T00:00:00"),b=$("addBtn");b.disabled=true;b.textContent=credit?"Adding credit…":"Adding…";
-  try{var vals=[d.getFullYear(),d.getMonth()+1,date,payee,cat,co,signed,(credit&&!desc?"Credit / money received":desc),reimb];var res=(await idempotentAppend(vals)).res;var row=appendedRow(res);if(row)setYMFormula(row);$("fCompany").value="";if($("fCatHint"))$("fCatHint").style.display="none";updateCatBtn();$("fAmount").value="";$("fDesc").value="";$("fReimb").checked=false;/* keep the category selected so you can log several in a row and the filtered list stays put */if($("fCredit")){$("fCredit").checked=false;applyCreditUI();}localRowPush(vals);if(payee)setLastPick("payee",payee);await syncAfterWrite(y);showAddedUndo(credit?("Credit of "+money(amt)+" added ✓"):"Added ✓",row);}
+  try{var vals=[d.getFullYear(),d.getMonth()+1,date,payee,cat,co,signed,(credit&&!desc?"Credit / money received":desc),reimb];var res=(await idempotentAppend(vals)).res;var row=appendedRow(res);if(row)setYMFormula(row);$("fCompany").value="";if($("fCatHint"))$("fCatHint").style.display="none";updateCatBtn();$("fAmount").value="";$("fDesc").value="";$("fReimb").checked=false;/* keep the category selected so you can log several in a row and the filtered list stays put */if($("fCredit")){$("fCredit").checked=false;applyCreditUI();}localRowPush(vals);if(payee)setLastPick("payee",payee);await syncAfterWrite(y);showAddedUndo(credit?("Credit of "+money(amt)+" added ✓"):"Added ✓",row);if(!credit)try{maybeSuggestLink(vals);}catch(e){}}
   catch(e){msg.textContent="Could not add: "+(e.message||e);msg.className="msg bad";}
   b.disabled=false;b.textContent="Add expense";if($("fCredit"))applyCreditUI();
 }
@@ -8103,6 +8460,28 @@ function wrenAnalyze(text){
     }
     // _residAmt about a non-residual goal → let the normal goal branch answer it (fall through)
   }
+  // #6 FORWARD contingency timing — "when will my contingency be repaired / rebuilt / reach its target?" Narrated from the ONE
+  // forward engine multiMonthReconciliation() (repair → build → residual, floor-capped), so Wren's timeline matches the card.
+  // Cues are future/rebuild-specific so this never steals a BACKWARD "when did it go negative / was it last positive" question.
+  var _fwdCue=/(rebuil|re-?build|repair|recover|caught up|catch up|back to \$?0|back to zero|back in the black|whole again|reach\w*\s+(my |the |its )?target|hit\w*\s+(my |the )?target)/.test(t);
+  var _fwdWhen=/\b(when|how long|by (when|what month))\b[\s\S]{0,40}(rebuil|re-?build|repair|recover|fix|caught up|catch up|\bback\b|whole|target|positive again|\$?0\b)/.test(t);
+  if(/(contingency|buffer|cushion)/.test(t)&&(_fwdCue||_fwdWhen)){
+    var _mm=null;try{_mm=multiMonthReconciliation();}catch(e){}
+    if(_mm){
+      var _mnf=function(m){return (typeof MONF!=="undefined"&&MONF[m-1])||(typeof MONTHS!=="undefined"&&MONTHS[m-1])||("month "+m);};
+      var _over=(_mm.enteringPool<-0.005),_P=[];
+      if(_over){var _def=money(Math.max(0,-_mm.enteringPool));
+        _P.push(_mm.repairedMonth?("Your "+_def+" contingency shortfall is on track to be repaired to $0 by "+_mnf(_mm.repairedMonth))
+          :("At your current plan your "+_def+" contingency shortfall isn’t fully repaired by year-end — it needs more surplus, or your buffer categories coming in under budget"));}
+      if(_mm.target>0.005){
+        if(_mm.targetMonth)_P.push((_over?"and your ":"Your ")+money(_mm.target)+" cushion is built by "+_mnf(_mm.targetMonth));
+        else _P.push((_over?"and the ":"The ")+money(_mm.target)+" target isn’t reached by year-end"+(_mm.floorHeld>0.005?" — your Nest Egg Floor holds some surplus back as reserves":""));
+      }
+      if(!_P.length)return {answer:"Your contingency isn’t overspent and you haven’t set a target, so there’s nothing to rebuild — this month’s surplus flows to residual goals and reserves. Set a Contingency target on the Month tab if you want to build a cushion.",go:{v:"month"}};
+      var _tail=(_over&&_mm.floorHeld>0.005)?(" Along the way, "+money(_mm.floorHeld)+" of surplus stays as reserves to keep every month at or above your "+money(_mm.floor)+" floor."):"";
+      return {answer:_P.join(", ")+"."+_tail+" That’s a projection at your current plan — repair first, then the cushion, then residual goals.",go:{v:"month"}};
+    }
+  }
   // Contingency coverage questions — all narrated from the authoritative computeRollover() facts (raw vs covered vs uncovered).
   var _envNeg=null;try{(computeRollover().envelopes||[]).forEach(function(e){if(t.indexOf(e.name.toLowerCase())>=0&&e.rawBalance<-0.005)_envNeg=e;});}catch(e){}
   if(/(contingency|buffer)|(cover|afford|handle).{0,24}(overage|overspend|over ?budget|the over)|(envelope|envelopes).{0,24}(year|cover|last|run (out|short)|survive|make it|uncover)|banked (enough|balance)|uncover|rollover (shortfall|deficit|overspend)|(shortfall|deficit).{0,16}(altogether|overall|in total)|how much.*rollover/.test(t)||(_envNeg&&/(negative|in the red|red|why|minus|overspent|below zero)/.test(t))){
@@ -8290,7 +8669,7 @@ function wrenAnalyze(text){
   }
   // A0b) Unbudgeted spending — spending that fell OUTSIDE your budget categories (distinct from total spend)
   if(/unbudget|un-budget|not budgeted|wasn'?t budgeted|weren'?t budgeted|isn'?t budgeted|not in (my |the |our )?budget|outside .*budget|uncategor/.test(t)){
-    var _known={};(state.cats||[]).forEach(function(c){_known[(c.name||"").toLowerCase()]=1;});
+    var _known=budgetedNameSet(); // ONE authoritative membership set (top-level + itemized child + ↳ forms) — so Wren's "unbudgeted" matches the Month headline, never a top-level-only view that re-counts children
     var _ub=monthRows.filter(function(r){if(!isExpenseRow(r))return false;var c=(""+((r[4])||"")).trim().toLowerCase();return !c||!_known[c];});
     var _ubT=r2(_ub.reduce(function(a,r){return a+(Number(r[6])||0);},0));
     if(_ubT<=0.005)return {answer:"No unbudgeted spending "+when+" — everything you logged landed in a budget category.",go:{v:"month"}};

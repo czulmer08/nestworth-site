@@ -28,6 +28,8 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
       // logged $6,000 December bill is the binding forward low. A large startCash absorbs Home's one-time June spike from the past.
       var rr=[];for(var mo=1;mo<=8;mo++)rr.push([2026,mo,'2026-'+String(mo).padStart(2,'0')+'-03','Pay','Deposit','',1900,'','']);
       rr.push([2026,12,'2026-12-15','','Tuition','School',6000,'','']);        // future obligation → sinking candidate for Tuition
+      rr.push([2026,6,'2026-06-15','','Home','Roof repair',11200,'','']);       // the one-off that made June's Home spike → shows in the "What Jun was" table
+      rr.push([2026,6,'2026-06-20','','Home','Gutters',800,'','']);
       state.cons=[{name:'Inc',bud12:fill(1900),annual:22800}];
       state.cats=[{name:'Tuition',bud12:fill(500),annual:6000},{name:'Home',bud12:fill(800),annual:9600},{name:'Groceries',bud12:fill(600),annual:7200}];
       state.goals=[{name:'Car Fund',residual:true,residualPct:100,archived:false}];state.assets=[{name:'Checking',bal:9000}];state.debts=[{name:'Card',bal:2000}];
@@ -91,8 +93,11 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
     build();var html=forecastCheckupHTML();
     Rz.render={hasHeader:/Forecast Checkup/.test(html),hasMatch:/Is this envelope saving for the bill below/.test(html)&&/Tuition/.test(html),
       hasTxTable:/The bill/.test(html)&&/Due/.test(html)&&/Payee/.test(html)&&/School/.test(html),
-      hasDiff:/If you link them/.test(html)&&/Safe to move/.test(html),hasLumpy:/one-off skewing the forecast/.test(html)&&/Home/.test(html),
-      hasLinkBtn:/ckLink\(/.test(html),hasNotNow:/ckDismiss\([0-9]+,'match'\)/.test(html),hasLumpyBtns:/ckAdjust\(/.test(html)&&/ckDismiss\([0-9]+,'lumpy'\)/.test(html)};
+      hasDiff:/If you link them/.test(html)&&/Safe to move/.test(html),
+      hasLumpy:/Was that a one-off, or your normal/.test(html)&&/Home/.test(html),
+      hasLumpyTable:/What Jun was/.test(html)&&/Roof repair/.test(html)&&/\$11,200\.00/.test(html),
+      hasLinkBtn:/ckLink\(/.test(html),hasNotNow:/ckDismiss\([0-9]+,'match'\)/.test(html),
+      hasLumpyAnswers:/It was a one-off/.test(html)&&/ckAdjust\(/.test(html)&&/That’s normal/.test(html)&&/ckDismiss\([0-9]+,'lumpy'\)/.test(html)};
     // ---- INTEGRATION: renderCheckup mounts the card into the Budget-tab slot ----
     try{renderCheckup();}catch(e){}
     Rz.slotFilled=/Forecast Checkup/.test(((document.getElementById('checkupSlot')||{}).innerHTML)||'');
@@ -121,8 +126,10 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith("/app.html")){r.write
      R.forecastMoved&&R.safeMatchesDiff, JSON.stringify({base:R.safeBase,after:R.applied.safeAfter,diffAfter:R.diff.after}));
   ck('UNLINK reverts the forecast to baseline and KEEPS the banked balance (never redirects money)',
      R.unlink.noLink&&R.unlink.safeReverts&&R.unlink.bankedKept, JSON.stringify(R.unlink));
-  ck('the checkup card renders: header, the match question, the "The bill" transaction table (Due/Payee/Amount), the before/after, the lumpy prompt, and working buttons on BOTH item types',
-     R.render.hasHeader&&R.render.hasMatch&&R.render.hasTxTable&&R.render.hasDiff&&R.render.hasLumpy&&R.render.hasLinkBtn&&R.render.hasNotNow&&R.render.hasLumpyBtns, JSON.stringify(R.render));
+  ck('the match renders: header, question, the "The bill" transaction table, the before/after, and working Link/Not-now buttons',
+     R.render.hasHeader&&R.render.hasMatch&&R.render.hasTxTable&&R.render.hasDiff&&R.render.hasLinkBtn&&R.render.hasNotNow, JSON.stringify(R.render));
+  ck('the "Unusual budget" item is a real yes/no: the "What Jun was" transaction table (Roof repair $11,200), and the two ANSWERS "It was a one-off" (→ adjust) and "That’s normal"',
+     R.render.hasLumpy&&R.render.hasLumpyTable&&R.render.hasLumpyAnswers, JSON.stringify({lumpy:R.render.hasLumpy,table:R.render.hasLumpyTable,answers:R.render.hasLumpyAnswers}));
   ck('integration: renderCheckup mounts the card into the Budget-tab slot (#checkupSlot)', R.slotFilled, 'slotFilled='+R.slotFilled);
 
   let pass=0,fail=0;out.forEach(function(r){console.log((r.ok?'  PASS ':'  FAIL ')+r.n+(r.d&&!r.ok?('  → '+r.d):''));r.ok?pass++:fail++;});
