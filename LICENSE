@@ -1,0 +1,34 @@
+NestWorth — Proprietary Software License
+Copyright © 2026 Ulmer Consulting, LLC. All rights reserved.
+
+NestWorth, including its software (HTML, JavaScript, and related code), its user
+interface and visual design, its financial-model implementation and
+specifications, its documentation, and its graphics and logos (collectively, the
+"Software"), is the proprietary and confidential property of Ulmer Consulting,
+LLC.
+
+This repository is source-available for transparency and personal use of the
+hosted NestWorth application ONLY. Its publication grants no license, express or
+implied. Except as expressly permitted in writing by Ulmer Consulting, LLC, you
+may not, in whole or in part:
+
+  * copy, reproduce, republish, or distribute the Software;
+  * modify, adapt, translate, or create derivative works from the Software;
+  * reverse engineer, decompile, or disassemble any portion of the Software,
+    except to the limited extent applicable law expressly permits;
+  * sublicense, sell, rent, lease, or otherwise commercially exploit the
+    Software; or
+  * use the Software, or any substantial part of it, to build or operate a
+    product or service that is substantially similar to NestWorth.
+
+NestWorth is client-side software. The fact that portions of it are transmitted
+to your browser in order to run does not grant any right to copy, retain, or
+reuse it beyond ordinary personal use of the hosted application.
+
+"NestWorth" and its associated names and logos are marks of Ulmer Consulting,
+LLC. No trademark license is granted.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. Your use of the
+hosted NestWorth application is governed by the NestWorth Terms of Service.
+
+For permissions and inquiries: czulmer@gmail.com
